@@ -7,13 +7,26 @@
   --color-brand-border: #1e293b;   /* Bordes sutiles de componentes */
   --color-brand-accent: #0772c7;   /* Azul principal Net&Sec (del degradado del logo) */
   --color-brand-cyan: #00b4f0;     /* Cian del logo, para enlaces y acentos */
+
+  /* Tipografías (se cargan en main.tsx). font-display = Montserrat, la del logo */
+  --font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, sans-serif;
+  --font-display: 'Montserrat Variable', 'Plus Jakarta Sans Variable', system-ui, sans-serif;
 }
 
 body {
   background-color: var(--color-brand-bg);
   color: #f8fafc;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   margin: 0;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
+  }
 }
 
 @media print {

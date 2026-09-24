@@ -187,7 +187,7 @@ function StatTile({ label, valor, detalle, cargando, alerta, to }: StatTileProps
       {cargando ? (
         <div className="mt-3 h-8 w-24 animate-pulse rounded-md bg-white/5" />
       ) : (
-        <p className="mt-2 text-2xl font-semibold sm:text-3xl">{valor}</p>
+        <p className="mt-2 font-display text-2xl font-semibold sm:text-3xl">{valor}</p>
       )}
       {detalle && !cargando && <p className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-slate-400">{detalle}</p>}
     </>

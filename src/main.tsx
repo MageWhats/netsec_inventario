@@ -2,6 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ConfigErrorPage } from '@/app/ConfigErrorPage'
 import { parseEnv } from '@/lib/env'
+// Tipografías incluidas en la app (sin depender de Google Fonts): Montserrat para títulos, como el logo,
+// y Plus Jakarta Sans para el texto
+import '@fontsource-variable/montserrat'
+import '@fontsource-variable/plus-jakarta-sans'
 import './index.css'
 
 const root = createRoot(document.getElementById('root')!)
