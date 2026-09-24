@@ -12,8 +12,11 @@ interface EscanerProps {
   titulo: string
   /** La cámara sigue abierta para leer varios códigos seguidos (p. ej. seriales) */
   continuo?: boolean
-  /** Recibe cada código leído. En modo simple, el escáner se cierra al primer resultado ok */
-  onDetectado: (codigo: string) => ResultadoEscaneo
+  /**
+   * Recibe cada código leído. Puede ser asíncrono (p. ej. validar en el servidor): mientras
+   * responde, la cámara no procesa más lecturas. En modo simple, se cierra al primer resultado ok.
+   */
+  onDetectado: (codigo: string) => ResultadoEscaneo | Promise<ResultadoEscaneo>
 }
 
 /** Botón que abre la cámara del teléfono para leer códigos de barras o QR */
@@ -60,13 +63,28 @@ function EscanerCamara({ titulo, continuo = false, onDetectado, onClose }: Escan
     onCloseRef.current = onClose
   })
   const repetidoRef = useRef({ codigo: '', hora: 0 })
+  const ocupadoRef = useRef(false)
+  const [procesando, setProcesando] = useState(false)
 
-  function procesar(codigo: string) {
+  async function procesar(codigo: string) {
     const ahora = Date.now()
+    if (ocupadoRef.current) return
     if (codigo === repetidoRef.current.codigo && ahora - repetidoRef.current.hora < PAUSA_REPETIDO_MS) return
     repetidoRef.current = { codigo, hora: ahora }
 
-    const resultado = onDetectadoRef.current(codigo)
+    ocupadoRef.current = true
+    setProcesando(true)
+    let resultado: ResultadoEscaneo
+    try {
+      resultado = await onDetectadoRef.current(codigo)
+    } catch (e) {
+      resultado = { ok: false, mensaje: e instanceof Error ? e.message : 'No se pudo procesar el código.' }
+    } finally {
+      ocupadoRef.current = false
+      setProcesando(false)
+      // La pausa por repetido cuenta desde que terminó de procesarse
+      repetidoRef.current.hora = Date.now()
+    }
     pitido(resultado.ok)
     setUltimo({ ...resultado, codigo })
     if (resultado.ok) setLecturas((n) => n + 1)
@@ -112,7 +130,7 @@ function EscanerCamara({ titulo, continuo = false, onDetectado, onClose }: Escan
         if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
           try {
             const codigo = (await detector.detect(video))[0]?.rawValue.trim()
-            if (codigo && !cancelado) procesar(codigo)
+            if (codigo && !cancelado) void procesar(codigo)
           } catch {
             // Un cuadro que no se pudo leer: se intenta con el siguiente
           }
@@ -170,7 +188,7 @@ function EscanerCamara({ titulo, continuo = false, onDetectado, onClose }: Escan
     const codigo = manual.trim()
     if (!codigo) return
     repetidoRef.current = { codigo: '', hora: 0 } // escribirlo a mano siempre cuenta
-    procesar(codigo)
+    void procesar(codigo)
     setManual('')
   }
 
@@ -223,7 +241,12 @@ function EscanerCamara({ titulo, continuo = false, onDetectado, onClose }: Escan
 
         <div className="space-y-3 bg-brand-card p-4">
           <div className="min-h-10 text-sm" aria-live="polite">
-            {ultimo ? (
+            {procesando ? (
+              <p className="flex items-center gap-2 text-slate-300">
+                <Loader2 className="size-4 animate-spin" />
+                Verificando…
+              </p>
+            ) : ultimo ? (
               <p className={`flex items-start gap-2 ${ultimo.ok ? 'text-emerald-400' : 'text-amber-400'}`}>
                 {ultimo.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <XCircle className="mt-0.5 size-4 shrink-0" />}
                 <span>

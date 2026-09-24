@@ -6,6 +6,8 @@ import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { ClienteDetallePage } from '@/features/clientes/ClienteDetallePage'
 import { ClientesPage } from '@/features/clientes/ClientesPage'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
+import { TomaDetallePage } from '@/features/inventario/TomaDetallePage'
+import { TomasPage } from '@/features/inventario/TomasPage'
 import { MovimientoDetallePage } from '@/features/movimientos/MovimientoDetallePage'
 import { MovimientosPage } from '@/features/movimientos/MovimientosPage'
 import { NuevoMovimientoPage } from '@/features/movimientos/NuevoMovimientoPage'
@@ -33,6 +35,8 @@ export const router = createBrowserRouter([
           { path: 'clientes/:id', element: <ClienteDetallePage /> },
           { path: 'proveedores', element: <ProveedoresPage /> },
           { path: 'proveedores/:id', element: <ProveedorDetallePage /> },
+          { path: 'inventario', element: <TomasPage /> },
+          { path: 'inventario/:id', element: <TomaDetallePage /> },
           { path: 'reportes', element: <ReportesPage /> },
         ],
       },

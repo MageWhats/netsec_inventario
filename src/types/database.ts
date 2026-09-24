@@ -392,8 +392,115 @@ export type Database = {
           },
         ]
       }
+      tomas_inventario: {
+        Row: {
+          id: string
+          numero: number
+          estado: Database['public']['Enums']['estado_toma']
+          bodega_id: string
+          categoria_id: string | null
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          cerrada_at: string | null
+          ajuste_entrada_id: string | null
+          ajuste_salida_id: string | null
+        }
+        // Solo se escribe mediante las funciones iniciar_toma(), finalizar_toma()...
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'tomas_inventario_categoria_id_fkey'
+            columns: ['categoria_id']
+            isOneToOne: false
+            referencedRelation: 'categorias'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tomas_inventario_ajuste_entrada_id_fkey'
+            columns: ['ajuste_entrada_id']
+            isOneToOne: false
+            referencedRelation: 'movimientos'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tomas_inventario_ajuste_salida_id_fkey'
+            columns: ['ajuste_salida_id']
+            isOneToOne: false
+            referencedRelation: 'movimientos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      toma_productos: {
+        Row: {
+          toma_id: string
+          producto_id: string
+          stock_inicial: number
+          contado: number | null
+          updated_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'toma_productos_toma_id_fkey'
+            columns: ['toma_id']
+            isOneToOne: false
+            referencedRelation: 'tomas_inventario'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'toma_productos_producto_id_fkey'
+            columns: ['producto_id']
+            isOneToOne: false
+            referencedRelation: 'productos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      toma_seriales: {
+        Row: {
+          id: string
+          toma_id: string
+          producto_id: string
+          unidad_id: string
+          created_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'toma_seriales_unidad_id_fkey'
+            columns: ['unidad_id']
+            isOneToOne: false
+            referencedRelation: 'unidades'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
+      tomas_resumen: {
+        Row: {
+          id: string
+          numero: number
+          estado: Database['public']['Enums']['estado_toma']
+          bodega_id: string
+          categoria_id: string | null
+          categoria_nombre: string | null
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          cerrada_at: string | null
+          ajuste_entrada_id: string | null
+          ajuste_salida_id: string | null
+          productos: number
+          contados: number
+        }
+        Relationships: []
+      }
       stock_actual: {
         Row: {
           producto_id: string | null
@@ -443,12 +550,41 @@ export type Database = {
         }
         Returns: string
       }
+      iniciar_toma: {
+        Args: { p_categoria_id?: string | null; p_notas?: string | null }
+        Returns: string
+      }
+      contar_producto: {
+        Args: { p_toma_id: string; p_producto_id: string; p_contado: number | null }
+        Returns: undefined
+      }
+      sumar_conteo: {
+        Args: { p_toma_id: string; p_producto_id: string; p_cantidad?: number }
+        Returns: number
+      }
+      escanear_serial: {
+        Args: { p_toma_id: string; p_numero_serie: string }
+        Returns: Json
+      }
+      quitar_serial: {
+        Args: { p_toma_id: string; p_unidad_id: string }
+        Returns: undefined
+      }
+      finalizar_toma: {
+        Args: { p_toma_id: string }
+        Returns: Json
+      }
+      cancelar_toma: {
+        Args: { p_toma_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       rol_usuario: 'admin' | 'bodega' | 'lectura'
       tipo_movimiento: 'entrada' | 'salida' | 'ajuste_entrada' | 'ajuste_salida'
       estado_unidad: 'disponible' | 'vendida' | 'en_garantia' | 'danada' | 'baja'
       tipo_documento: 'CC' | 'NIT' | 'CE' | 'PAS' | 'TI' | 'OTRO'
+      estado_toma: 'en_curso' | 'finalizada' | 'cancelada'
     }
     CompositeTypes: {
       [_ in never]: never

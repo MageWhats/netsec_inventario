@@ -26,6 +26,8 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
 1. `0001_esquema_inicial.sql`: perfiles, catálogos, productos, unidades, movimientos y RLS.
 2. `0002_clientes_y_movimientos.sql`: clientes, datos de proveedores, consecutivo de movimientos y la función
    `registrar_movimiento()`.
+3. `0003_toma_inventario.sql`: tomas de inventario físico y las funciones para contar, escanear seriales y
+   finalizar (genera los ajustes con `registrar_movimiento()`).
 
 Reglas clave:
 
