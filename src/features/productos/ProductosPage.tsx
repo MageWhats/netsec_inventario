@@ -1,6 +1,6 @@
 import { Barcode, Loader2, Pencil, Plus, Power, PowerOff, Search } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatearPrecio } from '@/lib/format'
 import { useBusquedaSerie, useCategorias, useProductos, type Producto } from './api'
@@ -18,7 +18,9 @@ export function ProductosPage() {
   const [busqueda, setBusqueda] = useState('')
   const [categoriaId, setCategoriaId] = useState('')
   const [estado, setEstado] = useState<FiltroEstado>('activos')
-  const [soloStockBajo, setSoloStockBajo] = useState(false)
+  const [searchParams] = useSearchParams()
+  // El dashboard enlaza aquí con ?stock=bajo para ver los productos por reponer
+  const [soloStockBajo, setSoloStockBajo] = useState(() => searchParams.get('stock') === 'bajo')
 
   const [formAbierto, setFormAbierto] = useState(false)
   const [editando, setEditando] = useState<Producto | null>(null)
