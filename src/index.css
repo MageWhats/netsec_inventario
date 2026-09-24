@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Aquí definimos tu paleta de colores oscuros y azules usando variables nativas de Tailwind v4 */
+@theme {
+  --color-brand-bg: #0b0f19;       /* Fondo general ultra oscuro */
+  --color-brand-card: #121824;     /* Fondo de las tarjetas y contenedores */
+  --color-brand-border: #1e293b;   /* Bordes sutiles de componentes */
+  --color-brand-accent: #2563eb;   /* Azul principal Net&Sec */
+  --color-brand-cyan: #06b6d4;     /* Cian brillante para degradados y KPIs */
+}
+
+body {
+  background-color: var(--color-brand-bg);
+  color: #f8fafc;
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+}
