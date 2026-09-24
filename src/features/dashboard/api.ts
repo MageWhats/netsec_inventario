@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { traerTodo } from '@/lib/paginar'
 
 export interface ResumenMes {
   /** Primer día del mes, YYYY-MM */
@@ -38,15 +39,17 @@ export function useResumenMensual(meses = 6) {
         })
       }
 
-      const { data, error } = await supabase
-        .from('movimientos_resumen')
-        .select('tipo, fecha, unidades, total_venta')
-        .in('tipo', ['entrada', 'salida'])
-        .gte('fecha', desde.toISOString())
-        .limit(10_000)
-      if (error) throw error
+      const { filas } = await traerTodo((inicio, fin) =>
+        supabase
+          .from('movimientos_resumen')
+          .select('tipo, fecha, unidades, total_venta')
+          .in('tipo', ['entrada', 'salida'])
+          .gte('fecha', desde.toISOString())
+          .order('id')
+          .range(inicio, fin),
+      )
 
-      for (const m of data) {
+      for (const m of filas) {
         const mes = resumen.get(claveMes(new Date(m.fecha)))
         if (!mes) continue
         if (m.tipo === 'entrada') {

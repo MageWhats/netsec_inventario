@@ -3,6 +3,9 @@ import { useRef, useState, type SyntheticEvent } from 'react'
 import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { macValida, normalizarMac, normalizarSerial, parsearSeriales, type SerieNueva } from '../lineas'
 
+/** Tope por lista pegada (los seriales se validan y guardan en una sola transacción) */
+const MAX_SERIALES_PEGADOS = 1000
+
 interface SerialesNuevosInputProps {
   series: SerieNueva[]
   onChange: (series: SerieNueva[]) => void
@@ -58,6 +61,10 @@ export function SerialesNuevosInput({ series, onChange }: SerialesNuevosInputPro
 
   function onAgregarPegados() {
     const parseadas = parsearSeriales(textoPegado)
+    if (parseadas.length > MAX_SERIALES_PEGADOS) {
+      setAviso(`Máximo ${MAX_SERIALES_PEGADOS} seriales por lista: divídela en varias partes.`)
+      return
+    }
     const repetidos = agregar(parseadas)
     setAviso(repetidos ? `Se omitieron ${repetidos} serial(es) repetido(s).` : null)
     setTextoPegado('')
@@ -76,6 +83,7 @@ export function SerialesNuevosInput({ series, onChange }: SerialesNuevosInputPro
           placeholder="Escanea o escribe el serial y pulsa Enter"
           className="input min-w-48 flex-1 font-mono uppercase"
           aria-label="Número de serie"
+          maxLength={100}
         />
         <input
           value={mac}
@@ -84,6 +92,7 @@ export function SerialesNuevosInput({ series, onChange }: SerialesNuevosInputPro
           placeholder="MAC (opcional)"
           className="input w-52 font-mono uppercase"
           aria-label="MAC"
+          maxLength={17}
         />
         <button type="button" onClick={onAgregarUno} className="btn btn-secondary">
           <Plus className="size-4" />
@@ -103,6 +112,7 @@ export function SerialesNuevosInput({ series, onChange }: SerialesNuevosInputPro
             sirve copiar dos columnas de Excel).
           </p>
           <textarea
+            maxLength={100_000}
             value={textoPegado}
             onChange={(e) => setTextoPegado(e.target.value)}
             rows={5}

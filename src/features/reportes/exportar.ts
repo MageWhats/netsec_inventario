@@ -22,7 +22,10 @@ export function descargarCsv(nombreArchivo: string, columnas: string[], filas: C
 function formatearCelda(valor: Celda): string {
   if (valor === null || valor === undefined) return ''
   if (typeof valor === 'number') return String(valor).replace('.', ',')
-  return /[;"\r\n]/.test(valor) ? `"${valor.replace(/"/g, '""')}"` : valor
+  // Inyección de fórmulas: Excel ejecutaría un texto como "=HYPERLINK(...)" o "@SUM(...)".
+  // Con un apóstrofo delante se muestra como texto.
+  const texto = /^[=+\-@\t\r]/.test(valor) ? `'${valor}` : valor
+  return /[;"\r\n]/.test(texto) ? `"${texto.replace(/"/g, '""')}"` : texto
 }
 
 /** Fecha local en formato YYYY-MM-DD, para nombres de archivo y valores por defecto de filtros */

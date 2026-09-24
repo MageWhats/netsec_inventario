@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { traerTodo } from '@/lib/paginar'
 import type { Database, Enums, Views } from '@/types/database'
 import type { TipoMovimiento } from './tipos'
 
@@ -110,14 +111,17 @@ export function useUnidadesPorEstado(productoId: string, estados: Enums<'estado_
   return useQuery({
     queryKey: ['productos', 'unidades', productoId, 'estados', estados],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('unidades')
-        .select('id, numero_serie, mac, estado, bodega_id')
-        .eq('producto_id', productoId)
-        .in('estado', estados)
-        .order('numero_serie')
-      if (error) throw error
-      return data
+      const { filas } = await traerTodo((desde, hasta) =>
+        supabase
+          .from('unidades')
+          .select('id, numero_serie, mac, estado, bodega_id')
+          .eq('producto_id', productoId)
+          .in('estado', estados)
+          .order('numero_serie')
+          .order('id')
+          .range(desde, hasta),
+      )
+      return filas
     },
   })
 }

@@ -25,8 +25,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     user: session?.user ?? null,
     loading,
-    async signIn(email, password) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+    async signIn(email, password, captchaToken) {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+        options: captchaToken ? { captchaToken } : undefined,
+      })
       if (error) throw error
     },
     async signOut() {

@@ -1,6 +1,7 @@
-import { ArrowLeftRight, Boxes, Receipt, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, Boxes, History, Receipt, type LucideIcon } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { ReporteAuditoria } from './components/ReporteAuditoria'
 import { ReporteInventario } from './components/ReporteInventario'
 import { ReporteMovimientos } from './components/ReporteMovimientos'
 import { ReporteVentas } from './components/ReporteVentas'
@@ -30,6 +31,12 @@ const reportes = {
     descripcion: 'Detalle línea por línea de entradas, salidas y ajustes de un período',
     icono: ArrowLeftRight,
     componente: ReporteMovimientos,
+  },
+  cambios: {
+    label: 'Historial de cambios',
+    descripcion: 'Quién creó o modificó productos, precios, clientes, proveedores y usuarios, y cuándo',
+    icono: History,
+    componente: ReporteAuditoria,
   },
 } satisfies Record<string, InfoReporte>
 

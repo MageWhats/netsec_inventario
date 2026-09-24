@@ -1,0 +1,19 @@
+# Revisa cada semana las dependencias y abre pull requests con actualizaciones y parches de seguridad
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: America/Bogota
+    open-pull-requests-limit: 5
+    groups:
+      # Las actualizaciones menores se agrupan en un solo pull request
+      menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -268,6 +268,7 @@ function EscanerCamara({ titulo, continuo = false, onDetectado, onClose }: Escan
               placeholder="¿No lo lee? Escríbelo aquí"
               className="input font-mono"
               aria-label="Código escrito a mano"
+              maxLength={100}
             />
             <button type="submit" disabled={!manual.trim()} className="btn btn-secondary">
               Usar

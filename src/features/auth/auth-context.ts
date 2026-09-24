@@ -5,7 +5,8 @@ export interface AuthContextValue {
   session: Session | null
   user: User | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<void>
+  /** captchaToken: token de Cloudflare Turnstile, si el CAPTCHA está activado */
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<void>
   signOut: () => Promise<void>
 }
 

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { traerTodo } from '@/lib/paginar'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
 
 export type Categoria = Tables<'categorias'>
@@ -23,10 +24,11 @@ export const productosKeys = {
 const SELECT_PRODUCTO = '*, categoria:categorias(id, nombre)'
 
 async function obtenerStock(productoId?: string) {
-  let query = supabase.from('stock_actual').select('producto_id, cantidad')
-  if (productoId) query = query.eq('producto_id', productoId)
-  const { data, error } = await query
-  if (error) throw error
+  const { filas: data } = await traerTodo((desde, hasta) => {
+    let query = supabase.from('stock_actual').select('producto_id, cantidad').order('producto_id').order('bodega_id')
+    if (productoId) query = query.eq('producto_id', productoId)
+    return query.range(desde, hasta)
+  })
 
   const stock = new Map<string, number>()
   for (const fila of data) {
@@ -44,11 +46,12 @@ export function useProductos() {
   return useQuery({
     queryKey: productosKeys.lista(),
     queryFn: async (): Promise<Producto[]> => {
-      const [{ data, error }, stock] = await Promise.all([
-        supabase.from('productos').select(SELECT_PRODUCTO).order('nombre'),
+      const [{ filas: data }, stock] = await Promise.all([
+        traerTodo((desde, hasta) =>
+          supabase.from('productos').select(SELECT_PRODUCTO).order('nombre').order('id').range(desde, hasta),
+        ),
         obtenerStock(),
       ])
-      if (error) throw error
       return data.map((p) => ({ ...p, stock: stock.get(p.id) ?? 0 }))
     },
   })
@@ -101,13 +104,16 @@ export function useUnidades(productoId: string, enabled = true) {
     queryKey: productosKeys.unidades(productoId),
     enabled,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('unidades')
-        .select('*')
-        .eq('producto_id', productoId)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data
+      const { filas } = await traerTodo((desde, hasta) =>
+        supabase
+          .from('unidades')
+          .select('*')
+          .eq('producto_id', productoId)
+          .order('created_at', { ascending: false })
+          .order('id')
+          .range(desde, hasta),
+      )
+      return filas
     },
   })
 }
@@ -186,11 +192,14 @@ export function useKardex(productoId: string) {
   return useQuery({
     queryKey: [...productosKeys.all, 'kardex', productoId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('movimiento_items')
-        .select(SELECT_MOVIMIENTO_ITEM)
-        .eq('producto_id', productoId)
-      if (error) throw error
+      const { filas: data } = await traerTodo((desde, hasta) =>
+        supabase
+          .from('movimiento_items')
+          .select(SELECT_MOVIMIENTO_ITEM)
+          .eq('producto_id', productoId)
+          .order('id')
+          .range(desde, hasta),
+      )
 
       type Fila = (typeof data)[number]['movimiento'] & { entra: number; sale: number; saldo: number }
       const porMovimiento = new Map<string, Fila>()

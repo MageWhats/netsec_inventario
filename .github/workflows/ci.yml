@@ -1,0 +1,28 @@
+# Verificación de cada cambio: vulnerabilidades conocidas, tipos, lint y build
+name: Verificación
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 12 * * 1' # lunes: revisa vulnerabilidades nuevas aunque no haya cambios
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Vulnerabilidades en dependencias (falla con severidad alta o crítica)
+        run: npm audit --audit-level=high
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build

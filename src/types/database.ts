@@ -460,6 +460,23 @@ export type Database = {
           },
         ]
       }
+      auditoria: {
+        Row: {
+          id: number
+          tabla: string
+          registro_id: string
+          descripcion: string | null
+          accion: 'crear' | 'modificar' | 'eliminar'
+          cambios: Json
+          usuario_id: string | null
+          usuario_email: string | null
+          fecha: string
+        }
+        // Solo la escriben los triggers de la base de datos
+        Insert: never
+        Update: never
+        Relationships: []
+      }
       toma_seriales: {
         Row: {
           id: string

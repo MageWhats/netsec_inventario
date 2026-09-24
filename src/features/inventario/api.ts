@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { traerTodo } from '@/lib/paginar'
 import type { Enums, Views } from '@/types/database'
 
 export type EstadoToma = Enums<'estado_toma'>
@@ -53,9 +54,15 @@ export function useTomaProductos(id: string, enCurso: boolean) {
     queryKey: tomasKeys.productos(id),
     refetchInterval: enCurso ? REFRESCO_EN_CURSO_MS : false,
     queryFn: async () => {
-      const { data, error } = await supabase.from('toma_productos').select(SELECT_TOMA_PRODUCTO).eq('toma_id', id)
-      if (error) throw error
-      return data.sort((a, b) => a.producto.nombre.localeCompare(b.producto.nombre))
+      const { filas } = await traerTodo((desde, hasta) =>
+        supabase
+          .from('toma_productos')
+          .select(SELECT_TOMA_PRODUCTO)
+          .eq('toma_id', id)
+          .order('producto_id')
+          .range(desde, hasta),
+      )
+      return filas.sort((a, b) => a.producto.nombre.localeCompare(b.producto.nombre))
     },
   })
 }
@@ -67,13 +74,16 @@ export function useTomaSeriales(id: string, enCurso: boolean) {
     queryKey: tomasKeys.seriales(id),
     refetchInterval: enCurso ? REFRESCO_EN_CURSO_MS : false,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('toma_seriales')
-        .select('producto_id, created_at, unidad:unidades(id, numero_serie, mac, estado)')
-        .eq('toma_id', id)
-        .order('created_at', { ascending: false })
-      if (error) throw error
-      return data
+      const { filas } = await traerTodo((desde, hasta) =>
+        supabase
+          .from('toma_seriales')
+          .select('producto_id, created_at, unidad:unidades(id, numero_serie, mac, estado)')
+          .eq('toma_id', id)
+          .order('created_at', { ascending: false })
+          .order('id')
+          .range(desde, hasta),
+      )
+      return filas
     },
   })
 }

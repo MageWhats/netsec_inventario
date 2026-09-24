@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { traerTodo } from '@/lib/paginar'
 import type { Tables, TablesInsert } from '@/types/database'
 
 export type Proveedor = Tables<'proveedores'>
@@ -14,9 +15,10 @@ export function useProveedores() {
   return useQuery({
     queryKey: proveedoresKeys.lista(),
     queryFn: async () => {
-      const { data, error } = await supabase.from('proveedores').select('*').order('nombre')
-      if (error) throw error
-      return data
+      const { filas } = await traerTodo((desde, hasta) =>
+        supabase.from('proveedores').select('*').order('nombre').order('id').range(desde, hasta),
+      )
+      return filas
     },
   })
 }

@@ -7,6 +7,23 @@ import { z } from 'zod'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 import { LogoCompleto } from '@/components/ui/Logo'
 import { useAuth } from './auth-context'
+import { Turnstile } from './Turnstile'
+
+/** Si está configurada, el login exige la verificación anti-bots (también hay que activarla en Supabase) */
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() || null
+
+/** Mensaje para el usuario según el error de Supabase Auth */
+function mensajeLogin(error: unknown): string {
+  const e = error as { status?: number; code?: string; message?: string } | null
+  if (e?.status === 429 || e?.code === 'over_request_rate_limit') {
+    return 'Demasiados intentos seguidos. Espera unos minutos antes de volver a intentarlo.'
+  }
+  if (e?.message?.toLowerCase().includes('captcha')) {
+    return 'No se pudo completar la verificación anti-bots. Espera a que aparezca la marca de verificación e inténtalo de nuevo.'
+  }
+  if (e?.code === 'email_not_confirmed') return 'Este usuario aún no ha confirmado su email.'
+  return 'Email o contraseña incorrectos'
+}
 
 const loginSchema = z.object({
   email: z.email('Introduce un email válido'),
@@ -20,6 +37,8 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [serverError, setServerError] = useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const [reinicioCaptcha, setReinicioCaptcha] = useState(0)
 
   const {
     register,
@@ -35,10 +54,12 @@ export function LoginPage() {
   async function onSubmit(values: LoginForm) {
     setServerError(null)
     try {
-      await signIn(values.email, values.password)
+      await signIn(values.email, values.password, captchaToken ?? undefined)
       navigate(from, { replace: true })
-    } catch {
-      setServerError('Email o contraseña incorrectos')
+    } catch (error) {
+      setServerError(mensajeLogin(error))
+      // Cada token de verificación sirve para un solo intento
+      if (TURNSTILE_SITE_KEY) setReinicioCaptcha((n) => n + 1)
     }
   }
 
@@ -78,9 +99,13 @@ export function LoginPage() {
             </p>
           )}
 
+          {TURNSTILE_SITE_KEY && (
+            <Turnstile siteKey={TURNSTILE_SITE_KEY} onToken={setCaptchaToken} reinicio={reinicioCaptcha} />
+          )}
+
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || (TURNSTILE_SITE_KEY !== null && !captchaToken)}
             className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-accent py-2.5 font-medium text-white transition hover:bg-blue-500 disabled:opacity-60"
           >
             {isSubmitting && <Loader2 className="size-4 animate-spin" />}
