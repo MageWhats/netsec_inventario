@@ -1,5 +1,6 @@
 import { Search } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
+import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { EstadoUnidadBadge } from '@/features/productos/components/badges'
 import type { EstadoUnidad } from '@/features/productos/estados'
@@ -29,21 +30,24 @@ export function UnidadesSelector({ productoId, estados, seleccionadas, onChange,
     onChange(marcadas.has(id) ? seleccionadas.filter((x) => x !== id) : [...seleccionadas, id])
   }
 
+  /** Marca la unidad con ese serial exacto (lector USB o cámara) */
+  function marcarSerial(codigo: string): ResultadoEscaneo {
+    const serial = codigo.trim().toUpperCase()
+    const unidad = unidades.find((u) => u.numero_serie === serial)
+    if (!unidad) return { ok: false, mensaje: 'No hay ninguna unidad seleccionable con ese serial.' }
+    if (marcadas.has(unidad.id)) return { ok: false, mensaje: 'Ya estaba seleccionada.' }
+    onChange([...seleccionadas, unidad.id])
+    return { ok: true, mensaje: `Seleccionada (${seleccionadas.length + 1} en total)` }
+  }
+
   // Con lector de códigos: el serial escaneado + Enter marca la unidad exacta
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key !== 'Enter') return
     e.preventDefault()
     const serial = busqueda.trim().toUpperCase()
     if (!serial) return
-    const unidad = unidades.find((u) => u.numero_serie === serial)
-    if (!unidad) {
-      setAviso(`No hay ninguna unidad seleccionable con el serial ${serial}.`)
-    } else if (marcadas.has(unidad.id)) {
-      setAviso(`${serial} ya estaba seleccionada.`)
-    } else {
-      onChange([...seleccionadas, unidad.id])
-      setAviso(null)
-    }
+    const { ok, mensaje } = marcarSerial(serial)
+    setAviso(ok ? null : `${serial}: ${mensaje}`)
     setBusqueda('')
   }
 
@@ -66,6 +70,7 @@ export function UnidadesSelector({ productoId, estados, seleccionadas, onChange,
             className="input pl-9 font-mono"
           />
         </div>
+        <BotonEscanear titulo="Escanear seriales" label="Cámara" continuo onDetectado={marcarSerial} />
         <button
           type="button"
           onClick={() => {

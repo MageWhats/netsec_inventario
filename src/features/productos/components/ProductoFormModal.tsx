@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
+import { BotonEscanear } from '@/components/ui/Escaner'
 import { FormField } from '@/components/ui/FormField'
 import { Modal } from '@/components/ui/Modal'
 import { useCategorias, useGuardarProducto, useTieneMovimientos, type Producto } from '../api'
@@ -32,6 +33,7 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ProductoForm>({ resolver: zodResolver(productoSchema), defaultValues: productoVacio })
 
@@ -81,7 +83,16 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
           </FormField>
 
           <FormField label="Código de barras" error={errors.codigo_barras?.message} className="sm:col-span-2">
-            <input className="input" inputMode="numeric" {...register('codigo_barras')} />
+            <div className="flex gap-2">
+              <input className="input" inputMode="numeric" {...register('codigo_barras')} />
+              <BotonEscanear
+                titulo="Escanear código de barras"
+                onDetectado={(codigo) => {
+                  setValue('codigo_barras', codigo, { shouldDirty: true, shouldValidate: true })
+                  return { ok: true }
+                }}
+              />
+            </div>
           </FormField>
 
           <FormField label="Descripción" error={errors.descripcion?.message} className="sm:col-span-2">

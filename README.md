@@ -34,11 +34,24 @@ Reglas clave:
   sola transacción. Son **inmutables**: no se editan ni se borran, y las correcciones se hacen con ajustes.
 - Clientes, proveedores y productos no se borran: se desactivan, para conservar el historial.
 
+## Escáner con el teléfono
+
+Los botones con el ícono de código de barras abren la cámara (librería `barcode-detector`, motor ZXing en WebAssembly
+servido desde la propia app). El navegador **solo permite la cámara en HTTPS**:
+
+1. Ejecuta `npm run dev:movil` y abre en el teléfono la dirección `https://192.168.x.x:5173` que muestra la consola
+   (el teléfono debe estar en la misma red Wi-Fi).
+2. El certificado es local, así que el navegador mostrará una advertencia: toca *Configuración avanzada → Continuar*.
+3. Acepta el permiso de cámara.
+
+En producción el hosting ya sirve la app con HTTPS.
+
 ## Scripts
 
 | Script | Descripción |
 |---|---|
 | `npm run dev` | Servidor de desarrollo |
+| `npm run dev:movil` | Servidor HTTPS en la red local, para probar el escáner desde el teléfono |
 | `npm run build` | Chequeo de tipos + build de producción |
 | `npm run typecheck` | Solo chequeo de tipos |
 | `npm run lint` | ESLint |

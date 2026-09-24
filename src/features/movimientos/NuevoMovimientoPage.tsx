@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Combobox } from '@/components/ui/Combobox'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { FormField } from '@/components/ui/FormField'
 import { ClienteFormModal } from '@/features/clientes/components/ClienteFormModal'
 import { useClientes, type Cliente } from '@/features/clientes/api'
@@ -99,6 +100,16 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
 
   function agregarProducto(p: Producto | null) {
     if (p) setLineas((ls) => [...ls, nuevaLinea(p, tipo)])
+  }
+  /** Cámara: agrega el producto cuyo código de barras o SKU coincide exactamente */
+  function onProductoEscaneado(codigo: string): ResultadoEscaneo {
+    const p = productoExacto(productos, codigo)
+    if (!p) return { ok: false, mensaje: 'Ningún producto tiene ese código de barras o SKU.' }
+    if (!p.activo) return { ok: false, mensaje: `${p.nombre} está inactivo.` }
+    if (idsEnUso.has(p.id)) return { ok: false, mensaje: `${p.nombre} ya está en la lista.` }
+    if (!info.esEntrada && p.stock <= 0) return { ok: false, mensaje: `${p.nombre} no tiene stock.` }
+    agregarProducto(p)
+    return { ok: true, mensaje: p.nombre }
   }
   function actualizarLinea(key: string, cambios: Partial<Linea>) {
     setLineas((ls) => ls.map((l) => (l.key === key ? { ...l, ...cambios } : l)))
@@ -297,31 +308,36 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
         <section className="rounded-2xl border border-brand-border bg-brand-card p-6">
           <h2 className="mb-4 font-semibold">Productos</h2>
 
-          <Combobox
-            items={productosSeleccionables}
-            getKey={(p) => p.id}
-            getLabel={(p) => p.nombre}
-            matches={buscarProducto}
-            exactMatch={productoExacto}
-            isDisabled={(p) => !info.esEntrada && p.stock <= 0}
-            renderItem={(p) => (
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="truncate">{p.nombre}</div>
-                  <div className="text-xs text-slate-500">
-                    <span className="font-mono">{p.sku}</span>
-                    {p.es_serializado && ' · con serial'}
+          <div className="flex gap-2">
+            <div className="min-w-0 flex-1">
+              <Combobox
+                items={productosSeleccionables}
+                getKey={(p) => p.id}
+                getLabel={(p) => p.nombre}
+                matches={buscarProducto}
+                exactMatch={productoExacto}
+                isDisabled={(p) => !info.esEntrada && p.stock <= 0}
+                renderItem={(p) => (
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate">{p.nombre}</div>
+                      <div className="text-xs text-slate-500">
+                        <span className="font-mono">{p.sku}</span>
+                        {p.es_serializado && ' · con serial'}
+                      </div>
+                    </div>
+                    <StockBadge stock={p.stock} minimo={p.stock_minimo} />
                   </div>
-                </div>
-                <StockBadge stock={p.stock} minimo={p.stock_minimo} />
-              </div>
-            )}
-            onChange={agregarProducto}
-            clearOnSelect
-            autoFocus={!params.get('producto')}
-            placeholder="Agregar producto: busca por nombre, SKU o escanea el código de barras…"
-            emptyText={productos.length === 0 ? 'No hay productos creados' : 'Ningún producto coincide'}
-          />
+                )}
+                onChange={agregarProducto}
+                clearOnSelect
+                autoFocus={!params.get('producto')}
+                placeholder="Agregar producto: busca por nombre, SKU o escanea el código de barras…"
+                emptyText={productos.length === 0 ? 'No hay productos creados' : 'Ningún producto coincide'}
+              />
+            </div>
+            <BotonEscanear titulo="Escanear productos" continuo onDetectado={onProductoEscaneado} />
+          </div>
 
           {lineas.length === 0 ? (
             <p

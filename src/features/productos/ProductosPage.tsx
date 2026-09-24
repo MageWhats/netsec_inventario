@@ -1,6 +1,7 @@
 import { Barcode, Loader2, Pencil, Plus, Power, PowerOff, Search } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { formatearPrecio } from '@/lib/format'
 import { useBusquedaSerie, useCategorias, useProductos, type Producto } from './api'
@@ -43,6 +44,14 @@ export function ProductosPage() {
     [productos, estado, categoriaId, soloStockBajo, termino, coincidenSerie],
   )
 
+  /** Cámara: abre el producto si el código coincide con su código de barras o SKU; si no, lo busca (p. ej. un serial) */
+  function onEscaneado(codigo: string): ResultadoEscaneo {
+    const exacto = productos.find((p) => p.codigo_barras === codigo || p.sku.toLowerCase() === codigo.toLowerCase())
+    if (exacto) navigate('/productos/' + exacto.id)
+    else setBusqueda(codigo)
+    return { ok: true }
+  }
+
   function abrirNuevo() {
     setEditando(null)
     setFormAbierto(true)
@@ -67,15 +76,18 @@ export function ProductosPage() {
       />
 
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_auto_auto_auto] md:items-center">
-        <div className="relative">
-          <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-500" />
-          <input
-            type="search"
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por SKU, nombre, marca, modelo, código de barras o serial…"
-            className="input pl-9"
-          />
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-500" />
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por SKU, nombre, marca, modelo, código de barras o serial…"
+              className="input pl-9"
+            />
+          </div>
+          <BotonEscanear titulo="Escanear producto o serial" onDetectado={onEscaneado} />
         </div>
         <select value={categoriaId} onChange={(e) => setCategoriaId(e.target.value)} className="input md:w-48">
           <option value="">Todas las categorías</option>

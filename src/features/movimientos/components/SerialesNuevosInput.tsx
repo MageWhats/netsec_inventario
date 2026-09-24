@@ -1,5 +1,6 @@
 import { ClipboardPaste, Plus, X } from 'lucide-react'
 import { useRef, useState, type SyntheticEvent } from 'react'
+import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { macValida, normalizarMac, normalizarSerial, parsearSeriales, type SerieNueva } from '../lineas'
 
 interface SerialesNuevosInputProps {
@@ -9,7 +10,7 @@ interface SerialesNuevosInputProps {
 
 /**
  * Captura de seriales nuevos: uno a uno (compatible con lector de código de barras, que "escribe" el
- * serial y pulsa Enter) o pegando una lista desde Excel.
+ * serial y pulsa Enter), con la cámara del teléfono o pegando una lista desde Excel.
  */
 export function SerialesNuevosInput({ series, onChange }: SerialesNuevosInputProps) {
   const serialRef = useRef<HTMLInputElement>(null)
@@ -47,6 +48,14 @@ export function SerialesNuevosInput({ series, onChange }: SerialesNuevosInputPro
     serialRef.current?.focus()
   }
 
+  function onEscaneado(codigo: string): ResultadoEscaneo {
+    const numero = normalizarSerial(codigo)
+    const repetidos = agregar([{ numero_serie: numero, mac: '' }])
+    return repetidos
+      ? { ok: false, mensaje: 'Ya está en la lista.' }
+      : { ok: true, mensaje: `Agregado (${series.length + 1} en total)` }
+  }
+
   function onAgregarPegados() {
     const parseadas = parsearSeriales(textoPegado)
     const repetidos = agregar(parseadas)
@@ -80,6 +89,7 @@ export function SerialesNuevosInput({ series, onChange }: SerialesNuevosInputPro
           <Plus className="size-4" />
           Agregar
         </button>
+        <BotonEscanear titulo="Escanear seriales" label="Cámara" continuo onDetectado={onEscaneado} />
         <button type="button" onClick={() => setPegando((v) => !v)} className="btn btn-secondary">
           <ClipboardPaste className="size-4" />
           Pegar lista
