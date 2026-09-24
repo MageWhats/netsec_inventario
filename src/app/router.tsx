@@ -13,6 +13,7 @@ import { ProductoDetallePage } from '@/features/productos/ProductoDetallePage'
 import { ProductosPage } from '@/features/productos/ProductosPage'
 import { ProveedorDetallePage } from '@/features/proveedores/ProveedorDetallePage'
 import { ProveedoresPage } from '@/features/proveedores/ProveedoresPage'
+import { ReportesPage } from '@/features/reportes/ReportesPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
           { path: 'clientes/:id', element: <ClienteDetallePage /> },
           { path: 'proveedores', element: <ProveedoresPage /> },
           { path: 'proveedores/:id', element: <ProveedorDetallePage /> },
+          { path: 'reportes', element: <ReportesPage /> },
         ],
       },
     ],

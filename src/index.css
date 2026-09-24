@@ -21,6 +21,16 @@ body {
     background-color: white;
     color: black;
   }
+
+  /* Reportes: tinta negra sobre papel, sin los fondos oscuros de la pantalla */
+  .reporte-impreso * {
+    color: black !important;
+    background-color: transparent !important;
+    border-color: #cbd5e1 !important;
+  }
+  .reporte-impreso table {
+    font-size: 10px;
+  }
 }
 
 /* Componentes base (en la capa "components" para que las utilidades como pl-9 puedan sobrescribirlos) */

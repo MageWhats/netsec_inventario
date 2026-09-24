@@ -1,4 +1,4 @@
-import { ArrowLeftRight, LayoutDashboard, LogOut, Menu, Package, PackageSearch, Truck, Users, X } from 'lucide-react'
+import { ArrowLeftRight, FileBarChart, LayoutDashboard, LogOut, Menu, Package, PackageSearch, Truck, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/auth-context'
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, end: false },
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },
   { to: '/proveedores', label: 'Proveedores', icon: Truck, end: false },
+  { to: '/reportes', label: 'Reportes', icon: FileBarChart, end: false },
 ]
 
 export function AppLayout() {
