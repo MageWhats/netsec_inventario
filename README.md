@@ -85,8 +85,9 @@ Respeta el orden: si se activa en Supabase antes de que la app envíe la verific
 
 1. En [dash.cloudflare.com](https://dash.cloudflare.com) → **Turnstile → Add widget**: dominios
    `netsec-inventario.vercel.app` y `localhost`, modo *Managed*. Copia la **Site Key** y la **Secret Key**.
-2. En Vercel → Environment Variables, agrega `VITE_TURNSTILE_SITE_KEY` con la **Site Key** y haz *Redeploy*
-   (en local, ponla también en `.env.local`).
+2. En Vercel → Environment Variables, agrega `TURNSTILE_SITE_KEY` (o `VITE_TURNSTILE_SITE_KEY`) con la
+   **Site Key**, marcada para *Production*, y haz *Redeploy* (en local, ponla también en `.env.local`).
+   La Site Key es pública; la Secret Key nunca va en Vercel ni en la app.
 3. Abre la app: debe aparecer la verificación de Cloudflare bajo la contraseña y el login debe funcionar.
 4. Solo entonces, en Supabase → **Authentication → Attack Protection** → activa *CAPTCHA protection*, elige
    **Turnstile** y pega la **Secret Key**.
