@@ -44,9 +44,9 @@ export function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm rounded-2xl border border-brand-border bg-brand-card p-8 shadow-xl">
+      <div className="w-full max-w-md rounded-2xl border border-brand-border bg-brand-card p-8 shadow-xl sm:p-10">
         <div className="mb-8 text-center">
-          <LogoCompleto className="mx-auto mb-5 h-36" />
+          <LogoCompleto className="mx-auto mb-6 h-44 sm:h-56" />
           <h1 className="text-lg font-semibold">Inventario</h1>
           <p className="mt-1 text-sm text-slate-400">Inicia sesión para continuar</p>
         </div>
