@@ -66,6 +66,11 @@ export function MovimientoDetallePage() {
   const info = tiposMovimiento[movimiento.tipo]
   const total = grupos.reduce((s, g) => s + g.subtotal, 0)
   const totalUnidades = grupos.reduce((s, g) => s + g.cantidad, 0)
+  // Margen de la venta con el costo guardado en cada línea (solo si todas lo tienen)
+  const costoVenta =
+    movimiento.tipo === 'salida' && movimiento.items.every((i) => i.costo_unitario !== null)
+      ? movimiento.items.reduce((s, i) => s + i.cantidad * (i.costo_unitario ?? 0), 0)
+      : null
 
   return (
     <div className="print:text-black">
@@ -192,6 +197,16 @@ export function MovimientoDetallePage() {
           </table>
         </div>
       </section>
+
+      {/* Dato interno: no sale en el comprobante impreso que se le entrega al cliente */}
+      {costoVenta !== null && total > 0 && (
+        <p className="mt-3 text-right text-sm text-slate-400 print:hidden">
+          Costo de lo vendido {formatearPrecio(costoVenta)} · Margen{' '}
+          <span className={total - costoVenta >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+            {formatearPrecio(total - costoVenta)} ({(((total - costoVenta) / total) * 100).toFixed(1)} %)
+          </span>
+        </p>
+      )}
     </div>
   )
 }

@@ -18,7 +18,7 @@ interface FilaVenta {
   ventas: Set<string>
   unidades: number
   total: number
-  /** Unidades × costo actual del producto (las salidas no guardan el costo) */
+  /** Costo guardado en cada salida (o el costo actual, si una línea antigua no lo tiene) */
   costo: number
 }
 
@@ -45,7 +45,7 @@ function columnas(agrupacion: Agrupacion): Columna<FilaVenta>[] {
     { titulo: 'N.º ventas', valor: (f) => f.ventas.size, numerica: true },
     { titulo: 'Unidades', valor: (f) => f.unidades, numerica: true, total: (s) => s.toLocaleString('es-CO') },
     { titulo: 'Total vendido', valor: (f) => f.total, mostrar: (f) => formatearPrecio(f.total), numerica: true, total: formatearPrecio },
-    { titulo: 'Costo estimado', valor: (f) => f.costo, mostrar: (f) => formatearPrecio(f.costo), numerica: true, total: formatearPrecio },
+    { titulo: 'Costo', valor: (f) => f.costo, mostrar: (f) => formatearPrecio(f.costo), numerica: true, total: formatearPrecio },
     { titulo: 'Margen', valor: margen, mostrar: (f) => formatearPrecio(margen(f)), numerica: true, total: formatearPrecio },
     { titulo: 'Margen %', valor: (f) => porcentaje(margen(f), f.total), numerica: true },
   ]
@@ -71,7 +71,7 @@ function agrupar(lineas: LineaMovimiento[], agrupacion: Agrupacion): FilaVenta[]
     fila.ventas.add(l.movimiento.id)
     fila.unidades += l.cantidad
     fila.total += l.cantidad * (l.precio_unitario ?? 0)
-    fila.costo += l.cantidad * l.producto.precio_costo
+    fila.costo += l.cantidad * (l.costo_unitario ?? l.producto.precio_costo)
   }
 
   return [...filas.values()].sort((a, b) => b.total - a.total)
@@ -90,6 +90,8 @@ export function ReporteVentas() {
   const total = filas.reduce((s, f) => s + f.total, 0)
   const costo = filas.reduce((s, f) => s + f.costo, 0)
   const numeroVentas = new Set(datos.map((l) => l.movimiento.id)).size
+  // Solo antes de la migración 0004 (que completa las antiguas) puede haber líneas sin costo
+  const sinCosto = datos.filter((l) => l.costo_unitario === null).length
 
   return (
     <Reporte
@@ -102,8 +104,8 @@ export function ReporteVentas() {
       aviso={
         datos.length >= LIMITE_LINEAS
           ? `Se alcanzó el máximo de ${LIMITE_LINEAS.toLocaleString('es-CO')} líneas: acorta el período para ver el reporte completo.`
-          : filas.length > 0 &&
-            'El costo y el margen se estiman con el precio de costo actual de cada producto, porque las salidas no guardan el costo.'
+          : sinCosto > 0 &&
+            `${sinCosto} línea(s) no tienen el costo guardado: su margen se calcula con el costo actual del producto.`
       }
       filtros={
         <>
@@ -126,7 +128,7 @@ export function ReporteVentas() {
           <Cifra label="Total vendido" valor={formatearPrecio(total)} />
           <Cifra label="Ventas (salidas)" valor={numeroVentas} />
           <Cifra label="Unidades vendidas" valor={filas.reduce((s, f) => s + f.unidades, 0).toLocaleString('es-CO')} />
-          <Cifra label="Margen estimado" valor={`${formatearPrecio(total - costo)} · ${porcentaje(total - costo, total)}`} />
+          <Cifra label="Margen" valor={`${formatearPrecio(total - costo)} · ${porcentaje(total - costo, total)}`} />
         </>
       }
     >

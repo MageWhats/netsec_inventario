@@ -40,6 +40,7 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
    `registrar_movimiento()`.
 3. `0003_toma_inventario.sql`: tomas de inventario físico y las funciones para contar, escanear seriales y
    finalizar (genera los ajustes con `registrar_movimiento()`).
+4. `0004_costo_en_salidas.sql`: las salidas y ajustes − guardan el costo del momento, para calcular el margen exacto.
 
 Reglas clave:
 

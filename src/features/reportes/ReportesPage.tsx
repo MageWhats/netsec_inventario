@@ -21,7 +21,7 @@ const reportes = {
   },
   ventas: {
     label: 'Ventas',
-    descripcion: 'Salidas de un período agrupadas por producto o por cliente, con margen estimado',
+    descripcion: 'Salidas de un período agrupadas por producto o por cliente, con su costo y margen',
     icono: Receipt,
     componente: ReporteVentas,
   },
