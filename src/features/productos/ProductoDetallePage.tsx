@@ -1,9 +1,12 @@
-import { ArrowLeft, Loader2, Pencil, Power, PowerOff } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeft, ArrowUpFromLine, Pencil, Power, PowerOff } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { Dato } from '@/components/ui/Dato'
+import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useProducto } from './api'
 import { ConfirmarActivoModal } from './components/ConfirmarActivoModal'
+import { KardexSection } from './components/KardexSection'
 import { ProductoFormModal } from './components/ProductoFormModal'
 import { StockBadge, TipoControlBadge } from './components/badges'
 import { UnidadesSection } from './components/UnidadesSection'
@@ -14,13 +17,7 @@ export function ProductoDetallePage() {
   const [editando, setEditando] = useState(false)
   const [cambiandoActivo, setCambiandoActivo] = useState(false)
 
-  if (isLoading) {
-    return (
-      <div className="flex justify-center p-10">
-        <Loader2 className="size-6 animate-spin text-brand-accent" aria-label="Cargando" />
-      </div>
-    )
-  }
+  if (isLoading) return <LoadingBlock />
 
   if (error || !producto) {
     return (
@@ -53,7 +50,21 @@ export function ProductoDetallePage() {
           </div>
           <p className="mt-1 font-mono text-sm text-slate-400">{producto.sku}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {producto.activo && (
+            <>
+              <Link to={`/movimientos/nuevo/entrada?producto=${producto.id}`} className="btn btn-secondary">
+                <ArrowDownToLine className="size-4" />
+                Entrada
+              </Link>
+              {producto.stock > 0 && (
+                <Link to={`/movimientos/nuevo/salida?producto=${producto.id}`} className="btn btn-secondary">
+                  <ArrowUpFromLine className="size-4" />
+                  Salida
+                </Link>
+              )}
+            </>
+          )}
           <button onClick={() => setCambiandoActivo(true)} className="btn btn-secondary">
             {producto.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
             {producto.activo ? 'Desactivar' : 'Reactivar'}
@@ -92,13 +103,9 @@ export function ProductoDetallePage() {
         </dl>
       </section>
 
-      {producto.es_serializado ? (
-        <UnidadesSection productoId={producto.id} />
-      ) : (
-        <p className="rounded-2xl border border-dashed border-brand-border p-6 text-center text-sm text-slate-500">
-          Este producto se controla solo por cantidad. El stock se actualiza con las entradas y salidas de Movimientos.
-        </p>
-      )}
+      <KardexSection productoId={producto.id} />
+
+      {producto.es_serializado && <UnidadesSection productoId={producto.id} />}
 
       <ProductoFormModal open={editando} onClose={() => setEditando(false)} producto={producto} />
       <ConfirmarActivoModal producto={cambiandoActivo ? producto : null} onClose={() => setCambiandoActivo(false)} />
@@ -111,15 +118,6 @@ function Kpi({ label, children }: { label: string; children: ReactNode }) {
     <div className="rounded-2xl border border-brand-border bg-brand-card p-5">
       <p className="text-xs tracking-wide text-slate-400 uppercase">{label}</p>
       <div className="mt-2 flex items-center text-xl font-semibold">{children}</div>
-    </div>
-  )
-}
-
-function Dato({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
-  return (
-    <div className={className}>
-      <dt className="text-slate-400">{label}</dt>
-      <dd className="mt-0.5 text-slate-200">{children || <span className="text-slate-600">—</span>}</dd>
     </div>
   )
 }

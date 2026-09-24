@@ -73,6 +73,51 @@ export type Database = {
         }
         Relationships: []
       }
+      clientes: {
+        Row: {
+          id: string
+          tipo_documento: Database['public']['Enums']['tipo_documento']
+          documento: string
+          nombre: string
+          telefono: string | null
+          email: string | null
+          direccion: string | null
+          ciudad: string | null
+          notas: string | null
+          activo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tipo_documento?: Database['public']['Enums']['tipo_documento']
+          documento: string
+          nombre: string
+          telefono?: string | null
+          email?: string | null
+          direccion?: string | null
+          ciudad?: string | null
+          notas?: string | null
+          activo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tipo_documento?: Database['public']['Enums']['tipo_documento']
+          documento?: string
+          nombre?: string
+          telefono?: string | null
+          email?: string | null
+          direccion?: string | null
+          ciudad?: string | null
+          notas?: string | null
+          activo?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       proveedores: {
         Row: {
           id: string
@@ -81,7 +126,11 @@ export type Database = {
           contacto: string | null
           telefono: string | null
           email: string | null
+          direccion: string | null
+          notas: string | null
+          activo: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
@@ -90,7 +139,11 @@ export type Database = {
           contacto?: string | null
           telefono?: string | null
           email?: string | null
+          direccion?: string | null
+          notas?: string | null
+          activo?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: {
           id?: string
@@ -99,7 +152,11 @@ export type Database = {
           contacto?: string | null
           telefono?: string | null
           email?: string | null
+          direccion?: string | null
+          notas?: string | null
+          activo?: boolean
           created_at?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -222,6 +279,8 @@ export type Database = {
       movimientos: {
         Row: {
           id: string
+          numero: number
+          cliente_id: string | null
           tipo: Database['public']['Enums']['tipo_movimiento']
           bodega_id: string
           proveedor_id: string | null
@@ -233,6 +292,8 @@ export type Database = {
         }
         Insert: {
           id?: string
+          numero: number
+          cliente_id?: string | null
           tipo: Database['public']['Enums']['tipo_movimiento']
           bodega_id: string
           proveedor_id?: string | null
@@ -244,6 +305,8 @@ export type Database = {
         }
         Update: {
           id?: string
+          numero?: number
+          cliente_id?: string | null
           tipo?: Database['public']['Enums']['tipo_movimiento']
           bodega_id?: string
           proveedor_id?: string | null
@@ -259,6 +322,13 @@ export type Database = {
             columns: ['bodega_id']
             isOneToOne: false
             referencedRelation: 'bodegas'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'movimientos_cliente_id_fkey'
+            columns: ['cliente_id']
+            isOneToOne: false
+            referencedRelation: 'clientes'
             referencedColumns: ['id']
           },
           {
@@ -278,6 +348,7 @@ export type Database = {
           unidad_id: string | null
           cantidad: number
           costo_unitario: number | null
+          precio_unitario: number | null
         }
         Insert: {
           id?: string
@@ -286,6 +357,7 @@ export type Database = {
           unidad_id?: string | null
           cantidad: number
           costo_unitario?: number | null
+          precio_unitario?: number | null
         }
         Update: {
           id?: string
@@ -294,6 +366,7 @@ export type Database = {
           unidad_id?: string | null
           cantidad?: number
           costo_unitario?: number | null
+          precio_unitario?: number | null
         }
         Relationships: [
           {
@@ -329,17 +402,53 @@ export type Database = {
         }
         Relationships: []
       }
+      movimientos_resumen: {
+        Row: {
+          id: string
+          numero: number
+          tipo: Database['public']['Enums']['tipo_movimiento']
+          fecha: string
+          bodega_id: string
+          proveedor_id: string | null
+          proveedor_nombre: string | null
+          cliente_id: string | null
+          cliente_nombre: string | null
+          referencia: string | null
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          lineas: number
+          unidades: number
+          total_costo: number
+          total_venta: number
+        }
+        Relationships: []
+      }
     }
     Functions: {
       es_admin: {
         Args: never
         Returns: boolean
       }
+      registrar_movimiento: {
+        Args: {
+          p_tipo: Database['public']['Enums']['tipo_movimiento']
+          p_items: Json
+          p_bodega_id?: string | null
+          p_proveedor_id?: string | null
+          p_cliente_id?: string | null
+          p_referencia?: string | null
+          p_notas?: string | null
+          p_fecha?: string | null
+        }
+        Returns: string
+      }
     }
     Enums: {
       rol_usuario: 'admin' | 'bodega' | 'lectura'
       tipo_movimiento: 'entrada' | 'salida' | 'ajuste_entrada' | 'ajuste_salida'
       estado_unidad: 'disponible' | 'vendida' | 'en_garantia' | 'danada' | 'baja'
+      tipo_documento: 'CC' | 'NIT' | 'CE' | 'PAS' | 'TI' | 'OTRO'
     }
     CompositeTypes: {
       [_ in never]: never
@@ -352,4 +461,5 @@ type PublicSchema = Database['public']
 export type Tables<T extends keyof PublicSchema['Tables']> = PublicSchema['Tables'][T]['Row']
 export type TablesInsert<T extends keyof PublicSchema['Tables']> = PublicSchema['Tables'][T]['Insert']
 export type TablesUpdate<T extends keyof PublicSchema['Tables']> = PublicSchema['Tables'][T]['Update']
+export type Views<T extends keyof PublicSchema['Views']> = PublicSchema['Views'][T]['Row']
 export type Enums<T extends keyof PublicSchema['Enums']> = PublicSchema['Enums'][T]

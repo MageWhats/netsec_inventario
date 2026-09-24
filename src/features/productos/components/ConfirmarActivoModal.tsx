@@ -1,7 +1,8 @@
 import { Loader2 } from 'lucide-react'
 import { useState } from 'react'
 import { Modal } from '@/components/ui/Modal'
-import { mensajeError, useCambiarActivo, type Producto } from '../api'
+import { useCambiarActivo, type Producto } from '../api'
+import { mensajeError } from '@/lib/errores'
 
 /** Desactivar un producto lo oculta del catálogo sin borrar su historial de movimientos */
 export function ConfirmarActivoModal({ producto, onClose }: { producto: Producto | null; onClose: () => void }) {

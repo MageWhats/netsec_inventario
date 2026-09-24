@@ -4,7 +4,8 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { FormField } from '@/components/ui/FormField'
 import { Modal } from '@/components/ui/Modal'
-import { mensajeError, useCategorias, useGuardarProducto, useTieneMovimientos, type Producto } from '../api'
+import { useCategorias, useGuardarProducto, useTieneMovimientos, type Producto } from '../api'
+import { mensajeError } from '@/lib/errores'
 import {
   formularioAProducto,
   productoAFormulario,

@@ -1,4 +1,4 @@
-import { ArrowLeftRight, LayoutDashboard, LogOut, Menu, Package, PackageSearch, X } from 'lucide-react'
+import { ArrowLeftRight, LayoutDashboard, LogOut, Menu, Package, PackageSearch, Truck, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/features/auth/auth-context'
@@ -7,6 +7,8 @@ const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/productos', label: 'Productos', icon: Package, end: false },
   { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, end: false },
+  { to: '/clientes', label: 'Clientes', icon: Users, end: false },
+  { to: '/proveedores', label: 'Proveedores', icon: Truck, end: false },
 ]
 
 export function AppLayout() {
@@ -19,7 +21,7 @@ export function AppLayout() {
       {open && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-brand-border bg-brand-card transition-transform lg:static lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col print:hidden border-r border-brand-border bg-brand-card transition-transform lg:static lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -69,12 +71,12 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 items-center border-b border-brand-border px-4 lg:hidden">
+        <header className="flex h-16 items-center border-b border-brand-border px-4 lg:hidden print:hidden">
           <button onClick={() => setOpen(true)} className="text-slate-300" aria-label="Abrir menú">
             <Menu className="size-6" />
           </button>
         </header>
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 print:p-0">
           <Outlet />
         </main>
       </div>

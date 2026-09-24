@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { PostgrestError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
 
@@ -176,16 +175,58 @@ export function useActualizarUnidad() {
 }
 
 // ---------------------------------------------------------------------
-// Errores
+// Historial
 // ---------------------------------------------------------------------
 
-export function mensajeError(error: unknown): string {
-  const pgError = error as Partial<PostgrestError> | null
-  if (pgError?.code === '23505') {
-    if (pgError.message?.includes('codigo_barras')) return 'Ya existe otro producto con ese código de barras.'
-    if (pgError.message?.includes('sku')) return 'Ya existe otro producto con ese SKU.'
-    return 'Ya existe un registro con esos datos.'
-  }
-  if (pgError?.code === '42501') return 'No tienes permisos para realizar esta acción.'
-  return pgError?.message ?? 'Ocurrió un error inesperado.'
+const SELECT_MOVIMIENTO_ITEM =
+  'cantidad, movimiento:movimientos!inner(id, numero, tipo, fecha, referencia, notas, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
+
+/** Kardex: movimientos del producto agrupados, con el saldo acumulado después de cada uno */
+export function useKardex(productoId: string) {
+  return useQuery({
+    queryKey: [...productosKeys.all, 'kardex', productoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('movimiento_items')
+        .select(SELECT_MOVIMIENTO_ITEM)
+        .eq('producto_id', productoId)
+      if (error) throw error
+
+      type Fila = (typeof data)[number]['movimiento'] & { entra: number; sale: number; saldo: number }
+      const porMovimiento = new Map<string, Fila>()
+      for (const item of data) {
+        const m = item.movimiento
+        const fila = porMovimiento.get(m.id) ?? { ...m, entra: 0, sale: 0, saldo: 0 }
+        if (m.tipo === 'entrada' || m.tipo === 'ajuste_entrada') fila.entra += item.cantidad
+        else fila.sale += item.cantidad
+        porMovimiento.set(m.id, fila)
+      }
+
+      const filas = [...porMovimiento.values()].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero)
+      let saldo = 0
+      for (const f of filas) {
+        saldo += f.entra - f.sale
+        f.saldo = saldo
+      }
+      return filas.reverse() // más recientes primero
+    },
+  })
+}
+
+/** Movimientos por los que ha pasado una unidad (trazabilidad del serial) */
+export function useHistorialUnidad(unidadId: string | undefined) {
+  return useQuery({
+    queryKey: [...productosKeys.all, 'historial-unidad', unidadId],
+    enabled: Boolean(unidadId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('movimiento_items')
+        .select(SELECT_MOVIMIENTO_ITEM)
+        .eq('unidad_id', unidadId!)
+      if (error) throw error
+      return data
+        .map((item) => item.movimiento)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.numero - a.numero)
+    },
+  })
 }

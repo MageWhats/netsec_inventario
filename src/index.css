@@ -16,6 +16,13 @@ body {
   margin: 0;
 }
 
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+}
+
 /* Componentes base (en la capa "components" para que las utilidades como pl-9 puedan sobrescribirlos) */
 @layer components {
   .input {

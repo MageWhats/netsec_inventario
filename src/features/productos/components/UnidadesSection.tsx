@@ -1,12 +1,16 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Pencil, Search } from 'lucide-react'
+import { History, Loader2, Search } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { FormField } from '@/components/ui/FormField'
 import { Modal } from '@/components/ui/Modal'
 import { formatearFecha } from '@/lib/format'
-import { mensajeError, useActualizarUnidad, useUnidades, type Unidad } from '../api'
+import { TipoMovimientoBadge } from '@/features/movimientos/components/MovimientosTabla'
+import { formatearNumero } from '@/features/movimientos/tipos'
+import { mensajeError } from '@/lib/errores'
+import { useActualizarUnidad, useHistorialUnidad, useUnidades, type Unidad } from '../api'
 import { ESTADOS_UNIDAD, estadosUnidad, type EstadoUnidad } from '../estados'
 import { EstadoUnidadBadge } from './badges'
 
@@ -104,10 +108,10 @@ export function UnidadesSection({ productoId }: { productoId: string }) {
                     <button
                       onClick={() => setEditando(u)}
                       className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                      title="Editar MAC y notas"
-                      aria-label={`Editar unidad ${u.numero_serie}`}
+                      title="Historial, MAC y notas"
+                      aria-label={`Ver unidad ${u.numero_serie}`}
                     >
-                      <Pencil className="size-4" />
+                      <History className="size-4" />
                     </button>
                   </td>
                 </tr>
@@ -179,7 +183,8 @@ function EditarUnidadModal({ unidad, onClose }: { unidad: Unidad | null; onClose
   }
 
   return (
-    <Modal open={Boolean(unidad)} onClose={onClose} title={`Unidad ${unidad?.numero_serie ?? ''}`}>
+    <Modal open={Boolean(unidad)} onClose={onClose} title={`Unidad ${unidad?.numero_serie ?? ''}`} size="max-w-2xl">
+      <HistorialUnidad unidadId={unidad?.id} />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         <FormField label="MAC" error={errors.mac?.message}>
           <input className="input font-mono uppercase" placeholder="AA:BB:CC:DD:EE:FF" {...register('mac')} />
@@ -205,5 +210,39 @@ function EditarUnidadModal({ unidad, onClose }: { unidad: Unidad | null; onClose
         </div>
       </form>
     </Modal>
+  )
+}
+
+function HistorialUnidad({ unidadId }: { unidadId: string | undefined }) {
+  const { data: historial = [], isLoading } = useHistorialUnidad(unidadId)
+
+  return (
+    <div className="mb-6">
+      <h3 className="mb-2 text-sm font-medium text-slate-300">Historial</h3>
+      {isLoading ? (
+        <Loader2 className="size-4 animate-spin text-brand-accent" aria-label="Cargando" />
+      ) : historial.length === 0 ? (
+        <p className="text-sm text-slate-500">Sin movimientos.</p>
+      ) : (
+        <ol className="space-y-2 border-l border-brand-border pl-4">
+          {historial.map((m) => (
+            <li key={m.id} className="text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <TipoMovimientoBadge tipo={m.tipo} />
+                <Link to={`/movimientos/${m.id}`} className="font-mono hover:text-brand-cyan">
+                  {formatearNumero(m.numero)}
+                </Link>
+                <span className="text-xs text-slate-500">{formatearFecha(m.fecha)}</span>
+              </div>
+              {(m.cliente || m.proveedor || m.notas) && (
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {m.cliente ? `Cliente: ${m.cliente.nombre}` : m.proveedor ? `Proveedor: ${m.proveedor.nombre}` : m.notas}
+                </p>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+    </div>
   )
 }
