@@ -1,0 +1,83 @@
+import { ArrowLeftRight, LayoutDashboard, LogOut, Menu, Package, PackageSearch, X } from 'lucide-react'
+import { useState } from 'react'
+import { NavLink, Outlet } from 'react-router-dom'
+import { useAuth } from '@/features/auth/auth-context'
+
+const navItems = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { to: '/productos', label: 'Productos', icon: Package, end: false },
+  { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, end: false },
+]
+
+export function AppLayout() {
+  const { user, signOut } = useAuth()
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="flex min-h-screen">
+      {/* Fondo oscuro al abrir el menú en móvil */}
+      {open && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />}
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-brand-border bg-brand-card transition-transform lg:static lg:translate-x-0 ${
+          open ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        <div className="flex h-16 items-center justify-between px-5">
+          <div className="flex items-center gap-2 font-bold">
+            <PackageSearch className="size-6 text-brand-accent" />
+            <span>Net&amp;Sec</span>
+          </div>
+          <button className="text-slate-400 lg:hidden" onClick={() => setOpen(false)} aria-label="Cerrar menú">
+            <X className="size-5" />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1 px-3">
+          {navItems.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                  isActive
+                    ? 'bg-brand-accent/15 text-brand-accent'
+                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                }`
+              }
+            >
+              <Icon className="size-4" />
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-brand-border p-4">
+          <p className="truncate text-xs text-slate-500" title={user?.email}>
+            {user?.email}
+          </p>
+          <button
+            onClick={signOut}
+            className="mt-2 flex items-center gap-2 text-sm text-slate-400 transition hover:text-red-400"
+          >
+            <LogOut className="size-4" />
+            Cerrar sesión
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-16 items-center border-b border-brand-border px-4 lg:hidden">
+          <button onClick={() => setOpen(true)} className="text-slate-300" aria-label="Abrir menú">
+            <Menu className="size-6" />
+          </button>
+        </header>
+        <main className="flex-1 p-4 lg:p-8">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  )
+}

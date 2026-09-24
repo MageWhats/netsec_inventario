@@ -15,3 +15,25 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   margin: 0;
 }
+
+/* Componentes base (en la capa "components" para que las utilidades como pl-9 puedan sobrescribirlos) */
+@layer components {
+  .input {
+    width: 100%;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-brand-border);
+    background-color: var(--color-brand-bg);
+    padding: 0.625rem 0.75rem;
+    font-size: var(--text-sm);
+    color: #f8fafc;
+    outline: none;
+    transition: border-color 150ms;
+
+    &::placeholder {
+      color: var(--color-slate-500);
+    }
+    &:focus {
+      border-color: var(--color-brand-accent);
+    }
+  }
+}

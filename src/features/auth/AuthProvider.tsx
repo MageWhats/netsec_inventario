@@ -1,0 +1,40 @@
+import type { Session } from '@supabase/supabase-js'
+import { useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState, type ReactNode } from 'react'
+import { supabase } from '@/lib/supabase'
+import { AuthContext, type AuthContextValue } from './auth-context'
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient()
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setLoading(false)
+    })
+
+    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  const value: AuthContextValue = {
+    session,
+    user: session?.user ?? null,
+    loading,
+    async signIn(email, password) {
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
+    },
+    async signOut() {
+      await supabase.auth.signOut()
+      // Evita que datos del usuario anterior queden en caché
+      queryClient.clear()
+    },
+  }
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+}
