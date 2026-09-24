@@ -7,7 +7,7 @@ import type { ResumenMes } from '../api'
 // Colores validados contra el fondo de las tarjetas (#121824) para daltonismo y contraste.
 // Entradas y salidas conservan el verde y el azul que usan en el resto de la app.
 const COLOR_ENTRADAS = '#059669'
-const COLOR_SALIDAS = '#2563eb'
+const COLOR_SALIDAS = '#0772c7'
 const COLOR_VALOR = '#0891b2'
 const COLOR_GRILLA = '#1e293b'
 const COLOR_EJE = '#94a3b8'

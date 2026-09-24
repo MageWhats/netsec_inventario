@@ -1,10 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Lock, Mail, PackageSearch } from 'lucide-react'
+import { Loader2, Lock, Mail } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
+import { LogoCompleto } from '@/components/ui/Logo'
 import { useAuth } from './auth-context'
 
 const loginSchema = z.object({
@@ -45,10 +46,8 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm rounded-2xl border border-brand-border bg-brand-card p-8 shadow-xl">
         <div className="mb-8 text-center">
-          <PackageSearch className="mx-auto mb-3 size-10 text-brand-accent" />
-          <h1 className="bg-gradient-to-r from-brand-accent to-brand-cyan bg-clip-text text-2xl font-bold text-transparent">
-            Net&amp;Sec Inventario
-          </h1>
+          <LogoCompleto className="mx-auto mb-5 h-36" />
+          <h1 className="text-lg font-semibold">Inventario</h1>
           <p className="mt-1 text-sm text-slate-400">Inicia sesión para continuar</p>
         </div>
 

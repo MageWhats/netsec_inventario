@@ -1,6 +1,7 @@
 import { Download, Printer } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { LogoImpresion } from '@/components/ui/Logo'
 import { mensajeError } from '@/lib/errores'
 import type { Celda } from '../exportar'
 
@@ -118,7 +119,7 @@ export function Reporte({
       </div>
 
       <div className="mb-4 hidden print:block">
-        <p className="text-sm">Net&amp;Sec Suministros</p>
+        <LogoImpresion className="mb-3" />
         <h2 className="text-xl font-bold">{titulo}</h2>
         {subtitulo && <p className="text-sm">{subtitulo}</p>}
         <p className="text-xs">Generado el {new Date().toLocaleString('es-CO')}</p>

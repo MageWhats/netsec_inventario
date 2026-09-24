@@ -5,8 +5,8 @@
   --color-brand-bg: #0b0f19;       /* Fondo general ultra oscuro */
   --color-brand-card: #121824;     /* Fondo de las tarjetas y contenedores */
   --color-brand-border: #1e293b;   /* Bordes sutiles de componentes */
-  --color-brand-accent: #2563eb;   /* Azul principal Net&Sec */
-  --color-brand-cyan: #06b6d4;     /* Cian brillante para degradados y KPIs */
+  --color-brand-accent: #0772c7;   /* Azul principal Net&Sec (del degradado del logo) */
+  --color-brand-cyan: #00b4f0;     /* Cian del logo, para enlaces y acentos */
 }
 
 body {
@@ -83,7 +83,7 @@ body {
     color: white;
 
     &:hover:not(:disabled) {
-      background-color: var(--color-blue-500);
+      background-color: color-mix(in oklab, var(--color-brand-accent) 85%, white);
     }
   }
 

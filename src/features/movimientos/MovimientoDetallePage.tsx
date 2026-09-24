@@ -3,6 +3,7 @@ import { useMemo } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { LogoImpresion } from '@/components/ui/Logo'
 import { etiquetaDocumento } from '@/features/clientes/schema'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useMovimiento, type MovimientoDetalle } from './api'
@@ -91,7 +92,8 @@ export function MovimientoDetallePage() {
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="hidden text-sm print:block">Net&amp;Sec Suministros · Comprobante de movimiento de inventario</p>
+          <LogoImpresion className="mb-3" />
+          <p className="hidden text-sm print:block">Comprobante de movimiento de inventario</p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">
               {info.label} <span className="font-mono">{formatearNumero(movimiento.numero)}</span>

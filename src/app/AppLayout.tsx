@@ -1,6 +1,7 @@
-import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, PackageSearch, Truck, Users, X } from 'lucide-react'
+import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, Truck, Users, X } from 'lucide-react'
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useNavigation } from 'react-router-dom'
+import { LogoHorizontal } from '@/components/ui/Logo'
 import { useAuth } from '@/features/auth/auth-context'
 
 const navItems = [
@@ -33,10 +34,9 @@ export function AppLayout() {
         }`}
       >
         <div className="flex h-16 items-center justify-between px-5">
-          <div className="flex items-center gap-2 font-bold">
-            <PackageSearch className="size-6 text-brand-accent" />
-            <span>Net&amp;Sec</span>
-          </div>
+          <Link to="/" onClick={() => setOpen(false)} aria-label="Ir al dashboard">
+            <LogoHorizontal />
+          </Link>
           <button className="text-slate-400 lg:hidden" onClick={() => setOpen(false)} aria-label="Cerrar menú">
             <X className="size-5" />
           </button>
@@ -82,6 +82,9 @@ export function AppLayout() {
           <button onClick={() => setOpen(true)} className="text-slate-300" aria-label="Abrir menú">
             <Menu className="size-6" />
           </button>
+          <Link to="/" className="ml-4" aria-label="Ir al dashboard">
+            <LogoHorizontal />
+          </Link>
         </header>
         <main className="flex-1 p-4 lg:p-8 print:p-0">
           <Outlet />
