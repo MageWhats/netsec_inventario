@@ -2,6 +2,18 @@
 
 App web de inventario de Net&Sec Suministros.
 
+**Producción:** https://netsec-inventario.vercel.app
+
+## Despliegue
+
+- **Vercel** publica automáticamente cada push a `main` del repositorio (privado) en GitHub. `vercel.json` hace que
+  todas las rutas sirvan la app.
+- Las variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` se configuran en Vercel → Project Settings →
+  Environment Variables. Si cambian, hay que volver a desplegar (*Redeploy*).
+- En Supabase → Authentication → URL Configuration, la *Site URL* es la dirección de producción.
+- Las **migraciones SQL no se aplican solas**: cuando haya una nueva en `supabase/migrations/`, ejecútala en el
+  SQL Editor de Supabase **antes** de subir el código que la usa.
+
 ## Stack
 
 - **Vite + React 19 + TypeScript**
