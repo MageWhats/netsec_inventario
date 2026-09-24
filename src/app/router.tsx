@@ -1,43 +1,79 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/app/AppLayout'
 import { NotFoundPage } from '@/app/NotFoundPage'
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
-import { ClienteDetallePage } from '@/features/clientes/ClienteDetallePage'
-import { ClientesPage } from '@/features/clientes/ClientesPage'
-import { DashboardPage } from '@/features/dashboard/DashboardPage'
-import { TomaDetallePage } from '@/features/inventario/TomaDetallePage'
-import { TomasPage } from '@/features/inventario/TomasPage'
-import { MovimientoDetallePage } from '@/features/movimientos/MovimientoDetallePage'
-import { MovimientosPage } from '@/features/movimientos/MovimientosPage'
-import { NuevoMovimientoPage } from '@/features/movimientos/NuevoMovimientoPage'
-import { ProductoDetallePage } from '@/features/productos/ProductoDetallePage'
-import { ProductosPage } from '@/features/productos/ProductosPage'
-import { ProveedorDetallePage } from '@/features/proveedores/ProveedorDetallePage'
-import { ProveedoresPage } from '@/features/proveedores/ProveedoresPage'
-import { ReportesPage } from '@/features/reportes/ReportesPage'
 
+// Cada página se descarga al visitarla por primera vez: el teléfono no baja de entrada
+// el código de las gráficas, los reportes o el escáner.
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   {
     element: <ProtectedRoute />,
+    hydrateFallbackElement: <FullScreenLoader />,
     children: [
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <DashboardPage /> },
-          { path: 'productos', element: <ProductosPage /> },
-          { path: 'productos/:id', element: <ProductoDetallePage /> },
-          { path: 'movimientos', element: <MovimientosPage /> },
-          { path: 'movimientos/nuevo/:tipo', element: <NuevoMovimientoPage /> },
-          { path: 'movimientos/:id', element: <MovimientoDetallePage /> },
-          { path: 'clientes', element: <ClientesPage /> },
-          { path: 'clientes/:id', element: <ClienteDetallePage /> },
-          { path: 'proveedores', element: <ProveedoresPage /> },
-          { path: 'proveedores/:id', element: <ProveedorDetallePage /> },
-          { path: 'inventario', element: <TomasPage /> },
-          { path: 'inventario/:id', element: <TomaDetallePage /> },
-          { path: 'reportes', element: <ReportesPage /> },
+          {
+            index: true,
+            lazy: () => import('@/features/dashboard/DashboardPage').then((m) => ({ Component: m.DashboardPage })),
+          },
+          {
+            path: 'productos',
+            lazy: () => import('@/features/productos/ProductosPage').then((m) => ({ Component: m.ProductosPage })),
+          },
+          {
+            path: 'productos/:id',
+            lazy: () =>
+              import('@/features/productos/ProductoDetallePage').then((m) => ({ Component: m.ProductoDetallePage })),
+          },
+          {
+            path: 'movimientos',
+            lazy: () => import('@/features/movimientos/MovimientosPage').then((m) => ({ Component: m.MovimientosPage })),
+          },
+          {
+            path: 'movimientos/nuevo/:tipo',
+            lazy: () =>
+              import('@/features/movimientos/NuevoMovimientoPage').then((m) => ({ Component: m.NuevoMovimientoPage })),
+          },
+          {
+            path: 'movimientos/:id',
+            lazy: () =>
+              import('@/features/movimientos/MovimientoDetallePage').then((m) => ({
+                Component: m.MovimientoDetallePage,
+              })),
+          },
+          {
+            path: 'clientes',
+            lazy: () => import('@/features/clientes/ClientesPage').then((m) => ({ Component: m.ClientesPage })),
+          },
+          {
+            path: 'clientes/:id',
+            lazy: () => import('@/features/clientes/ClienteDetallePage').then((m) => ({ Component: m.ClienteDetallePage })),
+          },
+          {
+            path: 'proveedores',
+            lazy: () => import('@/features/proveedores/ProveedoresPage').then((m) => ({ Component: m.ProveedoresPage })),
+          },
+          {
+            path: 'proveedores/:id',
+            lazy: () =>
+              import('@/features/proveedores/ProveedorDetallePage').then((m) => ({ Component: m.ProveedorDetallePage })),
+          },
+          {
+            path: 'inventario',
+            lazy: () => import('@/features/inventario/TomasPage').then((m) => ({ Component: m.TomasPage })),
+          },
+          {
+            path: 'inventario/:id',
+            lazy: () => import('@/features/inventario/TomaDetallePage').then((m) => ({ Component: m.TomaDetallePage })),
+          },
+          {
+            path: 'reportes',
+            lazy: () => import('@/features/reportes/ReportesPage').then((m) => ({ Component: m.ReportesPage })),
+          },
         ],
       },
     ],

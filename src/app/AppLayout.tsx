@@ -1,6 +1,6 @@
 import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, PackageSearch, Truck, Users, X } from 'lucide-react'
 import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useNavigation } from 'react-router-dom'
 import { useAuth } from '@/features/auth/auth-context'
 
 const navItems = [
@@ -16,9 +16,14 @@ const navItems = [
 export function AppLayout() {
   const { user, signOut } = useAuth()
   const [open, setOpen] = useState(false)
+  // Cargando el código de otra página (rutas con carga diferida)
+  const cargando = useNavigation().state === 'loading'
 
   return (
     <div className="flex min-h-screen">
+      {cargando && (
+        <div className="fixed inset-x-0 top-0 z-50 h-0.5 animate-pulse bg-brand-accent print:hidden" role="progressbar" aria-label="Cargando" />
+      )}
       {/* Fondo oscuro al abrir el menú en móvil */}
       {open && <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} />}
 
