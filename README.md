@@ -94,6 +94,52 @@ Respeta el orden: si se activa en Supabase antes de que la app envíe la verific
 
 Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vuelve a funcionar sin él.
 
+## Copias de seguridad
+
+Cada noche a las 2:00 a. m. (Colombia) la tarea `.github/workflows/respaldo.yml` exporta la base de datos de
+Supabase (roles, estructura y datos, incluidos los usuarios), verifica que esté completa, la cifra con AES-256 y la
+guarda **30 días** en GitHub → Actions → *Respaldo de la base de datos* → cada ejecución → *Artifacts*.
+Si falla, GitHub envía un correo.
+
+### Configuración (una sola vez)
+
+En GitHub → Settings → Secrets and variables → **Actions** → *New repository secret*, crea dos secretos:
+
+1. **`SUPABASE_DB_URL`**: en Supabase pulsa **Connect** (arriba) → **Session pooler** → copia la URI y reemplaza
+   `[YOUR-PASSWORD]` por la contraseña de la base de datos. Queda así:
+   `postgresql://postgres.<id>:<contraseña>@aws-0-<región>.pooler.supabase.com:5432/postgres`.
+   Si no recuerdas la contraseña: Database → Settings → *Reset database password* (usa solo letras y números, así
+   no hay que codificar caracteres especiales). Se usa el *Session pooler* porque GitHub no tiene IPv6.
+2. **`BACKUP_PASSPHRASE`**: una contraseña larga (16 caracteres o más) para cifrar las copias.
+   **Guárdala en un gestor de contraseñas: sin ella las copias no se pueden abrir.**
+
+Luego, en Actions → *Respaldo de la base de datos* → **Run workflow**, para hacer la primera copia y comprobar que
+todo funciona.
+
+### Restaurar
+
+Hazlo sobre un **proyecto nuevo de Supabase** (o uno de prueba), nunca directamente sobre producción sin tener
+antes una copia reciente.
+
+1. Descarga el artefacto de la fecha que necesitas (un `.zip` con el archivo `.tar.gz.gpg`) y descomprime el zip.
+2. Descifra y extrae (en Git Bash, que ya trae `gpg`):
+   ```bash
+   gpg -d netsec-respaldo-AAAA-MM-DD_HHMM.tar.gz.gpg > respaldo.tar.gz   # pide la BACKUP_PASSPHRASE
+   tar -xzf respaldo.tar.gz                                              # crea la carpeta respaldo/
+   ```
+3. Restaura con `psql` (viene con PostgreSQL) usando la URI del proyecto destino:
+   ```bash
+   psql --single-transaction --variable ON_ERROR_STOP=1 \
+     --file respaldo/roles.sql \
+     --file respaldo/esquema.sql \
+     --command 'SET session_replication_role = replica' \
+     --file respaldo/datos.sql \
+     --dbname "postgresql://postgres.<id>:<contraseña>@aws-0-<región>.pooler.supabase.com:5432/postgres"
+   ```
+   `--single-transaction` hace que, si algo falla, no quede nada a medias.
+4. Si restauraste en un proyecto nuevo, cambia `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Vercel y vuelve a
+   desplegar, y configura de nuevo en ese proyecto el CAPTCHA y la desactivación del registro público.
+
 ## Escáner con el teléfono
 
 Los botones con el ícono de código de barras abren la cámara (librería `barcode-detector`, motor ZXing en WebAssembly

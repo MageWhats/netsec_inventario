@@ -1,0 +1,86 @@
+# Copia de seguridad diaria de la base de datos de Supabase (roles, estructura y datos, incluidos los
+# usuarios de Auth). Se verifica, se cifra con AES-256 y se guarda 30 días como artefacto de GitHub.
+# Cómo configurarla y cómo restaurar: README → Copias de seguridad.
+name: Respaldo de la base de datos
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # 7:00 UTC = 2:00 a. m. en Colombia
+  workflow_dispatch: # botón "Run workflow" para hacer una copia a mano
+
+permissions:
+  contents: read
+
+concurrency:
+  group: respaldo
+  cancel-in-progress: false
+
+jobs:
+  respaldo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Comprobar configuración
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::Faltan los secretos SUPABASE_DB_URL y/o BACKUP_PASSPHRASE (ver README → Copias de seguridad)"
+            exit 1
+          fi
+          if [ "${#BACKUP_PASSPHRASE}" -lt 16 ]; then
+            echo "::error::BACKUP_PASSPHRASE debe tener al menos 16 caracteres"
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Exportar roles, estructura y datos
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          mkdir respaldo
+          supabase db dump --db-url "$SUPABASE_DB_URL" --role-only -f respaldo/roles.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f respaldo/esquema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" --data-only --use-copy -f respaldo/datos.sql
+          ls -la respaldo
+
+      - name: Verificar que la copia está completa
+        run: |
+          set -euo pipefail
+          falla=0
+          for tabla in productos movimientos movimiento_items unidades clientes proveedores tomas_inventario auditoria; do
+            grep -Eq "CREATE TABLE.*\"?public\"?\.\"?${tabla}\"?" respaldo/esquema.sql \
+              || { echo "::error::La estructura no contiene la tabla public.${tabla}"; falla=1; }
+          done
+          grep -Eq 'FUNCTION "?public"?\."?registrar_movimiento' respaldo/esquema.sql \
+            || { echo "::error::La estructura no contiene la función registrar_movimiento"; falla=1; }
+          grep -Eq 'COPY "?auth"?\."?users"?' respaldo/datos.sql \
+            || { echo "::error::Los datos no incluyen los usuarios (auth.users)"; falla=1; }
+          grep -Eq 'COPY "?public"?\."?productos"?' respaldo/datos.sql \
+            || { echo "::error::Los datos no incluyen public.productos"; falla=1; }
+          exit $falla
+
+      - name: Comprimir y cifrar (AES-256)
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          nombre="netsec-respaldo-$(TZ=America/Bogota date +%Y-%m-%d_%H%M)"
+          tar -czf "$nombre.tar.gz" respaldo
+          gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+            --symmetric --cipher-algo AES256 -o "$nombre.tar.gz.gpg" "$nombre.tar.gz" <<< "$BACKUP_PASSPHRASE"
+          rm -rf respaldo "$nombre.tar.gz"
+          echo "NOMBRE=$nombre" >> "$GITHUB_ENV"
+          ls -la "$nombre.tar.gz.gpg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NOMBRE }}
+          path: ${{ env.NOMBRE }}.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error
