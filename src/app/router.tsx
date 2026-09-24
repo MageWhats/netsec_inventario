@@ -5,6 +5,7 @@ import { LoginPage } from '@/features/auth/LoginPage'
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { DashboardPage } from '@/features/dashboard/DashboardPage'
 import { MovimientosPage } from '@/features/movimientos/MovimientosPage'
+import { ProductoDetallePage } from '@/features/productos/ProductoDetallePage'
 import { ProductosPage } from '@/features/productos/ProductosPage'
 
 export const router = createBrowserRouter([
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: 'productos', element: <ProductosPage /> },
+          { path: 'productos/:id', element: <ProductoDetallePage /> },
           { path: 'movimientos', element: <MovimientosPage /> },
         ],
       },

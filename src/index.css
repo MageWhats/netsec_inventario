@@ -35,5 +35,56 @@ body {
     &:focus {
       border-color: var(--color-brand-accent);
     }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-lg);
+    padding: 0.5rem 1rem;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    transition:
+      background-color 150ms,
+      color 150ms;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .btn-primary {
+    background-color: var(--color-brand-accent);
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: var(--color-blue-500);
+    }
+  }
+
+  .btn-secondary {
+    border: 1px solid var(--color-brand-border);
+    color: var(--color-slate-300);
+
+    &:hover:not(:disabled) {
+      background-color: rgb(255 255 255 / 0.05);
+    }
+  }
+
+  .btn-danger {
+    background-color: rgb(239 68 68 / 0.15);
+    color: var(--color-red-400);
+
+    &:hover:not(:disabled) {
+      background-color: rgb(239 68 68 / 0.25);
+    }
   }
 }
