@@ -1,14 +1,20 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { RouterProvider } from 'react-router-dom'
-import { Providers } from '@/app/providers'
-import { router } from '@/app/router'
+import { ConfigErrorPage } from '@/app/ConfigErrorPage'
+import { parseEnv } from '@/lib/env'
 import './index.css'
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <Providers>
-      <RouterProvider router={router} />
-    </Providers>
-  </StrictMode>,
-)
+const root = createRoot(document.getElementById('root')!)
+const { errors } = parseEnv()
+
+if (errors) {
+  root.render(<ConfigErrorPage errors={errors} />)
+} else {
+  // Import dinámico: el cliente de Supabase solo se crea si la configuración es válida
+  const { App } = await import('@/app/App')
+  root.render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}

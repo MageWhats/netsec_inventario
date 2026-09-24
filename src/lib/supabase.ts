@@ -1,13 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
+import { parseEnv } from '@/lib/env'
 import type { Database } from '@/types/database'
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// main.tsx valida la configuración antes de cargar la app, así que aquí siempre es válida
+const { env, errors } = parseEnv()
+if (errors) throw new Error(errors.join('\n'))
 
-if (!url || !anonKey) {
-  throw new Error(
-    'Faltan VITE_SUPABASE_URL o VITE_SUPABASE_ANON_KEY. Copia .env.example a .env.local y rellena los valores.',
-  )
-}
-
-export const supabase = createClient<Database>(url, anonKey)
+export const supabase = createClient<Database>(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY)
