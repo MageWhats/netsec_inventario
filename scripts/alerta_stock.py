@@ -27,9 +27,11 @@ import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from email.message import EmailMessage
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 APP_URL = os.environ.get("APP_URL", "https://netsec-inventario.vercel.app").rstrip("/")
 ZONA = timezone(timedelta(hours=-5))  # Colombia, sin horario de verano
+PARAMETROS_NO_PSQL = {"pgbouncer", "connection_limit", "pool_timeout", "statement_cache_size", "schema"}
 
 CONSULTA = """
 select
@@ -58,11 +60,18 @@ EJEMPLO = [
 ]
 
 
+def url_para_psql(url):
+    # Supabase a veces da la URI con parámetros de Prisma (p. ej. ?pgbouncer=true) que psql rechaza
+    partes = urlsplit(url)
+    parametros = [(k, v) for k, v in parse_qsl(partes.query, keep_blank_values=True) if k not in PARAMETROS_NO_PSQL]
+    return urlunsplit(partes._replace(query=urlencode(parametros)))
+
+
 def consultar():
     # Dos comandos separados (compatibles con cualquier versión de psql): la sesión queda en SOLO LECTURA
     # y después se consulta. Así el script no puede modificar nada aunque la consulta cambie.
     proceso = subprocess.run(
-        ["psql", os.environ["SUPABASE_DB_URL"], "--csv", "--quiet", "--no-psqlrc", "-v", "ON_ERROR_STOP=1",
+        ["psql", url_para_psql(os.environ["SUPABASE_DB_URL"]), "--csv", "--quiet", "--no-psqlrc", "-v", "ON_ERROR_STOP=1",
          "-c", "SET default_transaction_read_only = on", "-c", CONSULTA],
         capture_output=True, text=True,
     )
