@@ -22,6 +22,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false # el job no hace push: no deja credenciales que limpiar al final
 
       - name: Comprobar configuración
         env:
