@@ -1,0 +1,46 @@
+# Alerta de stock bajo por correo: de lunes a sábado a las 7:00 a. m. (Colombia).
+# Solo envía el correo si hay productos sin stock o en/por debajo del mínimo.
+# Configuración: README → Alertas de stock por correo.
+name: Alerta de stock bajo
+
+on:
+  schedule:
+    - cron: '0 12 * * 1-6' # 12:00 UTC = 7:00 a. m. en Colombia, lunes a sábado
+  workflow_dispatch:
+    inputs:
+      forzar:
+        description: 'Enviar el correo aunque no haya productos por reponer (para probar)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  alerta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar configuración
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SMTP_USUARIO: ${{ secrets.SMTP_USUARIO }}
+          SMTP_CLAVE: ${{ secrets.SMTP_CLAVE }}
+        run: |
+          for v in SUPABASE_DB_URL SMTP_USUARIO SMTP_CLAVE; do
+            if [ -z "${!v}" ]; then echo "::error::Falta el secreto $v (ver README → Alertas de stock por correo)"; exit 1; fi
+          done
+
+      - name: Instalar cliente de PostgreSQL
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+
+      - name: Revisar stock y enviar alerta
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SMTP_USUARIO: ${{ secrets.SMTP_USUARIO }}
+          SMTP_CLAVE: ${{ secrets.SMTP_CLAVE }}
+          ALERTA_DESTINATARIOS: ${{ secrets.ALERTA_DESTINATARIOS }}
+          FORZAR_ENVIO: ${{ github.event_name == 'workflow_dispatch' && inputs.forzar }}
+        run: python3 scripts/alerta_stock.py

@@ -142,6 +142,29 @@ antes una copia reciente.
 4. Si restauraste en un proyecto nuevo, cambia `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Vercel y vuelve a
    desplegar, y configura de nuevo en ese proyecto el CAPTCHA y la desactivación del registro público.
 
+## Alertas de stock por correo
+
+De lunes a sábado a las 7:00 a. m. (Colombia), `.github/workflows/alerta-stock.yml` ejecuta
+`scripts/alerta_stock.py`: consulta en **solo lectura** los productos activos sin stock o en/por debajo del
+mínimo y, **solo si hay alguno**, envía un correo con la lista y enlaces a la app. Usa el mismo secreto
+`SUPABASE_DB_URL` de las copias de seguridad.
+
+### Configuración (una sola vez)
+
+1. **Contraseña de aplicación de Google** (la cuenta de Gmail que envía):
+   myaccount.google.com → **Seguridad** → activa la *Verificación en 2 pasos* si no lo está → busca
+   **Contraseñas de aplicaciones** → crea una llamada `Net&Sec Inventario` → copia el código de 16 letras.
+   Se puede revocar en ese mismo lugar sin afectar la cuenta.
+2. En GitHub → Settings → Secrets and variables → **Actions**, crea:
+   - `SMTP_USUARIO`: el correo de Gmail que envía.
+   - `SMTP_CLAVE`: la contraseña de aplicación (las 16 letras, sin espacios).
+   - `ALERTA_DESTINATARIOS` *(opcional)*: correos que reciben, separados por coma. Si no se crea, llega al
+     mismo `SMTP_USUARIO`.
+3. Actions → *Alerta de stock bajo* → **Run workflow** (con "Enviar aunque no haya productos por reponer"
+   marcado) para recibir un correo de prueba.
+
+Vista previa del correo sin base de datos ni envío: `python scripts/alerta_stock.py --prueba > alerta.html`.
+
 ## Escáner con el teléfono
 
 Los botones con el ícono de código de barras abren la cámara (librería `barcode-detector`, motor ZXing en WebAssembly
