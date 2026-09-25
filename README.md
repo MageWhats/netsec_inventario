@@ -44,6 +44,8 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
 5. `0005_auditoria.sql`: historial de cambios (quién, cuándo, qué) en productos, clientes, proveedores, categorías,
    bodegas, usuarios y MAC/notas de unidades. Se consulta en Reportes → Historial de cambios.
 6. `0006_validaciones.sql`: reglas de formato y largo en la base de datos (las mismas de los formularios).
+7. `0007_fotos_productos.sql`: espacio de fotos de productos en Supabase Storage (solo *admin* sube;
+   máximo 2 MB; JPG, PNG o WebP).
 
 Reglas clave:
 
@@ -61,7 +63,7 @@ Reglas clave:
 | Validación de entradas | En los formularios (Zod) **y** en la base de datos (migración 0006: largos y formatos de SKU, documento, email, teléfono, MAC, serial) |
 | Datos que no se pueden manipular | Movimientos inmutables, stock calculado, tomas y ajustes solo mediante funciones que validan |
 | Contenido del usuario | React escapa todo lo que muestra; el CSV neutraliza fórmulas de Excel (`=`, `+`, `-`, `@`) |
-| Subida de archivos | La app no acepta archivos (no usa Supabase Storage) |
+| Subida de archivos | Solo fotos de productos: la app las valida, reduce y limpia de metadatos (GPS); el servidor solo acepta JPG/PNG/WebP de hasta 2 MB subidos por *admin* (migración 0007) |
 | Tamaño de las respuestas | Máximo 1000 filas por consulta (Supabase); la app pagina y los reportes avisan si llegan al tope |
 | Historial de cambios | Migración 0005: quién cambió qué y cuándo (Reportes → Historial de cambios) |
 | Cabeceras HTTP | `vercel.json`: CSP estricta, anti-iframe, `nosniff`, HSTS, permisos (solo cámara) |

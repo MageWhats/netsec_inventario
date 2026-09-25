@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { prepararFoto } from '@/lib/imagen'
 import { traerTodo } from '@/lib/paginar'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
 
@@ -151,6 +152,65 @@ export function useGuardarProducto() {
       const { data, error } = await query.select('id').single()
       if (error) throw error
       return data.id
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+  })
+}
+
+// ---------------------------------------------------------------------
+// Fotos (bucket "productos" de Supabase Storage, migración 0007)
+// ---------------------------------------------------------------------
+
+const BUCKET_FOTOS = 'productos'
+
+/** Ruta dentro del bucket a partir de la URL pública guardada en imagen_url */
+function rutaDeFoto(url: string | null) {
+  const marca = `/object/public/${BUCKET_FOTOS}/`
+  const i = url?.indexOf(marca) ?? -1
+  return url && i >= 0 ? url.slice(i + marca.length) : null
+}
+
+async function borrarFoto(url: string | null) {
+  const ruta = rutaDeFoto(url)
+  // Si falla solo queda un archivo huérfano; no debe impedir el cambio de foto
+  if (ruta) await supabase.storage.from(BUCKET_FOTOS).remove([ruta])
+}
+
+export function useSubirFoto() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ producto, archivo }: { producto: Pick<Producto, 'id' | 'imagen_url'>; archivo: File }) => {
+      const { blob, extension } = await prepararFoto(archivo)
+      // Nombre aleatorio: la URL no se puede adivinar y cada foto nueva evita la caché de la anterior
+      const ruta = `${producto.id}/${crypto.randomUUID()}.${extension}`
+      const fotos = supabase.storage.from(BUCKET_FOTOS)
+
+      const { error: errorSubida } = await fotos.upload(ruta, blob, {
+        contentType: blob.type,
+        cacheControl: '31536000',
+        upsert: false,
+      })
+      if (errorSubida) throw errorSubida
+
+      const url = fotos.getPublicUrl(ruta).data.publicUrl
+      const { error } = await supabase.from('productos').update({ imagen_url: url }).eq('id', producto.id)
+      if (error) {
+        await fotos.remove([ruta])
+        throw error
+      }
+      await borrarFoto(producto.imagen_url)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+  })
+}
+
+export function useQuitarFoto() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (producto: Pick<Producto, 'id' | 'imagen_url'>) => {
+      const { error } = await supabase.from('productos').update({ imagen_url: null }).eq('id', producto.id)
+      if (error) throw error
+      await borrarFoto(producto.imagen_url)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
   })

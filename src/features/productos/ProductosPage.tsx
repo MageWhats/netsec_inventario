@@ -8,6 +8,7 @@ import { useBusquedaSerie, useCategorias, useProductos, type Producto } from './
 import { ConfirmarActivoModal } from './components/ConfirmarActivoModal'
 import { ProductoFormModal } from './components/ProductoFormModal'
 import { StockBadge, TipoControlBadge } from './components/badges'
+import { MiniaturaProducto } from './components/FotoProducto'
 
 type FiltroEstado = 'activos' | 'inactivos' | 'todos'
 
@@ -160,22 +161,27 @@ export function ProductosPage() {
                     className={`cursor-pointer transition hover:bg-white/[0.03] ${p.activo ? '' : 'opacity-50'}`}
                   >
                     <td className="px-4 py-3">
-                      <Link
-                        to={`/productos/${p.id}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-medium hover:text-brand-cyan"
-                      >
-                        {p.nombre}
-                      </Link>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
-                        <span className="font-mono">{p.sku}</span>
-                        {(p.marca || p.modelo) && <span>· {[p.marca, p.modelo].filter(Boolean).join(' ')}</span>}
-                        {!p.activo && <span className="text-amber-400">· Inactivo</span>}
-                        {termino && coincidenSerie?.has(p.id) && (
-                          <span className="inline-flex items-center gap-1 text-brand-cyan">
-                            · <Barcode className="size-3" /> serial coincide
-                          </span>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <MiniaturaProducto url={p.imagen_url} nombre={p.nombre} />
+                        <div className="min-w-0">
+                          <Link
+                            to={`/productos/${p.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="font-medium hover:text-brand-cyan"
+                          >
+                            {p.nombre}
+                          </Link>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-slate-500">
+                            <span className="font-mono">{p.sku}</span>
+                            {(p.marca || p.modelo) && <span>· {[p.marca, p.modelo].filter(Boolean).join(' ')}</span>}
+                            {!p.activo && <span className="text-amber-400">· Inactivo</span>}
+                            {termino && coincidenSerie?.has(p.id) && (
+                              <span className="inline-flex items-center gap-1 text-brand-cyan">
+                                · <Barcode className="size-3" /> serial coincide
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-slate-300">{p.categoria?.nombre ?? '—'}</td>

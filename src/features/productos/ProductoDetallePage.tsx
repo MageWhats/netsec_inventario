@@ -6,6 +6,7 @@ import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useProducto } from './api'
 import { ConfirmarActivoModal } from './components/ConfirmarActivoModal'
+import { FotoProducto } from './components/FotoProducto'
 import { KardexSection } from './components/KardexSection'
 import { ProductoFormModal } from './components/ProductoFormModal'
 import { StockBadge, TipoControlBadge } from './components/badges'
@@ -86,21 +87,26 @@ export function ProductoDetallePage() {
         <Kpi label="Margen">{margen === null ? '—' : `${(margen * 100).toFixed(1)} %`}</Kpi>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-brand-border bg-brand-card p-6">
-        <h2 className="mb-4 font-semibold">Detalles</h2>
-        <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <Dato label="Categoría">{producto.categoria?.nombre}</Dato>
-          <Dato label="Marca">{producto.marca}</Dato>
-          <Dato label="Modelo">{producto.modelo}</Dato>
-          <Dato label="Código de barras">
-            {producto.codigo_barras && <span className="font-mono">{producto.codigo_barras}</span>}
-          </Dato>
-          <Dato label="Creado">{formatearFecha(producto.created_at)}</Dato>
-          <Dato label="Última modificación">{formatearFecha(producto.updated_at)}</Dato>
-          <Dato label="Descripción" className="sm:col-span-2 lg:col-span-3">
-            {producto.descripcion && <span className="whitespace-pre-line">{producto.descripcion}</span>}
-          </Dato>
-        </dl>
+      <section className="mb-6 grid gap-6 rounded-2xl border border-brand-border bg-brand-card p-6 md:grid-cols-[14rem_1fr]">
+        <div className="mx-auto w-full max-w-56">
+          <FotoProducto producto={producto} />
+        </div>
+        <div>
+          <h2 className="mb-4 font-semibold">Detalles</h2>
+          <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <Dato label="Categoría">{producto.categoria?.nombre}</Dato>
+            <Dato label="Marca">{producto.marca}</Dato>
+            <Dato label="Modelo">{producto.modelo}</Dato>
+            <Dato label="Código de barras">
+              {producto.codigo_barras && <span className="font-mono">{producto.codigo_barras}</span>}
+            </Dato>
+            <Dato label="Creado">{formatearFecha(producto.created_at)}</Dato>
+            <Dato label="Última modificación">{formatearFecha(producto.updated_at)}</Dato>
+            <Dato label="Descripción" className="sm:col-span-2 lg:col-span-3">
+              {producto.descripcion && <span className="whitespace-pre-line">{producto.descripcion}</span>}
+            </Dato>
+          </dl>
+        </div>
       </section>
 
       <KardexSection productoId={producto.id} />

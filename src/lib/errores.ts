@@ -12,6 +12,21 @@ export function mensajeError(error: unknown): string {
   }
   if (pgError?.code === '23503') return 'No se puede eliminar porque tiene registros asociados.'
   if (pgError?.code === '42501') return 'No tienes permisos para realizar esta acción.'
+  // Reglas de la migración 0006: se llaman <tabla>_<campo>_formato / _largo
+  if (pgError?.code === '23514') {
+    const regla = /constraint "\w+?_(\w+)_(formato|largo|bucket)"/.exec(pgError.message ?? '')
+    const campo = regla?.[1]?.replaceAll('_', ' ')
+    if (regla?.[2] === 'largo') return `El campo «${campo}» es demasiado largo.`
+    if (campo) return `El campo «${campo}» no tiene un formato válido.`
+    return 'Algún dato no cumple las reglas permitidas.'
+  }
+
+  // Supabase Storage (fotos)
+  const mensaje = (error as { message?: string } | null)?.message ?? ''
+  if (/exceeded the maximum allowed size/i.test(mensaje)) return 'La foto supera el tamaño máximo (2 MB).'
+  if (/mime type/i.test(mensaje)) return 'Formato de imagen no permitido: usa JPG, PNG o WebP.'
+  if (/row-level security|unauthorized/i.test(mensaje)) return 'No tienes permisos para realizar esta acción.'
+  if (/bucket not found/i.test(mensaje)) return 'Falta configurar el almacenamiento de fotos (migración 0007).'
   // Los errores de validación de registrar_movimiento() (RAISE EXCEPTION) ya vienen en español
   return pgError?.message ?? 'Ocurrió un error inesperado.'
 }
