@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, CheckCheck, Search, XCircle } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCheck, Download, Search, XCircle } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -21,6 +21,7 @@ import {
 import { EstadoTomaBadge } from './components/EstadoTomaBadge'
 import { FilaProductoToma } from './components/FilaProductoToma'
 import { calcularFilas, resumir } from './diferencias'
+import { exportarToma } from './exportar'
 
 type Vista = 'todos' | 'pendientes' | 'diferencias'
 
@@ -126,24 +127,34 @@ export function TomaDetallePage() {
           {t.notas && <p className="mt-1 text-sm text-slate-300">{t.notas}</p>}
         </div>
 
-        {enCurso && (
-          <div className="flex flex-wrap gap-2">
-            <BotonEscanear titulo="Contar escaneando" label="Escanear" continuo onDetectado={onEscaneado} className="btn-primary" />
-            <button onClick={() => setConfirmarCancelar(true)} className="btn btn-secondary">
-              <XCircle className="size-4" />
-              Cancelar toma
-            </button>
-            <button
-              onClick={() => setConfirmarFinalizar(true)}
-              disabled={resumen.contados === 0}
-              className="btn btn-primary"
-              title={resumen.contados === 0 ? 'Cuenta al menos un producto' : undefined}
-            >
-              <CheckCheck className="size-4" />
-              Finalizar
-            </button>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => exportarToma(t, filas, enCurso)}
+            disabled={filas.length === 0}
+            className="btn btn-secondary"
+          >
+            <Download className="size-4" />
+            Excel (CSV)
+          </button>
+          {enCurso && (
+            <>
+              <BotonEscanear titulo="Contar escaneando" label="Escanear" continuo onDetectado={onEscaneado} className="btn-primary" />
+              <button onClick={() => setConfirmarCancelar(true)} className="btn btn-secondary">
+                <XCircle className="size-4" />
+                Cancelar toma
+              </button>
+              <button
+                onClick={() => setConfirmarFinalizar(true)}
+                disabled={resumen.contados === 0}
+                className="btn btn-primary"
+                title={resumen.contados === 0 ? 'Cuenta al menos un producto' : undefined}
+              >
+                <CheckCheck className="size-4" />
+                Finalizar
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {enCurso && movimientosDesde > 0 && (
