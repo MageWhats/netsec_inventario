@@ -33,8 +33,15 @@ jobs:
             if [ -z "${!v}" ]; then echo "::error::Falta el secreto $v (ver README → Alertas de stock por correo)"; exit 1; fi
           done
 
-      - name: Instalar cliente de PostgreSQL
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client > /dev/null
+      # Las imágenes de GitHub ya traen psql; solo se instala si faltara (apt puede tardar minutos)
+      - name: Comprobar cliente de PostgreSQL
+        timeout-minutes: 5
+        run: |
+          if command -v psql > /dev/null; then
+            psql --version
+          else
+            sudo apt-get install -y -qq --no-install-recommends postgresql-client > /dev/null
+          fi
 
       - name: Revisar stock y enviar alerta
         env:
