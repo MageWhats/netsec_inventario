@@ -50,4 +50,8 @@ export const esTipoMovimiento = (valor: string | undefined): valor is TipoMovimi
 
 export const esAjuste = (tipo: TipoMovimiento) => tipo === 'ajuste_entrada' || tipo === 'ajuste_salida'
 
-export const formatearNumero = (numero: number) => `#${String(numero).padStart(6, '0')}`
+/** Cada serie lleva su propio consecutivo: E (entradas), S (salidas) y A (ajustes + y −) */
+export const serieMovimiento = (tipo: TipoMovimiento) => (tipo === 'entrada' ? 'E' : tipo === 'salida' ? 'S' : 'A')
+
+/** Sin la letra de la serie: el tipo siempre se muestra al lado del número */
+export const formatearNumero = (numero: number) => String(numero).padStart(6, '0')

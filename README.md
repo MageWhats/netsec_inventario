@@ -46,6 +46,8 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
 6. `0006_validaciones.sql`: reglas de formato y largo en la base de datos (las mismas de los formularios).
 7. `0007_fotos_productos.sql`: espacio de fotos de productos en Supabase Storage (solo *admin* sube;
    máximo 2 MB; JPG, PNG o WebP).
+8. `0008_consecutivo_por_tipo.sql`: cada serie de movimientos lleva su propio consecutivo: E (entradas),
+   S (salidas) y A (ajustes + y −). Renumera los movimientos existentes.
 
 Reglas clave:
 

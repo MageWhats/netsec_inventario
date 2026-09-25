@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { traerTodo } from '@/lib/paginar'
 import type { Database, Enums, Views } from '@/types/database'
-import type { TipoMovimiento } from './tipos'
+import { serieMovimiento, TIPOS_MOVIMIENTO, type TipoMovimiento } from './tipos'
 
 export type MovimientoResumen = Views<'movimientos_resumen'>
 
@@ -43,14 +43,20 @@ export function useMovimientos(filtros: FiltrosMovimientos) {
 
       const texto = filtros.busqueda?.trim().replace(/[%_,()]/g, '')
       if (texto) {
-        const numero = Number(texto.replace(/^#/, ''))
         const condiciones = [
           `referencia.ilike.%${texto}%`,
           `cliente_nombre.ilike.%${texto}%`,
           `proveedor_nombre.ilike.%${texto}%`,
           `notas.ilike.%${texto}%`,
         ]
-        if (Number.isInteger(numero) && numero > 0) condiciones.push(`numero.eq.${numero}`)
+        // Número de movimiento: "12" (cualquier serie) o con la letra, "E12" / "s-12", para una sola serie
+        const consecutivo = /^#?([esa])?-?(\d+)$/i.exec(texto)
+        const numero = Number(consecutivo?.[2])
+        if (consecutivo && numero > 0) {
+          const serie = consecutivo[1]?.toUpperCase()
+          const tipos = serie ? TIPOS_MOVIMIENTO.filter((t) => serieMovimiento(t) === serie) : []
+          condiciones.push(tipos.length ? `and(numero.eq.${numero},tipo.in.(${tipos.join(',')}))` : `numero.eq.${numero}`)
+        }
         query = query.or(condiciones.join(','))
       }
 
