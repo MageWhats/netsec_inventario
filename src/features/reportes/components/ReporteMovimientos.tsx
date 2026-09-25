@@ -6,7 +6,7 @@ import { formatearNumero, TIPOS_MOVIMIENTO, tiposMovimiento, type TipoMovimiento
 import { LIMITE_LINEAS, useLineasMovimiento, type LineaMovimiento } from '../api'
 import { describirRango, rangoEsteMes, type Rango } from '../rangos'
 import { RangoFechas } from './RangoFechas'
-import { exportarCsv } from '../exportar'
+import { tablaDesdeColumnas } from '@/lib/exportar'
 import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
 
 /** Precio de venta en salidas, costo en el resto (igual que en el historial de movimientos) */
@@ -86,7 +86,7 @@ export function ReporteMovimientos() {
       cargando={lineas.isLoading}
       error={lineas.error}
       puedeExportar={filas.length > 0}
-      onExportar={() => exportarCsv(`movimientos_${rango.desde}_a_${rango.hasta}`, columnas, filas)}
+      exportar={() => ({ archivo: `movimientos_${rango.desde}_a_${rango.hasta}`, ...tablaDesdeColumnas(columnas, filas) })}
       aviso={
         filas.length >= LIMITE_LINEAS &&
         `Se alcanzó el máximo de ${LIMITE_LINEAS.toLocaleString('es-CO')} líneas: acorta el período para ver el reporte completo.`

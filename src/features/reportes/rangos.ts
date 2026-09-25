@@ -1,4 +1,4 @@
-import { fechaIso } from './exportar'
+import { fechaIso } from '@/lib/exportar'
 
 export interface Rango {
   /** Fechas en formato YYYY-MM-DD (hora local) */

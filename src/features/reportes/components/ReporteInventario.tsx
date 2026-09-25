@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatearPrecio } from '@/lib/format'
 import { useCategorias, useProductos, type Producto } from '@/features/productos/api'
-import { exportarCsv } from '../exportar'
+import { tablaDesdeColumnas } from '@/lib/exportar'
 import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
 
 const columnas: Columna<Producto>[] = [
@@ -62,7 +62,7 @@ export function ReporteInventario() {
       cargando={productos.isLoading}
       error={productos.error}
       puedeExportar={filas.length > 0}
-      onExportar={() => exportarCsv('inventario_valorizado', columnas, filas)}
+      exportar={() => ({ archivo: 'inventario_valorizado', ...tablaDesdeColumnas(columnas, filas) })}
       filtros={
         <>
           <label className="text-xs text-slate-400">

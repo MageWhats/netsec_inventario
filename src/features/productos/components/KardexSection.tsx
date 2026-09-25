@@ -1,18 +1,50 @@
 import { Link } from 'react-router-dom'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { MenuExportar } from '@/components/ui/MenuExportar'
 import { TipoMovimientoBadge } from '@/features/movimientos/components/MovimientosTabla'
-import { formatearNumero } from '@/features/movimientos/tipos'
+import { formatearNumero, tiposMovimiento } from '@/features/movimientos/tipos'
+import { tablaDesdeColumnas, type ColumnaExportable } from '@/lib/exportar'
 import { formatearFecha } from '@/lib/format'
 import { useKardex } from '../api'
 
-export function KardexSection({ productoId }: { productoId: string }) {
-  const { data: filas = [], isLoading, error } = useKardex(productoId)
+type FilaKardex = NonNullable<ReturnType<typeof useKardex>['data']>[number]
+
+const tercero = (f: FilaKardex) => f.proveedor?.nombre ?? f.cliente?.nombre ?? f.notas ?? f.referencia ?? '—'
+
+const columnasExportacion: ColumnaExportable<FilaKardex>[] = [
+  { titulo: 'Fecha', valor: (f) => formatearFecha(f.fecha) },
+  { titulo: 'Movimiento', valor: (f) => formatearNumero(f.numero) },
+  { titulo: 'Tipo', valor: (f) => tiposMovimiento[f.tipo].label },
+  { titulo: 'Tercero / motivo', valor: tercero },
+  { titulo: 'Referencia', valor: (f) => f.referencia },
+  { titulo: 'Entra', valor: (f) => f.entra || null, numerica: true },
+  { titulo: 'Sale', valor: (f) => f.sale || null, numerica: true },
+  { titulo: 'Saldo', valor: (f) => f.saldo, numerica: true },
+]
+
+interface KardexSectionProps {
+  producto: { id: string; sku: string; nombre: string }
+}
+
+export function KardexSection({ producto }: KardexSectionProps) {
+  const { data: filas = [], isLoading, error } = useKardex(producto.id)
 
   return (
-    <section className="mb-6 overflow-hidden rounded-2xl border border-brand-border bg-brand-card">
-      <div className="border-b border-brand-border p-6">
-        <h2 className="font-semibold">Kardex</h2>
-        <p className="mt-1 text-sm text-slate-400">Todos los movimientos del producto con el saldo después de cada uno.</p>
+    <section className="mb-6 rounded-2xl border border-brand-border bg-brand-card">
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-brand-border p-6">
+        <div>
+          <h2 className="font-semibold">Kardex</h2>
+          <p className="mt-1 text-sm text-slate-400">Todos los movimientos del producto con el saldo después de cada uno.</p>
+        </div>
+        <MenuExportar
+          disabled={filas.length === 0}
+          documento={() => ({
+            archivo: `kardex_${producto.sku}`,
+            titulo: `Kardex · ${producto.nombre}`,
+            subtitulo: `SKU ${producto.sku} · más recientes primero`,
+            ...tablaDesdeColumnas(columnasExportacion, filas),
+          })}
+        />
       </div>
 
       {isLoading ? (
@@ -22,7 +54,7 @@ export function KardexSection({ productoId }: { productoId: string }) {
       ) : filas.length === 0 ? (
         <p className="p-10 text-center text-sm text-slate-500">Este producto todavía no tiene movimientos.</p>
       ) : (
-        <div className="max-h-[32rem] overflow-auto">
+        <div className="max-h-[32rem] overflow-auto rounded-b-2xl">
           <table className="w-full text-sm">
             <thead className="sticky top-0 border-b border-brand-border bg-brand-card text-left text-xs tracking-wide text-slate-400 uppercase">
               <tr>
@@ -45,7 +77,7 @@ export function KardexSection({ productoId }: { productoId: string }) {
                     <TipoMovimientoBadge tipo={f.tipo} />
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-slate-400">
-                    {f.proveedor?.nombre ?? f.cliente?.nombre ?? f.notas ?? f.referencia ?? '—'}
+                    {tercero(f)}
                   </td>
                   <td className="px-4 py-3 text-right text-emerald-400">{f.entra || ''}</td>
                   <td className="px-4 py-3 text-right text-red-400">{f.sale || ''}</td>

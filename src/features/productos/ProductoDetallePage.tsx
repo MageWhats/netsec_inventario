@@ -109,7 +109,7 @@ export function ProductoDetallePage() {
         </div>
       </section>
 
-      <KardexSection productoId={producto.id} />
+      <KardexSection producto={producto} />
 
       {producto.es_serializado && <UnidadesSection productoId={producto.id} />}
 

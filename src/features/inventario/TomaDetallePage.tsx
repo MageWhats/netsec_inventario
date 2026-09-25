@@ -1,9 +1,10 @@
-import { AlertTriangle, ArrowLeft, CheckCheck, Download, Search, XCircle } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, CheckCheck, Search, XCircle } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { MenuExportar } from '@/components/ui/MenuExportar'
 import { mensajeError } from '@/lib/errores'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useProductos } from '@/features/productos/api'
@@ -21,7 +22,7 @@ import {
 import { EstadoTomaBadge } from './components/EstadoTomaBadge'
 import { FilaProductoToma } from './components/FilaProductoToma'
 import { calcularFilas, resumir } from './diferencias'
-import { exportarToma } from './exportar'
+import { documentoToma } from './exportar'
 
 type Vista = 'todos' | 'pendientes' | 'diferencias'
 
@@ -128,14 +129,7 @@ export function TomaDetallePage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => exportarToma(t, filas, enCurso)}
-            disabled={filas.length === 0}
-            className="btn btn-secondary"
-          >
-            <Download className="size-4" />
-            Excel (CSV)
-          </button>
+          <MenuExportar documento={() => documentoToma(t, filas, enCurso)} disabled={filas.length === 0} />
           {enCurso && (
             <>
               <BotonEscanear titulo="Contar escaneando" label="Escanear" continuo onDetectado={onEscaneado} className="btn-primary" />

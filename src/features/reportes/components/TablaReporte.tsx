@@ -1,14 +1,15 @@
-import { Download, Printer } from 'lucide-react'
+import { Printer } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
+import { MenuExportar } from '@/components/ui/MenuExportar'
 import { mensajeError } from '@/lib/errores'
-import type { Celda } from '../exportar'
+import type { Celda, DocumentoExportable } from '@/lib/exportar'
 
-/** Una misma definición alimenta la tabla en pantalla, la impresión y el CSV */
+/** Una misma definición alimenta la tabla en pantalla, la impresión y la exportación (Excel, PDF, Word) */
 export interface Columna<T> {
   titulo: string
-  /** Valor crudo: es lo que va al CSV y lo que se suma en los totales */
+  /** Valor crudo: es lo que va al Excel y lo que se suma en los totales */
   valor: (fila: T) => Celda
   /** Cómo se muestra en pantalla (por defecto, el valor crudo) */
   mostrar?: (fila: T) => ReactNode
@@ -85,7 +86,8 @@ interface ReporteProps {
   aviso?: ReactNode
   cargando: boolean
   error: unknown
-  onExportar: () => void
+  /** Datos a exportar (el título y el subtítulo los pone el reporte) */
+  exportar: () => Omit<DocumentoExportable, 'titulo' | 'subtitulo'>
   puedeExportar: boolean
   children: ReactNode
 }
@@ -98,7 +100,7 @@ export function Reporte({
   aviso,
   cargando,
   error,
-  onExportar,
+  exportar,
   puedeExportar,
   children,
 }: ReporteProps) {
@@ -107,10 +109,7 @@ export function Reporte({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div className="flex flex-wrap items-end gap-3">{filtros}</div>
         <div className="flex gap-2">
-          <button onClick={onExportar} disabled={!puedeExportar} className="btn btn-secondary">
-            <Download className="size-4" />
-            Excel (CSV)
-          </button>
+          <MenuExportar documento={() => ({ titulo, subtitulo, ...exportar() })} disabled={!puedeExportar} />
           <button onClick={() => window.print()} disabled={!puedeExportar} className="btn btn-secondary">
             <Printer className="size-4" />
             Imprimir

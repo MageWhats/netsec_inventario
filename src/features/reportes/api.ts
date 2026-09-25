@@ -12,8 +12,8 @@ export interface FiltrosLineas {
 
 const SELECT_LINEA = `
   id, cantidad, costo_unitario, precio_unitario,
-  producto:productos(id, sku, nombre, precio_costo, categoria:categorias(nombre)),
-  unidad:unidades(numero_serie),
+  producto:productos(id, sku, nombre, precio_costo, es_serializado, categoria:categorias(nombre)),
+  unidad:unidades(id, numero_serie),
   movimiento:movimientos!inner(
     id, numero, tipo, fecha, referencia, notas,
     cliente:clientes(id, nombre, tipo_documento, documento),

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { formatearFecha } from '@/lib/format'
 import type { Json } from '@/types/database'
 import { LIMITE_LINEAS, useAuditoria, type RegistroAuditoria } from '../api'
-import { exportarCsv } from '../exportar'
+import { tablaDesdeColumnas } from '@/lib/exportar'
 import { describirRango, rangoEsteMes, type Rango } from '../rangos'
 import { RangoFechas } from './RangoFechas'
 import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
@@ -85,7 +85,7 @@ export function ReporteAuditoria() {
       cargando={auditoria.isLoading}
       error={auditoria.error}
       puedeExportar={filas.length > 0}
-      onExportar={() => exportarCsv(`historial_cambios_${rango.desde}_a_${rango.hasta}`, columnas, filas)}
+      exportar={() => ({ archivo: `historial_cambios_${rango.desde}_a_${rango.hasta}`, ...tablaDesdeColumnas(columnas, filas) })}
       aviso={
         filas.length >= LIMITE_LINEAS &&
         `Se alcanzó el máximo de ${LIMITE_LINEAS.toLocaleString('es-CO')} registros: acorta el período.`
