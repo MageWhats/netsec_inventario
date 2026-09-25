@@ -61,11 +61,18 @@ EJEMPLO = [
 def consultar():
     # Dos comandos separados (compatibles con cualquier versión de psql): la sesión queda en SOLO LECTURA
     # y después se consulta. Así el script no puede modificar nada aunque la consulta cambie.
-    salida = subprocess.run(
+    proceso = subprocess.run(
         ["psql", os.environ["SUPABASE_DB_URL"], "--csv", "--quiet", "--no-psqlrc", "-v", "ON_ERROR_STOP=1",
          "-c", "SET default_transaction_read_only = on", "-c", CONSULTA],
-        check=True, capture_output=True, text=True,
-    ).stdout
+        capture_output=True, text=True,
+    )
+    if proceso.returncode != 0:
+        # psql sale con 2 si no pudo conectarse y con 3 si falló la consulta; se muestra su mensaje real
+        print(proceso.stderr.strip(), file=sys.stderr)
+        tipo = "no pudo conectarse a la base de datos" if proceso.returncode == 2 else "la consulta falló"
+        print(f"::error::psql {tipo} (código {proceso.returncode}). Ver el mensaje de arriba.")
+        sys.exit(1)
+    salida = proceso.stdout
     # Por si psql imprime la etiqueta del SET, se descarta: quedan solo las filas del CSV
     lineas = [l for l in salida.splitlines() if l != "SET"]
     return list(csv.DictReader(io.StringIO("\n".join(lineas))))
