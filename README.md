@@ -159,7 +159,8 @@ mínimo y, **solo si hay alguno**, envía un correo con la lista y enlaces a la 
    - `SMTP_USUARIO`: el correo de Gmail que envía.
    - `SMTP_CLAVE`: la contraseña de aplicación (las 16 letras, sin espacios).
    - `ALERTA_DESTINATARIOS` *(opcional)*: correos que reciben, separados por coma. Si no se crea, llega al
-     mismo `SMTP_USUARIO`.
+     mismo `SMTP_USUARIO`, pero Gmail guarda los correos enviados a uno mismo en **Enviados**, no en la
+     bandeja de entrada. Para recibirlos como correo nuevo, pon aquí otra dirección.
 3. Actions → *Alerta de stock bajo* → **Run workflow** (con "Enviar aunque no haya productos por reponer"
    marcado) para recibir un correo de prueba.
 
