@@ -82,7 +82,7 @@ export function ProductoDetallePage() {
           <StockBadge stock={producto.stock} minimo={producto.stock_minimo} />
           <span className="ml-2 text-xs text-slate-500">mínimo {producto.stock_minimo}</span>
         </Kpi>
-        <Kpi label="Precio de costo">{formatearPrecio(producto.precio_costo)}</Kpi>
+        <Kpi label="Costo promedio">{formatearPrecio(producto.precio_costo)}</Kpi>
         <Kpi label="Precio de venta">{formatearPrecio(producto.precio_venta)}</Kpi>
         <Kpi label="Margen">{margen === null ? '—' : `${(margen * 100).toFixed(1)} %`}</Kpi>
       </div>

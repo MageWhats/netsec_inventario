@@ -25,6 +25,8 @@ interface LineaMovimientoProps {
 export function LineaMovimiento({ tipo, linea, error, onChange, onRemove }: LineaMovimientoProps) {
   const { producto } = linea
   const esEntrada = tiposMovimiento[tipo].esEntrada
+  /** Ajuste −: sale al costo promedio (el servidor ignora cualquier otro valor) */
+  const costoFijo = tipo === 'ajuste_salida'
 
   return (
     <li className={`rounded-xl border bg-brand-bg/40 p-4 ${error ? 'border-red-500/60' : 'border-brand-border'}`}>
@@ -124,14 +126,16 @@ export function LineaMovimiento({ tipo, linea, error, onChange, onRemove }: Line
           </label>
         )}
         <label className="block text-xs text-slate-400">
-          {usaPrecioVenta(tipo) ? 'Precio de venta unitario' : 'Costo unitario'}
+          {usaPrecioVenta(tipo) ? 'Precio de venta unitario' : costoFijo ? 'Costo promedio' : 'Costo unitario'}
           <input
             type="number"
             min={0}
             step="any"
+            readOnly={costoFijo}
+            title={costoFijo ? 'Lo que sale del inventario sale al costo promedio' : undefined}
             value={Number.isFinite(linea.valorUnitario) ? linea.valorUnitario : ''}
             onChange={(e) => onChange({ valorUnitario: e.target.valueAsNumber })}
-            className="input mt-1 w-40"
+            className={`input mt-1 w-40 ${costoFijo ? 'cursor-not-allowed opacity-60' : ''}`}
           />
         </label>
         <div className="ml-auto text-right text-sm">

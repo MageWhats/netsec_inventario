@@ -101,12 +101,21 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          <FormField label="Precio de costo" error={errors.precio_costo?.message}>
+          <FormField
+            label={editando ? 'Costo promedio' : 'Costo inicial'}
+            error={errors.precio_costo?.message}
+            hint={
+              editando
+                ? 'Se calcula solo con cada entrada'
+                : 'Referencia hasta la primera compra; después se promedia solo'
+            }
+          >
             <input
               type="number"
               min={0}
               step="any"
-              className="input"
+              readOnly={editando}
+              className={`input ${editando ? 'cursor-not-allowed opacity-60' : ''}`}
               {...register('precio_costo', { valueAsNumber: true })}
             />
           </FormField>

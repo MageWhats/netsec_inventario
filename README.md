@@ -48,6 +48,9 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
    máximo 2 MB; JPG, PNG o WebP).
 8. `0008_consecutivo_por_tipo.sql`: cada serie de movimientos lleva su propio consecutivo: E (entradas),
    S (salidas) y A (ajustes + y −). Renumera los movimientos existentes.
+9. `0009_costo_promedio.sql`: costo promedio ponderado. El precio de costo lo calcula la base de datos con cada
+   entrada (ya no se edita a mano) y las salidas y ajustes − salen a ese promedio. Recalcula el costo actual de cada
+   producto con su historial, sin tocar los movimientos ya registrados.
 
 Reglas clave:
 

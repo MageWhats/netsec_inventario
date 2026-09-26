@@ -26,7 +26,7 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
       <table className="w-full text-sm">
         <thead className="border-b border-brand-border text-left text-xs tracking-wide text-slate-400 uppercase">
           <tr>
-            <th className="px-4 py-3 font-medium">Número</th>
+            <th className="px-4 py-3 font-medium">Movimiento</th>
             <th className="px-4 py-3 font-medium">Fecha</th>
             <th className="px-4 py-3 font-medium">Tipo</th>
             <th className="px-4 py-3 font-medium">Tercero / motivo</th>
