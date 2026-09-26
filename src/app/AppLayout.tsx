@@ -1,4 +1,4 @@
-import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, Truck, Users, X } from 'lucide-react'
+import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, Settings, Truck, Users, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigation } from 'react-router-dom'
 import { LogoHorizontal } from '@/components/ui/Logo'
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/proveedores', label: 'Proveedores', icon: Truck, end: false },
   { to: '/inventario', label: 'Toma de inventario', icon: ClipboardCheck, end: false },
   { to: '/reportes', label: 'Reportes', icon: FileBarChart, end: false },
+  { to: '/configuracion', label: 'Configuración', icon: Settings, end: false },
 ]
 
 export function AppLayout() {

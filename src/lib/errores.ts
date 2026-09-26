@@ -8,6 +8,8 @@ export function mensajeError(error: unknown): string {
     if (pgError.message?.includes('productos_sku')) return 'Ya existe otro producto con ese SKU.'
     if (pgError.message?.includes('clientes_tipo_documento')) return 'Ya existe un cliente con ese documento.'
     if (pgError.message?.includes('proveedores_nit')) return 'Ya existe un proveedor con ese NIT.'
+    if (pgError.message?.includes('categorias_nombre')) return 'Ya existe una categoría con ese nombre.'
+    if (pgError.message?.includes('bodegas_nombre')) return 'Ya existe una bodega con ese nombre.'
     return 'Ya existe un registro con esos datos.'
   }
   if (pgError?.code === '23503') return 'No se puede eliminar porque tiene registros asociados.'
