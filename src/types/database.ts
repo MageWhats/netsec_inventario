@@ -160,6 +160,56 @@ export type Database = {
         }
         Relationships: []
       }
+      familias: {
+        Row: {
+          id: string
+          nombre: string
+          sku_base: string
+          categoria_id: string | null
+          marca: string | null
+          modelo: string | null
+          descripcion: string | null
+          es_serializado: boolean
+          precio_venta: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          sku_base: string
+          categoria_id?: string | null
+          marca?: string | null
+          modelo?: string | null
+          descripcion?: string | null
+          es_serializado?: boolean
+          precio_venta?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          sku_base?: string
+          categoria_id?: string | null
+          marca?: string | null
+          modelo?: string | null
+          descripcion?: string | null
+          es_serializado?: boolean
+          precio_venta?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'familias_categoria_id_fkey'
+            columns: ['categoria_id']
+            isOneToOne: false
+            referencedRelation: 'categorias'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       productos: {
         Row: {
           id: string
@@ -178,6 +228,8 @@ export type Database = {
           imagen_url: string | null
           created_at: string
           updated_at: string
+          familia_id: string | null
+          color: string | null
         }
         Insert: {
           id?: string
@@ -196,6 +248,8 @@ export type Database = {
           imagen_url?: string | null
           created_at?: string
           updated_at?: string
+          familia_id?: string | null
+          color?: string | null
         }
         Update: {
           id?: string
@@ -214,8 +268,17 @@ export type Database = {
           imagen_url?: string | null
           created_at?: string
           updated_at?: string
+          familia_id?: string | null
+          color?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: 'productos_familia_id_fkey'
+            columns: ['familia_id']
+            isOneToOne: false
+            referencedRelation: 'familias'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'productos_categoria_id_fkey'
             columns: ['categoria_id']
@@ -582,6 +645,14 @@ export type Database = {
           p_motivo?: Database['public']['Enums']['motivo_ajuste'] | null
           p_movimiento_origen_id?: string | null
         }
+        Returns: string
+      }
+      crear_familia: {
+        Args: { p_familia: Json; p_colores: string[]; p_costo_inicial?: number; p_stock_minimo?: number }
+        Returns: string
+      }
+      agregar_color: {
+        Args: { p_familia_id: string; p_color: string; p_costo_inicial?: number; p_stock_minimo?: number }
         Returns: string
       }
       iniciar_toma: {

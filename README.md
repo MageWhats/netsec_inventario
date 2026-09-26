@@ -54,6 +54,9 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
 10. `0010_motivos_ajuste.sql`: el motivo de los ajustes pasa a una lista cerrada (las notas quedan como detalle) y
     las devoluciones de cliente se enlazan con la venta original: toman su factura electrónica y solo reingresan lo
     que salió en esa venta, al costo con el que salió.
+11. `0011_colores.sql`: productos con colores. Una familia guarda los datos comunes (nombre, categoría, marca,
+    precio…) y cada color es un producto con su propio SKU, stock y costo. Los datos comunes solo se editan en la
+    familia y se copian a sus colores.
 
 Reglas clave:
 

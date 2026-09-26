@@ -5,10 +5,13 @@ import { traerTodo } from '@/lib/paginar'
 import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
 
 export type Categoria = Tables<'categorias'>
+export type Familia = Tables<'familias'>
 export type Unidad = Tables<'unidades'>
 
 export type Producto = Tables<'productos'> & {
   categoria: Pick<Categoria, 'id' | 'nombre'> | null
+  /** Producto con colores al que pertenece (null si no tiene colores) */
+  familia: Pick<Familia, 'id' | 'nombre' | 'sku_base'> | null
   /** Suma del stock en todas las bodegas (calculado desde los movimientos) */
   stock: number
 }
@@ -22,7 +25,7 @@ export const productosKeys = {
   busquedaSerie: (texto: string) => [...productosKeys.all, 'busqueda-serie', texto] as const,
 }
 
-const SELECT_PRODUCTO = '*, categoria:categorias(id, nombre)'
+const SELECT_PRODUCTO = '*, categoria:categorias(id, nombre), familia:familias(id, nombre, sku_base)'
 
 async function obtenerStock(productoId?: string) {
   const { filas: data } = await traerTodo((desde, hasta) => {
@@ -141,6 +144,77 @@ export function useBusquedaSerie(texto: string) {
 // ---------------------------------------------------------------------
 // Mutaciones
 // ---------------------------------------------------------------------
+
+/** Datos comunes de un producto con colores (se copian a todos sus colores) */
+export type DatosFamilia = Pick<
+  Familia,
+  'nombre' | 'categoria_id' | 'marca' | 'modelo' | 'descripcion' | 'es_serializado' | 'precio_venta'
+>
+
+/** Crea el producto con colores y un producto por color; devuelve el id del primer color */
+export function useCrearFamilia() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (datos: {
+      familia: DatosFamilia & { sku_base: string }
+      colores: string[]
+      costoInicial: number
+      stockMinimo: number
+    }) => {
+      const { data, error } = await supabase.rpc('crear_familia', {
+        p_familia: datos.familia,
+        p_colores: datos.colores,
+        p_costo_inicial: datos.costoInicial,
+        p_stock_minimo: datos.stockMinimo,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+  })
+}
+
+export function useAgregarColor() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (datos: { familiaId: string; color: string; costoInicial: number; stockMinimo: number }) => {
+      const { data, error } = await supabase.rpc('agregar_color', {
+        p_familia_id: datos.familiaId,
+        p_color: datos.color,
+        p_costo_inicial: datos.costoInicial,
+        p_stock_minimo: datos.stockMinimo,
+      })
+      if (error) throw error
+      return data
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+  })
+}
+
+/** Guarda un color: los datos comunes en su familia (llegan a todos los colores) y los propios en el producto */
+export function useGuardarColor() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      familiaId,
+      comunes,
+      propios,
+    }: {
+      id: string
+      familiaId: string
+      comunes: DatosFamilia
+      propios: Pick<TablesUpdate<'productos'>, 'sku' | 'codigo_barras' | 'stock_minimo'>
+    }) => {
+      const familia = await supabase.from('familias').update(comunes).eq('id', familiaId)
+      if (familia.error) throw familia.error
+      const producto = await supabase.from('productos').update(propios).eq('id', id)
+      if (producto.error) throw producto.error
+      return id
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+  })
+}
 
 export function useGuardarProducto() {
   const queryClient = useQueryClient()

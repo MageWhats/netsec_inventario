@@ -5,6 +5,7 @@ import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useProducto } from './api'
+import { ColoresSection } from './components/ColoresSection'
 import { ConfirmarActivoModal } from './components/ConfirmarActivoModal'
 import { FotoProducto } from './components/FotoProducto'
 import { KardexSection } from './components/KardexSection'
@@ -94,6 +95,7 @@ export function ProductoDetallePage() {
         <div>
           <h2 className="mb-4 font-semibold">Detalles</h2>
           <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {producto.color && <Dato label="Color">{producto.color}</Dato>}
             <Dato label="Categoría">{producto.categoria?.nombre}</Dato>
             <Dato label="Marca">{producto.marca}</Dato>
             <Dato label="Modelo">{producto.modelo}</Dato>
@@ -108,6 +110,8 @@ export function ProductoDetallePage() {
           </dl>
         </div>
       </section>
+
+      <ColoresSection producto={producto} />
 
       <KardexSection producto={producto} />
 
