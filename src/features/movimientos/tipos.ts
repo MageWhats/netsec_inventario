@@ -50,6 +50,42 @@ export const esTipoMovimiento = (valor: string | undefined): valor is TipoMovimi
 
 export const esAjuste = (tipo: TipoMovimiento) => tipo === 'ajuste_entrada' || tipo === 'ajuste_salida'
 
+// ---------------------------------------------------------------------
+// Motivos de ajuste (lista cerrada; la base de datos valida la dirección)
+// ---------------------------------------------------------------------
+
+export type MotivoAjuste = Enums<'motivo_ajuste'>
+
+/** entrada: true = ajuste +, false = ajuste −, null = ambos */
+export const motivosAjuste: Record<MotivoAjuste, { label: string; entrada: boolean | null }> = {
+  inventario_inicial: { label: 'Inventario inicial', entrada: true },
+  sobrante_conteo: { label: 'Sobrante en conteo físico', entrada: true },
+  devolucion_cliente: { label: 'Devolución de cliente', entrada: true },
+  regreso_garantia: { label: 'Regreso de garantía', entrada: true },
+  faltante_conteo: { label: 'Faltante en conteo físico', entrada: false },
+  producto_danado: { label: 'Producto dañado', entrada: false },
+  envio_garantia: { label: 'Envío a garantía', entrada: false },
+  uso_interno: { label: 'Uso interno', entrada: false },
+  obsequio: { label: 'Obsequio / muestra', entrada: false },
+  perdida: { label: 'Pérdida o robo', entrada: false },
+  otro: { label: 'Otro', entrada: null },
+}
+
+export const motivosPara = (tipo: TipoMovimiento) =>
+  (Object.keys(motivosAjuste) as MotivoAjuste[]).filter((m) => {
+    const { entrada } = motivosAjuste[m]
+    return entrada === null || entrada === (tipo === 'ajuste_entrada')
+  })
+
+/** "Producto dañado", "Producto dañado: se cayó de la vitrina" o, sin motivo (movimientos antiguos), las notas */
+export function describirMotivo(m: { motivo?: MotivoAjuste | null; notas: string | null }): string | null {
+  if (!m.motivo) return m.notas
+  if (m.motivo === 'otro') return m.notas ?? motivosAjuste.otro.label
+  const label = motivosAjuste[m.motivo].label
+  const notas = m.notas?.trim()
+  return notas && notas.toLowerCase() !== label.toLowerCase() ? `${label}: ${notas}` : label
+}
+
 /** Cada serie lleva su propio consecutivo: E (entradas), S (salidas) y A (ajustes + y −) */
 export const serieMovimiento = (tipo: TipoMovimiento) => (tipo === 'entrada' ? 'E' : tipo === 'salida' ? 'S' : 'A')
 

@@ -51,6 +51,9 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
 9. `0009_costo_promedio.sql`: costo promedio ponderado. El precio de costo lo calcula la base de datos con cada
    entrada (ya no se edita a mano) y las salidas y ajustes − salen a ese promedio. Recalcula el costo actual de cada
    producto con su historial, sin tocar los movimientos ya registrados.
+10. `0010_motivos_ajuste.sql`: el motivo de los ajustes pasa a una lista cerrada (las notas quedan como detalle) y
+    las devoluciones de cliente se enlazan con la venta original: toman su factura electrónica y solo reingresan lo
+    que salió en esa venta, al costo con el que salió.
 
 Reglas clave:
 

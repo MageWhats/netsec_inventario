@@ -15,7 +15,7 @@ const SELECT_LINEA = `
   producto:productos(id, sku, nombre, precio_costo, es_serializado, categoria:categorias(nombre)),
   unidad:unidades(id, numero_serie),
   movimiento:movimientos!inner(
-    id, numero, tipo, fecha, referencia, notas,
+    id, numero, tipo, fecha, referencia, notas, motivo,
     cliente:clientes(id, nombre, tipo_documento, documento),
     proveedor:proveedores(id, nombre)
   )

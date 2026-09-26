@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Printer } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Printer, Undo2 } from 'lucide-react'
 import { useMemo } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
@@ -6,9 +6,9 @@ import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
 import { etiquetaDocumento } from '@/features/clientes/schema'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
-import { useMovimiento, type MovimientoDetalle } from './api'
+import { useMovimiento, useMovimientosEnlazados, type MovimientoDetalle } from './api'
 import { TipoMovimientoBadge } from './components/MovimientosTabla'
-import { esAjuste, formatearNumero, tiposMovimiento } from './tipos'
+import { describirMotivo, esAjuste, formatearNumero, tiposMovimiento } from './tipos'
 
 interface GrupoProducto {
   producto: NonNullable<MovimientoDetalle['items'][number]['producto']>
@@ -47,6 +47,7 @@ export function MovimientoDetallePage() {
   const location = useLocation()
   const recienCreado = (location.state as { creado?: boolean } | null)?.creado
   const { data: movimiento, isLoading, error } = useMovimiento(id)
+  const { data: enlazados } = useMovimientosEnlazados(movimiento)
   const grupos = useMemo(() => (movimiento ? agruparPorProducto(movimiento) : []), [movimiento])
 
   if (isLoading) return <LoadingBlock />
@@ -106,10 +107,21 @@ export function MovimientoDetallePage() {
           </div>
           <p className="mt-1 text-sm text-slate-400 print:text-black">{formatearFecha(movimiento.fecha)}</p>
         </div>
-        <button onClick={() => window.print()} className="btn btn-secondary print:hidden">
-          <Printer className="size-4" />
-          Imprimir
-        </button>
+        <div className="flex flex-wrap gap-2 print:hidden">
+          {movimiento.tipo === 'salida' && (
+            <Link
+              to={`/movimientos/nuevo/ajuste_entrada?motivo=devolucion_cliente&origen=${movimiento.id}`}
+              className="btn btn-secondary"
+            >
+              <Undo2 className="size-4" />
+              Registrar devolución
+            </Link>
+          )}
+          <button onClick={() => window.print()} className="btn btn-secondary">
+            <Printer className="size-4" />
+            Imprimir
+          </button>
+        </div>
       </div>
 
       <section className="mb-6 rounded-2xl border border-brand-border bg-brand-card p-6 print:border-slate-300 print:bg-white">
@@ -143,8 +155,31 @@ export function MovimientoDetallePage() {
           </Dato>
           <Dato label="Bodega">{movimiento.bodega?.nombre}</Dato>
           <Dato label="Registrado por">{movimiento.usuario}</Dato>
+          {enlazados?.origen && (
+            <Dato label="Devolución de la venta">
+              <Link to={`/movimientos/${enlazados.origen.id}`} className="font-mono hover:text-brand-cyan">
+                {formatearNumero(enlazados.origen)}
+              </Link>
+            </Dato>
+          )}
+          {movimiento.tipo === 'salida' && enlazados && enlazados.devoluciones.length > 0 && (
+            <Dato label="Devoluciones">
+              {enlazados.devoluciones.map((d, i) => (
+                <span key={d.id}>
+                  {i > 0 && ', '}
+                  <Link to={`/movimientos/${d.id}`} className="font-mono hover:text-brand-cyan">
+                    {formatearNumero(d)}
+                  </Link>
+                </span>
+              ))}
+            </Dato>
+          )}
           <Dato label={esAjuste(movimiento.tipo) ? 'Motivo' : 'Notas'} className="sm:col-span-2 lg:col-span-4">
-            {movimiento.notas && <span className="whitespace-pre-line">{movimiento.notas}</span>}
+            {(esAjuste(movimiento.tipo) ? describirMotivo(movimiento) : movimiento.notas) && (
+              <span className="whitespace-pre-line">
+                {esAjuste(movimiento.tipo) ? describirMotivo(movimiento) : movimiento.notas}
+              </span>
+            )}
           </Dato>
         </dl>
       </section>

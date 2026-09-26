@@ -2,7 +2,13 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { TipoMovimientoBadge } from '@/features/movimientos/components/MovimientosTabla'
-import { formatearNumero, TIPOS_MOVIMIENTO, tiposMovimiento, type TipoMovimiento } from '@/features/movimientos/tipos'
+import {
+  describirMotivo,
+  formatearNumero,
+  TIPOS_MOVIMIENTO,
+  tiposMovimiento,
+  type TipoMovimiento,
+} from '@/features/movimientos/tipos'
 import { LIMITE_LINEAS, useLineasMovimiento, type LineaMovimiento } from '../api'
 import { describirRango, rangoEsteMes, type Rango } from '../rangos'
 import { RangoFechas } from './RangoFechas'
@@ -16,7 +22,7 @@ const valorUnitario = (l: LineaMovimiento) =>
 const tercero = (l: LineaMovimiento) =>
   l.movimiento.proveedor?.nombre ??
   l.movimiento.cliente?.nombre ??
-  (l.movimiento.tipo === 'salida' ? 'Consumidor final' : (l.movimiento.notas ?? ''))
+  (l.movimiento.tipo === 'salida' ? 'Consumidor final' : (describirMotivo(l.movimiento) ?? ''))
 
 const columnas: Columna<LineaMovimiento>[] = [
   {

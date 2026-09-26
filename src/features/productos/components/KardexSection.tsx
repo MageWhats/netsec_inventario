@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { MenuExportar } from '@/components/ui/MenuExportar'
 import { TipoMovimientoBadge } from '@/features/movimientos/components/MovimientosTabla'
-import { formatearNumero, tiposMovimiento } from '@/features/movimientos/tipos'
+import { describirMotivo, formatearNumero, tiposMovimiento } from '@/features/movimientos/tipos'
 import { tablaDesdeColumnas, type ColumnaExportable } from '@/lib/exportar'
 import { formatearFecha } from '@/lib/format'
 import { useKardex } from '../api'
 
 type FilaKardex = NonNullable<ReturnType<typeof useKardex>['data']>[number]
 
-const tercero = (f: FilaKardex) => f.proveedor?.nombre ?? f.cliente?.nombre ?? f.notas ?? f.referencia ?? '—'
+const tercero = (f: FilaKardex) => f.proveedor?.nombre ?? f.cliente?.nombre ?? describirMotivo(f) ?? f.referencia ?? '—'
 
 const columnasExportacion: ColumnaExportable<FilaKardex>[] = [
   { titulo: 'Fecha', valor: (f) => formatearFecha(f.fecha) },

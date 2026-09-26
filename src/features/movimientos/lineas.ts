@@ -1,7 +1,7 @@
 import type { Producto } from '@/features/productos/api'
 import type { EstadoUnidad } from '@/features/productos/estados'
 import type { Json } from '@/types/database'
-import { tiposMovimiento, type TipoMovimiento } from './tipos'
+import { tiposMovimiento, type MotivoAjuste, type TipoMovimiento } from './tipos'
 
 export interface SerieNueva {
   numero_serie: string
@@ -28,6 +28,10 @@ export const ESTADOS_AJUSTE_SALIDA: EstadoUnidad[] = ['danada', 'en_garantia', '
 export const ESTADOS_REINGRESO: EstadoUnidad[] = ['vendida', 'en_garantia', 'danada', 'baja']
 
 export const usaPrecioVenta = (tipo: TipoMovimiento) => tipo === 'salida'
+
+/** Ajuste − con serial: a qué estado pasan las unidades según el motivo (se puede cambiar por línea) */
+export const destinoPorMotivo = (motivo: MotivoAjuste | ''): EstadoUnidad =>
+  motivo === 'producto_danado' ? 'danada' : motivo === 'envio_garantia' ? 'en_garantia' : 'baja'
 
 export function nuevaLinea(producto: Producto, tipo: TipoMovimiento): Linea {
   return {

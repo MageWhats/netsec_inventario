@@ -79,9 +79,10 @@ const SELECT_DETALLE = `
   )
 `
 
-export function useMovimiento(id: string) {
+export function useMovimiento(id: string, enabled = true) {
   return useQuery({
     queryKey: movimientosKeys.detalle(id),
+    enabled: enabled && Boolean(id),
     queryFn: async () => {
       const { data, error } = await supabase.from('movimientos').select(SELECT_DETALLE).eq('id', id).maybeSingle()
       if (error) throw error
@@ -99,6 +100,46 @@ export function useMovimiento(id: string) {
 }
 
 export type MovimientoDetalle = NonNullable<ReturnType<typeof useMovimiento>['data']>
+
+/** Ventas (salidas) para elegir el origen de una devolución, de la más reciente a la más antigua */
+export function useSalidasParaDevolucion(enabled: boolean) {
+  return useQuery({
+    queryKey: [...movimientosKeys.all, 'salidas-devolucion'],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('movimientos_resumen')
+        .select('id, numero, tipo, fecha, cliente_nombre, referencia, unidades')
+        .eq('tipo', 'salida')
+        .order('created_at', { ascending: false })
+        .limit(1000)
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export type SalidaDevolucion = NonNullable<ReturnType<typeof useSalidasParaDevolucion>['data']>[number]
+
+/** Movimientos enlazados: la venta de origen de una devolución y las devoluciones de una venta */
+export function useMovimientosEnlazados(movimiento: { id: string; movimiento_origen_id: string | null } | null | undefined) {
+  return useQuery({
+    queryKey: [...movimientosKeys.all, 'enlazados', movimiento?.id],
+    enabled: Boolean(movimiento),
+    queryFn: async () => {
+      const campos = 'id, numero, tipo, fecha, referencia'
+      const [origen, devoluciones] = await Promise.all([
+        movimiento!.movimiento_origen_id
+          ? supabase.from('movimientos').select(campos).eq('id', movimiento!.movimiento_origen_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        supabase.from('movimientos').select(campos).eq('movimiento_origen_id', movimiento!.id).order('created_at'),
+      ])
+      if (origen.error) throw origen.error
+      if (devoluciones.error) throw devoluciones.error
+      return { origen: origen.data, devoluciones: devoluciones.data }
+    },
+  })
+}
 
 export function useBodegas() {
   return useQuery({

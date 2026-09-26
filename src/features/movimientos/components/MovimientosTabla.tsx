@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import type { MovimientoResumen } from '../api'
-import { formatearNumero, tiposMovimiento, type TipoMovimiento } from '../tipos'
+import { describirMotivo, formatearNumero, tiposMovimiento, type TipoMovimiento } from '../tipos'
 
 export function TipoMovimientoBadge({ tipo }: { tipo: TipoMovimiento }) {
   const { label, icono: Icono, clase } = tiposMovimiento[tipo]
@@ -57,7 +57,7 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
               </td>
               <td className="max-w-xs truncate px-4 py-3 text-slate-300">
                 {m.proveedor_nombre ?? m.cliente_nombre ?? (
-                  <span className="text-slate-500">{m.tipo === 'salida' ? 'Consumidor final' : (m.notas ?? '—')}</span>
+                  <span className="text-slate-500">{m.tipo === 'salida' ? 'Consumidor final' : (describirMotivo(m) ?? '—')}</span>
                 )}
               </td>
               <td className="px-4 py-3 text-slate-400">{m.referencia ?? '—'}</td>

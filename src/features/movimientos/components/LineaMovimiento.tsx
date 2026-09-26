@@ -20,13 +20,15 @@ interface LineaMovimientoProps {
   error?: string
   onChange: (cambios: Partial<Linea>) => void
   onRemove: () => void
+  /** Devolución de cliente: unidades que salieron en la venta de origen (no se registran seriales nuevos) */
+  devolucion?: { unidadIds: Set<string> }
 }
 
-export function LineaMovimiento({ tipo, linea, error, onChange, onRemove }: LineaMovimientoProps) {
+export function LineaMovimiento({ tipo, linea, error, onChange, onRemove, devolucion }: LineaMovimientoProps) {
   const { producto } = linea
   const esEntrada = tiposMovimiento[tipo].esEntrada
-  /** Ajuste −: sale al costo promedio (el servidor ignora cualquier otro valor) */
-  const costoFijo = tipo === 'ajuste_salida'
+  /** Ajuste − sale al costo promedio y una devolución vuelve al costo de su venta: el servidor los fija */
+  const costoFijo = tipo === 'ajuste_salida' || Boolean(devolucion)
 
   return (
     <li className={`rounded-xl border bg-brand-bg/40 p-4 ${error ? 'border-red-500/60' : 'border-brand-border'}`}>
@@ -54,7 +56,7 @@ export function LineaMovimiento({ tipo, linea, error, onChange, onRemove }: Line
 
       {producto.es_serializado && (
         <div className="mb-4 space-y-4">
-          {esEntrada && (
+          {esEntrada && !devolucion && (
             <div>
               <p className="mb-2 text-sm text-slate-300">Seriales nuevos</p>
               <SerialesNuevosInput series={linea.series} onChange={(series) => onChange({ series })} />
@@ -64,14 +66,25 @@ export function LineaMovimiento({ tipo, linea, error, onChange, onRemove }: Line
           {tipo === 'ajuste_entrada' && (
             <div>
               <p className="mb-2 text-sm text-slate-300">
-                Reingresar unidades existentes <span className="text-slate-500">(devoluciones, regreso de garantía…)</span>
+                {devolucion ? (
+                  'Unidades que devuelve el cliente'
+                ) : (
+                  <>
+                    Reingresar unidades existentes <span className="text-slate-500">(regreso de garantía, sobrantes…)</span>
+                  </>
+                )}
               </p>
               <UnidadesSelector
                 productoId={producto.id}
                 estados={ESTADOS_REINGRESO}
                 seleccionadas={linea.unidadIds}
                 onChange={(unidadIds) => onChange({ unidadIds })}
-                textoVacio="No hay unidades vendidas, dañadas, en garantía ni de baja para reingresar."
+                soloIds={devolucion?.unidadIds}
+                textoVacio={
+                  devolucion
+                    ? 'No quedan unidades de esta venta por devolver.'
+                    : 'No hay unidades vendidas, dañadas, en garantía ni de baja para reingresar.'
+                }
               />
             </div>
           )}
@@ -126,13 +139,25 @@ export function LineaMovimiento({ tipo, linea, error, onChange, onRemove }: Line
           </label>
         )}
         <label className="block text-xs text-slate-400">
-          {usaPrecioVenta(tipo) ? 'Precio de venta unitario' : costoFijo ? 'Costo promedio' : 'Costo unitario'}
+          {usaPrecioVenta(tipo)
+            ? 'Precio de venta unitario'
+            : devolucion
+              ? 'Costo (el de la venta)'
+              : costoFijo
+                ? 'Costo promedio'
+                : 'Costo unitario'}
           <input
             type="number"
             min={0}
             step="any"
             readOnly={costoFijo}
-            title={costoFijo ? 'Lo que sale del inventario sale al costo promedio' : undefined}
+            title={
+              devolucion
+                ? 'Vuelve al costo con el que salió en la venta'
+                : costoFijo
+                  ? 'Lo que sale del inventario sale al costo promedio'
+                  : undefined
+            }
             value={Number.isFinite(linea.valorUnitario) ? linea.valorUnitario : ''}
             onChange={(e) => onChange({ valorUnitario: e.target.valueAsNumber })}
             className={`input mt-1 w-40 ${costoFijo ? 'cursor-not-allowed opacity-60' : ''}`}

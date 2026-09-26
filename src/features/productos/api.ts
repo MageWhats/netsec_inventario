@@ -246,7 +246,7 @@ export function useActualizarUnidad() {
 // ---------------------------------------------------------------------
 
 const SELECT_MOVIMIENTO_ITEM =
-  'cantidad, movimiento:movimientos!inner(id, numero, tipo, fecha, referencia, notas, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
+  'cantidad, movimiento:movimientos!inner(id, numero, tipo, fecha, referencia, notas, motivo, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
 
 /** Kardex: movimientos del producto agrupados, con el saldo acumulado después de cada uno */
 export function useKardex(productoId: string) {

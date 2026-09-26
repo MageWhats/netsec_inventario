@@ -13,25 +13,36 @@ import { StockBadge } from '@/features/productos/components/badges'
 import { ProveedorFormModal } from '@/features/proveedores/components/ProveedorFormModal'
 import { useProveedores, type Proveedor } from '@/features/proveedores/api'
 import { mensajeError } from '@/lib/errores'
-import { formatearPrecio } from '@/lib/format'
-import { useBodegas, useRegistrarMovimiento } from './api'
+import { formatearFecha, formatearPrecio } from '@/lib/format'
+import {
+  useBodegas,
+  useMovimiento,
+  useRegistrarMovimiento,
+  useSalidasParaDevolucion,
+  type SalidaDevolucion,
+} from './api'
 import { LineaMovimiento } from './components/LineaMovimiento'
 import { TipoMovimientoBadge } from './components/MovimientosTabla'
 import {
   ahoraLocal,
   construirItems,
+  destinoPorMotivo,
   nuevaLinea,
   subtotalLinea,
   unidadesLinea,
   validarLineas,
   type Linea,
 } from './lineas'
-import { esAjuste, esTipoMovimiento, tiposMovimiento, type TipoMovimiento } from './tipos'
-
-const MOTIVOS_SUGERIDOS: Partial<Record<TipoMovimiento, string[]>> = {
-  ajuste_entrada: ['Inventario inicial', 'Sobrante en conteo físico', 'Devolución de cliente', 'Regreso de garantía'],
-  ajuste_salida: ['Faltante en conteo físico', 'Producto dañado', 'Envío a garantía', 'Uso interno', 'Obsequio / muestra'],
-}
+import {
+  esAjuste,
+  esTipoMovimiento,
+  formatearNumero,
+  motivosAjuste,
+  motivosPara,
+  tiposMovimiento,
+  type MotivoAjuste,
+  type TipoMovimiento,
+} from './tipos'
 
 export function NuevoMovimientoPage() {
   const { tipo } = useParams()
@@ -48,6 +59,8 @@ const buscarCliente = (c: Cliente, t: string) =>
   [c.nombre, c.documento, c.telefono].some((v) => v?.toLowerCase().includes(t))
 const buscarProveedor = (p: Proveedor, t: string) =>
   [p.nombre, p.nit, p.contacto].some((v) => v?.toLowerCase().includes(t))
+const buscarSalida = (s: SalidaDevolucion, t: string) =>
+  [formatearNumero(s), s.cliente_nombre, s.referencia].some((v) => v?.toLowerCase().includes(t))
 
 function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   const info = tiposMovimiento[tipo]
@@ -68,7 +81,21 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   /** Salidas: la referencia solo se usa para el número de la factura electrónica, si la hay */
   const [conFactura, setConFactura] = useState(false)
   const [notas, setNotas] = useState('')
+  // Ajustes: motivo de la lista y, en una devolución, la venta de origen (se pueden precargar con ?motivo=&origen=)
+  const [motivo, setMotivo] = useState<MotivoAjuste | ''>(() => {
+    const m = params.get('motivo')
+    return motivosPara(tipo).find((x) => x === m) ?? ''
+  })
+  const [origenId, setOrigenId] = useState(params.get('origen') ?? '')
   const [lineas, setLineas] = useState<Linea[]>([])
+
+  const esDevolucion = tipo === 'ajuste_entrada' && motivo === 'devolucion_cliente'
+  const salidas = useSalidasParaDevolucion(esDevolucion)
+  const { data: venta } = useMovimiento(origenId, esDevolucion)
+  const ventaOrigen = esDevolucion && origenId ? venta : null
+  const productosVenta = new Set(ventaOrigen?.items.map((i) => i.producto.id))
+  const unidadesVenta = new Set(ventaOrigen?.items.flatMap((i) => (i.unidad ? [i.unidad.id] : [])))
+
   const [intentoGuardar, setIntentoGuardar] = useState(false)
   const [fechaFutura, setFechaFutura] = useState(false)
   const [confirmando, setConfirmando] = useState(false)
@@ -98,10 +125,29 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
 
   // ---- Líneas
   const idsEnUso = new Set(lineas.map((l) => l.producto.id))
-  const productosSeleccionables = productos.filter((p) => p.activo && !idsEnUso.has(p.id))
+  // En una devolución solo se pueden agregar productos de la venta de origen
+  const productosSeleccionables = productos.filter(
+    (p) => p.activo && !idsEnUso.has(p.id) && (!esDevolucion || productosVenta.has(p.id)),
+  )
 
   function agregarProducto(p: Producto | null) {
-    if (p) setLineas((ls) => [...ls, nuevaLinea(p, tipo)])
+    if (!p) return
+    const linea = nuevaLinea(p, tipo)
+    if (tipo === 'ajuste_salida') linea.estadoDestino = destinoPorMotivo(motivo)
+    setLineas((ls) => [...ls, linea])
+  }
+  function cambiarMotivo(nuevo: MotivoAjuste | '') {
+    // Entrar o salir de "devolución" cambia qué productos se pueden agregar: la lista empieza de cero
+    if ((nuevo === 'devolucion_cliente') !== (motivo === 'devolucion_cliente')) {
+      setLineas([])
+      setOrigenId('')
+    }
+    if (tipo === 'ajuste_salida') setLineas((ls) => ls.map((l) => ({ ...l, estadoDestino: destinoPorMotivo(nuevo) })))
+    setMotivo(nuevo)
+  }
+  function cambiarOrigen(id: string) {
+    setOrigenId(id)
+    setLineas([])
   }
   /** Cámara: agrega el producto cuyo código de barras o SKU coincide exactamente */
   function onProductoEscaneado(codigo: string): ResultadoEscaneo {
@@ -109,6 +155,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
     if (!p) return { ok: false, mensaje: 'Ningún producto tiene ese código de barras o SKU.' }
     if (!p.activo) return { ok: false, mensaje: `${p.nombre} está inactivo.` }
     if (idsEnUso.has(p.id)) return { ok: false, mensaje: `${p.nombre} ya está en la lista.` }
+    if (esDevolucion && !productosVenta.has(p.id)) return { ok: false, mensaje: `${p.nombre} no salió en esa venta.` }
     if (!info.esEntrada && p.stock <= 0) return { ok: false, mensaje: `${p.nombre} no tiene stock.` }
     agregarProducto(p)
     return { ok: true, mensaje: p.nombre }
@@ -125,7 +172,9 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   const erroresCabecera: Record<string, string> = {}
   if (!fecha) erroresCabecera.fecha = 'La fecha es obligatoria.'
   else if (fechaFutura) erroresCabecera.fecha = 'La fecha no puede ser futura.'
-  if (esAjuste(tipo) && !notas.trim()) erroresCabecera.notas = 'Indica el motivo del ajuste.'
+  if (esAjuste(tipo) && !motivo) erroresCabecera.motivo = 'Elige el motivo del ajuste.'
+  if (motivo === 'otro' && !notas.trim()) erroresCabecera.notas = 'Describe el motivo del ajuste.'
+  if (esDevolucion && !origenId) erroresCabecera.origen = 'Elige la venta que el cliente devuelve.'
   if (tipo === 'salida' && conFactura && !referencia.trim()) {
     erroresCabecera.referencia = 'Escribe el número de la factura electrónica o desmarca la casilla.'
   }
@@ -152,8 +201,12 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
         p_bodega_id: bodegaId || null,
         p_proveedor_id: tipo === 'entrada' ? proveedorId || null : null,
         p_cliente_id: tipo === 'salida' ? clienteId || null : null,
-        p_referencia: tipo === 'salida' && !conFactura ? null : referencia,
+        // Devolución: la base de datos toma la factura electrónica de la venta de origen
+        p_referencia: esDevolucion || (tipo === 'salida' && !conFactura) ? null : referencia,
         p_notas: notas,
+        // Solo se envían cuando aplican (undefined no viaja): entradas y salidas no dependen de la migración 0010
+        p_motivo: esAjuste(tipo) ? motivo || null : undefined,
+        p_movimiento_origen_id: esDevolucion ? origenId || null : undefined,
         p_fecha: new Date(fecha).toISOString(),
       },
       {
@@ -199,6 +252,58 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                 className="input"
               />
             </FormField>
+
+            {esAjuste(tipo) && (
+              <FormField label="Motivo *" error={mostrarErrores ? erroresCabecera.motivo : undefined}>
+                <select
+                  value={motivo}
+                  onChange={(e) => cambiarMotivo(e.target.value as MotivoAjuste | '')}
+                  className="input"
+                >
+                  <option value="">Elige el motivo…</option>
+                  {motivosPara(tipo).map((m) => (
+                    <option key={m} value={m}>
+                      {motivosAjuste[m].label}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
+
+            {esDevolucion && (
+              <FormField
+                label="Venta que se devuelve *"
+                error={mostrarErrores ? erroresCabecera.origen : undefined}
+                hint={
+                  ventaOrigen
+                    ? ventaOrigen.referencia
+                      ? `Factura electrónica ${ventaOrigen.referencia}: queda como referencia de la devolución`
+                      : 'Esa venta no tiene factura electrónica'
+                    : 'Solo se pueden devolver productos de esa venta'
+                }
+              >
+                <Combobox
+                  items={salidas.data ?? []}
+                  getKey={(s) => s.id}
+                  getLabel={(s) => `${formatearNumero(s)} · ${s.cliente_nombre ?? 'Consumidor final'}`}
+                  matches={buscarSalida}
+                  renderItem={(s) => (
+                    <div className="min-w-0">
+                      <div className="truncate">
+                        <span className="font-mono">{formatearNumero(s)}</span> · {s.cliente_nombre ?? 'Consumidor final'}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {formatearFecha(s.fecha)} · {s.unidades} und.{s.referencia && ` · Factura ${s.referencia}`}
+                      </div>
+                    </div>
+                  )}
+                  value={(salidas.data ?? []).find((s) => s.id === origenId) ?? null}
+                  onChange={(s) => cambiarOrigen(s?.id ?? '')}
+                  placeholder="Buscar por número, cliente o factura…"
+                  emptyText={salidas.isLoading ? 'Cargando ventas…' : 'Ninguna venta coincide'}
+                />
+              </FormField>
+            )}
 
             {tipo === 'entrada' && (
               <FormField label="Proveedor">
@@ -283,12 +388,14 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                 )}
               </FormField>
             ) : (
-              <FormField
-                label="Referencia"
-                hint={tipo === 'entrada' ? 'Nº de factura o remisión del proveedor' : 'Nº de documento de soporte, si lo hay'}
-              >
-                <input value={referencia} onChange={(e) => setReferencia(e.target.value)} maxLength={100} className="input" />
-              </FormField>
+              !esDevolucion && (
+                <FormField
+                  label="Referencia"
+                  hint={tipo === 'entrada' ? 'Nº de factura o remisión del proveedor' : 'Nº de documento de soporte, si lo hay'}
+                >
+                  <input value={referencia} onChange={(e) => setReferencia(e.target.value)} maxLength={100} className="input" />
+                </FormField>
+              )
             )}
 
             {bodegas.length > 1 && (
@@ -308,7 +415,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
             )}
 
             <FormField
-              label={esAjuste(tipo) ? 'Motivo del ajuste *' : 'Notas'}
+              label={motivo === 'otro' ? 'Describe el motivo *' : esAjuste(tipo) ? 'Notas (opcional)' : 'Notas'}
               error={mostrarErrores ? erroresCabecera.notas : undefined}
               className="md:col-span-2 lg:col-span-3"
             >
@@ -319,20 +426,6 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                 maxLength={1000}
                 className="input"
               />
-              {MOTIVOS_SUGERIDOS[tipo] && (
-                <span className="mt-2 flex flex-wrap gap-2">
-                  {MOTIVOS_SUGERIDOS[tipo].map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setNotas(m)}
-                      className="rounded-full border border-brand-border px-3 py-1 text-xs text-slate-400 hover:text-slate-200"
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </span>
-              )}
             </FormField>
           </div>
         </section>
@@ -366,7 +459,13 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                 clearOnSelect
                 autoFocus={!params.get('producto')}
                 placeholder="Agregar producto: busca por nombre, SKU o escanea el código de barras…"
-                emptyText={productos.length === 0 ? 'No hay productos creados' : 'Ningún producto coincide'}
+                emptyText={
+                  esDevolucion && !origenId
+                    ? 'Primero elige la venta que se devuelve'
+                    : productos.length === 0
+                      ? 'No hay productos creados'
+                      : 'Ningún producto coincide'
+                }
               />
             </div>
             <BotonEscanear titulo="Escanear productos" continuo onDetectado={onProductoEscaneado} />
@@ -392,6 +491,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                   error={mostrarErrores ? erroresLineas.get(l.key) : undefined}
                   onChange={(cambios) => actualizarLinea(l.key, cambios)}
                   onRemove={() => quitarLinea(l.key)}
+                  devolucion={esDevolucion ? { unidadIds: unidadesVenta } : undefined}
                 />
               ))}
             </ul>

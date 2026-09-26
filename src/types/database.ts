@@ -289,6 +289,8 @@ export type Database = {
           fecha: string
           usuario_id: string | null
           created_at: string
+          motivo: Database['public']['Enums']['motivo_ajuste'] | null
+          movimiento_origen_id: string | null
         }
         Insert: {
           id?: string
@@ -302,6 +304,8 @@ export type Database = {
           fecha?: string
           usuario_id?: string | null
           created_at?: string
+          motivo?: Database['public']['Enums']['motivo_ajuste'] | null
+          movimiento_origen_id?: string | null
         }
         Update: {
           id?: string
@@ -315,6 +319,8 @@ export type Database = {
           fecha?: string
           usuario_id?: string | null
           created_at?: string
+          motivo?: Database['public']['Enums']['motivo_ajuste'] | null
+          movimiento_origen_id?: string | null
         }
         Relationships: [
           {
@@ -329,6 +335,13 @@ export type Database = {
             columns: ['cliente_id']
             isOneToOne: false
             referencedRelation: 'clientes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'movimientos_movimiento_origen_id_fkey'
+            columns: ['movimiento_origen_id']
+            isOneToOne: false
+            referencedRelation: 'movimientos'
             referencedColumns: ['id']
           },
           {
@@ -545,6 +558,8 @@ export type Database = {
           unidades: number
           total_costo: number
           total_venta: number
+          motivo: Database['public']['Enums']['motivo_ajuste'] | null
+          movimiento_origen_id: string | null
         }
         Relationships: []
       }
@@ -564,6 +579,8 @@ export type Database = {
           p_referencia?: string | null
           p_notas?: string | null
           p_fecha?: string | null
+          p_motivo?: Database['public']['Enums']['motivo_ajuste'] | null
+          p_movimiento_origen_id?: string | null
         }
         Returns: string
       }
@@ -602,6 +619,18 @@ export type Database = {
       estado_unidad: 'disponible' | 'vendida' | 'en_garantia' | 'danada' | 'baja'
       tipo_documento: 'CC' | 'NIT' | 'CE' | 'PAS' | 'TI' | 'OTRO'
       estado_toma: 'en_curso' | 'finalizada' | 'cancelada'
+      motivo_ajuste:
+        | 'inventario_inicial'
+        | 'sobrante_conteo'
+        | 'devolucion_cliente'
+        | 'regreso_garantia'
+        | 'faltante_conteo'
+        | 'producto_danado'
+        | 'envio_garantia'
+        | 'uso_interno'
+        | 'obsequio'
+        | 'perdida'
+        | 'otro'
     }
     CompositeTypes: {
       [_ in never]: never

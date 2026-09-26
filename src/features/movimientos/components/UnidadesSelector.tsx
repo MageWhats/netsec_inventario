@@ -12,11 +12,14 @@ interface UnidadesSelectorProps {
   seleccionadas: string[]
   onChange: (ids: string[]) => void
   textoVacio: string
+  /** Si se indica, solo se ofrecen estas unidades (p. ej. las que salieron en la venta que se devuelve) */
+  soloIds?: Set<string>
 }
 
 /** Lista de unidades existentes para marcar cuáles participan en el movimiento */
-export function UnidadesSelector({ productoId, estados, seleccionadas, onChange, textoVacio }: UnidadesSelectorProps) {
-  const { data: unidades = [], isLoading, error } = useUnidadesPorEstado(productoId, estados)
+export function UnidadesSelector({ productoId, estados, seleccionadas, onChange, textoVacio, soloIds }: UnidadesSelectorProps) {
+  const { data: todas = [], isLoading, error } = useUnidadesPorEstado(productoId, estados)
+  const unidades = soloIds ? todas.filter((u) => soloIds.has(u.id)) : todas
   const [busqueda, setBusqueda] = useState('')
   const [aviso, setAviso] = useState<string | null>(null)
 
