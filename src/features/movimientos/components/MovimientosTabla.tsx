@@ -48,7 +48,7 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
                   onClick={(e) => e.stopPropagation()}
                   className="font-mono font-medium hover:text-brand-cyan"
                 >
-                  {formatearNumero(m.numero)}
+                  {formatearNumero(m)}
                 </Link>
               </td>
               <td className="px-4 py-3 whitespace-nowrap text-slate-300">{formatearFecha(m.fecha)}</td>

@@ -145,7 +145,7 @@ function SerialesVendidos({ clienteId }: { clienteId: string }) {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <Link to={`/movimientos/${s.movimiento.id}`} className="font-mono hover:text-brand-cyan">
-                      {formatearNumero(s.movimiento.numero)}
+                      {formatearNumero(s.movimiento)}
                     </Link>
                     <span className="ml-2 text-xs text-slate-500">{formatearFecha(s.movimiento.fecha)}</span>
                   </td>

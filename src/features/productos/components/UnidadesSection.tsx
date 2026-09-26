@@ -230,7 +230,7 @@ function HistorialUnidad({ unidadId }: { unidadId: string | undefined }) {
               <div className="flex flex-wrap items-center gap-2">
                 <TipoMovimientoBadge tipo={m.tipo} />
                 <Link to={`/movimientos/${m.id}`} className="font-mono hover:text-brand-cyan">
-                  {formatearNumero(m.numero)}
+                  {formatearNumero(m)}
                 </Link>
                 <span className="text-xs text-slate-500">{formatearFecha(m.fecha)}</span>
               </div>

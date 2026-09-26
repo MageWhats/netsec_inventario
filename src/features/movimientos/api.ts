@@ -49,8 +49,8 @@ export function useMovimientos(filtros: FiltrosMovimientos) {
           `proveedor_nombre.ilike.%${texto}%`,
           `notas.ilike.%${texto}%`,
         ]
-        // Número de movimiento: "12" (cualquier serie) o con la letra, "E12" / "s-12", para una sola serie
-        const consecutivo = /^#?([esa])?-?(\d+)$/i.exec(texto)
+        // Número de movimiento: "12" (cualquier serie) o con prefijo, "NetE-000012" / "e12", para una sola serie
+        const consecutivo = /^#?(?:net)?([esa])?-?(\d+)$/i.exec(texto)
         const numero = Number(consecutivo?.[2])
         if (consecutivo && numero > 0) {
           const serie = consecutivo[1]?.toUpperCase()

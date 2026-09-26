@@ -53,5 +53,6 @@ export const esAjuste = (tipo: TipoMovimiento) => tipo === 'ajuste_entrada' || t
 /** Cada serie lleva su propio consecutivo: E (entradas), S (salidas) y A (ajustes + y −) */
 export const serieMovimiento = (tipo: TipoMovimiento) => (tipo === 'entrada' ? 'E' : tipo === 'salida' ? 'S' : 'A')
 
-/** Sin la letra de la serie: el tipo siempre se muestra al lado del número */
-export const formatearNumero = (numero: number) => String(numero).padStart(6, '0')
+/** Prefijo + consecutivo de su serie: NetE-000001, NetS-000001, NetA-000001 */
+export const formatearNumero = ({ tipo, numero }: { tipo: TipoMovimiento; numero: number }) =>
+  `Net${serieMovimiento(tipo)}-${String(numero).padStart(6, '0')}`

@@ -13,7 +13,7 @@ const tercero = (f: FilaKardex) => f.proveedor?.nombre ?? f.cliente?.nombre ?? f
 
 const columnasExportacion: ColumnaExportable<FilaKardex>[] = [
   { titulo: 'Fecha', valor: (f) => formatearFecha(f.fecha) },
-  { titulo: 'Movimiento', valor: (f) => formatearNumero(f.numero) },
+  { titulo: 'Movimiento', valor: (f) => formatearNumero(f) },
   { titulo: 'Tipo', valor: (f) => tiposMovimiento[f.tipo].label },
   { titulo: 'Tercero / motivo', valor: tercero },
   { titulo: 'Referencia', valor: (f) => f.referencia },
@@ -72,7 +72,7 @@ export function KardexSection({ producto }: KardexSectionProps) {
                   <td className="px-4 py-3 whitespace-nowrap text-slate-300">{formatearFecha(f.fecha)}</td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <Link to={`/movimientos/${f.id}`} className="mr-2 font-mono hover:text-brand-cyan">
-                      {formatearNumero(f.numero)}
+                      {formatearNumero(f)}
                     </Link>
                     <TipoMovimientoBadge tipo={f.tipo} />
                   </td>

@@ -6,7 +6,7 @@
 --   E  entradas
 --   S  salidas
 --   A  ajustes (Ajuste + y Ajuste − comparten serie)
--- La app muestra solo el número (000001) junto al tipo de movimiento.
+-- La app los muestra con prefijo: NetE-000001, NetS-000001, NetA-000001.
 -- Los movimientos existentes se renumeran por serie en el orden en que se registraron.
 -- =====================================================================
 

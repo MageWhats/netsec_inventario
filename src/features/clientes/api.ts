@@ -43,7 +43,7 @@ export function useSerialesCliente(id: string) {
       const { data, error } = await supabase
         .from('movimientos')
         .select(
-          'id, numero, fecha, items:movimiento_items!inner(id, producto:productos(id, sku, nombre), unidad:unidades!inner(id, numero_serie, mac, estado))',
+          'id, numero, tipo, fecha, items:movimiento_items!inner(id, producto:productos(id, sku, nombre), unidad:unidades!inner(id, numero_serie, mac, estado))',
         )
         .eq('cliente_id', id)
         .order('fecha', { ascending: false })

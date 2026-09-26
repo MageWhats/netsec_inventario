@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
-import { formatearNumero, tiposMovimiento } from '@/features/movimientos/tipos'
+import { formatearNumero } from '@/features/movimientos/tipos'
 import { LIMITE_LINEAS, useLineasMovimiento, type LineaMovimiento } from '../api'
 import { useOrigenVentas, type Origen } from '../origen'
 import { describirRango, rangoEsteMes, type Rango } from '../rangos'
@@ -91,9 +91,8 @@ interface FilaDetalle {
 
 const totalLinea = (l: LineaMovimiento) => l.cantidad * (l.precio_unitario ?? 0)
 
-/** Las entradas se muestran solo con su número; los ajustes + llevan la etiqueta, para distinguirlos */
-const numeroOrigen = (o: Origen) =>
-  o.tipo === 'entrada' ? formatearNumero(o.numero) : `${tiposMovimiento[o.tipo].label} ${formatearNumero(o.numero)}`
+/** NetE-… si vino de una compra, NetA-… si vino de un ajuste + */
+const numeroOrigen = (o: Origen) => formatearNumero(o)
 
 /** "000003" o, si la venta salió de varias entradas, "000003 (2), 000005 (1)" */
 const describirEntradas = (origen: Origen[]) =>
@@ -111,10 +110,10 @@ const columnasDetalle: Columna<FilaDetalle>[] = [
   { titulo: 'Fecha', valor: (f) => formatearFecha(f.linea.movimiento.fecha), className: 'whitespace-nowrap text-slate-300' },
   {
     titulo: 'Venta',
-    valor: (f) => formatearNumero(f.linea.movimiento.numero),
+    valor: (f) => formatearNumero(f.linea.movimiento),
     mostrar: (f) => (
       <Link to={`/movimientos/${f.linea.movimiento.id}`} className="font-mono font-medium text-slate-100 hover:text-brand-cyan">
-        {formatearNumero(f.linea.movimiento.numero)}
+        {formatearNumero(f.linea.movimiento)}
       </Link>
     ),
   },

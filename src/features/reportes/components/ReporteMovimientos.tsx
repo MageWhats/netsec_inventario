@@ -26,10 +26,10 @@ const columnas: Columna<LineaMovimiento>[] = [
   },
   {
     titulo: 'Número',
-    valor: (l) => formatearNumero(l.movimiento.numero),
+    valor: (l) => formatearNumero(l.movimiento),
     mostrar: (l) => (
       <Link to={`/movimientos/${l.movimiento.id}`} className="font-mono font-medium text-slate-100 hover:text-brand-cyan">
-        {formatearNumero(l.movimiento.numero)}
+        {formatearNumero(l.movimiento)}
       </Link>
     ),
   },

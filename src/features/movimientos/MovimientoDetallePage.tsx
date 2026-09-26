@@ -96,7 +96,7 @@ export function MovimientoDetallePage() {
           <p className="hidden text-sm print:block">Comprobante de movimiento de inventario</p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">
-              {info.label} <span className="font-mono">{formatearNumero(movimiento.numero)}</span>
+              {info.label} <span className="font-mono">{formatearNumero(movimiento)}</span>
             </h1>
             <span className="print:hidden">
               <TipoMovimientoBadge tipo={movimiento.tipo} />
