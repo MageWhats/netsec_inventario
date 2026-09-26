@@ -93,7 +93,9 @@ export function MovimientoDetallePage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <LogoImpresion className="mb-3" />
-          <p className="hidden text-sm print:block">Comprobante de movimiento de inventario</p>
+          <p className="hidden text-sm print:block">
+            {movimiento.tipo === 'salida' ? 'Comprobante de salida / Remisión' : 'Comprobante de movimiento de inventario'}
+          </p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">
               {info.label} <span className="font-mono">{formatearNumero(movimiento)}</span>
@@ -136,7 +138,9 @@ export function MovimientoDetallePage() {
               )}
             </Dato>
           )}
-          <Dato label="Referencia">{movimiento.referencia}</Dato>
+          <Dato label={movimiento.tipo === 'salida' ? 'Factura electrónica' : 'Referencia'}>
+            {movimiento.tipo === 'salida' ? (movimiento.referencia ?? 'Sin factura') : movimiento.referencia}
+          </Dato>
           <Dato label="Bodega">{movimiento.bodega?.nombre}</Dato>
           <Dato label="Registrado por">{movimiento.usuario}</Dato>
           <Dato label={esAjuste(movimiento.tipo) ? 'Motivo' : 'Notas'} className="sm:col-span-2 lg:col-span-4">

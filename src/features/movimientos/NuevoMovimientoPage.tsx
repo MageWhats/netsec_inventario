@@ -65,6 +65,8 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   const [clienteId, setClienteId] = useState(params.get('cliente') ?? '')
   const [proveedorId, setProveedorId] = useState(params.get('proveedor') ?? '')
   const [referencia, setReferencia] = useState('')
+  /** Salidas: la referencia solo se usa para el número de la factura electrónica, si la hay */
+  const [conFactura, setConFactura] = useState(false)
   const [notas, setNotas] = useState('')
   const [lineas, setLineas] = useState<Linea[]>([])
   const [intentoGuardar, setIntentoGuardar] = useState(false)
@@ -124,6 +126,9 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   if (!fecha) erroresCabecera.fecha = 'La fecha es obligatoria.'
   else if (fechaFutura) erroresCabecera.fecha = 'La fecha no puede ser futura.'
   if (esAjuste(tipo) && !notas.trim()) erroresCabecera.notas = 'Indica el motivo del ajuste.'
+  if (tipo === 'salida' && conFactura && !referencia.trim()) {
+    erroresCabecera.referencia = 'Escribe el número de la factura electrónica o desmarca la casilla.'
+  }
   if (lineas.length === 0) erroresCabecera.lineas = 'Agrega al menos un producto.'
   const esValido = erroresLineas.size === 0 && Object.keys(erroresCabecera).length === 0
   const mostrarErrores = intentoGuardar
@@ -147,7 +152,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
         p_bodega_id: bodegaId || null,
         p_proveedor_id: tipo === 'entrada' ? proveedorId || null : null,
         p_cliente_id: tipo === 'salida' ? clienteId || null : null,
-        p_referencia: referencia,
+        p_referencia: tipo === 'salida' && !conFactura ? null : referencia,
         p_notas: notas,
         p_fecha: new Date(fecha).toISOString(),
       },
@@ -251,12 +256,40 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
               </FormField>
             )}
 
-            <FormField
-              label="Referencia"
-              hint={tipo === 'entrada' ? 'Nº de factura o remisión del proveedor' : 'Nº de factura, remisión u orden'}
-            >
-              <input value={referencia} onChange={(e) => setReferencia(e.target.value)} maxLength={100} className="input" />
-            </FormField>
+            {tipo === 'salida' ? (
+              <FormField
+                label="Factura electrónica"
+                error={mostrarErrores ? erroresCabecera.referencia : undefined}
+                hint="El número de la salida (NetS-…) lo pone la app"
+              >
+                <label className="flex items-center gap-2 py-2 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={conFactura}
+                    onChange={(e) => setConFactura(e.target.checked)}
+                    className="size-4 accent-brand-accent"
+                  />
+                  Esta venta tiene factura electrónica
+                </label>
+                {conFactura && (
+                  <input
+                    value={referencia}
+                    onChange={(e) => setReferencia(e.target.value)}
+                    maxLength={100}
+                    placeholder="N.º de factura, p. ej. FE-1024"
+                    className="input"
+                    autoFocus
+                  />
+                )}
+              </FormField>
+            ) : (
+              <FormField
+                label="Referencia"
+                hint={tipo === 'entrada' ? 'Nº de factura o remisión del proveedor' : 'Nº de documento de soporte, si lo hay'}
+              >
+                <input value={referencia} onChange={(e) => setReferencia(e.target.value)} maxLength={100} className="input" />
+              </FormField>
+            )}
 
             {bodegas.length > 1 && (
               <FormField label="Bodega">
