@@ -33,7 +33,8 @@ export const usaPrecioVenta = (tipo: TipoMovimiento) => tipo === 'salida'
 export const destinoPorMotivo = (motivo: MotivoAjuste | ''): EstadoUnidad =>
   motivo === 'producto_danado' ? 'danada' : motivo === 'envio_garantia' ? 'en_garantia' : 'baja'
 
-export function nuevaLinea(producto: Producto, tipo: TipoMovimiento): Linea {
+/** verCostos = false: el costo no se precarga con el costo promedio (hay que digitar el de la factura) */
+export function nuevaLinea(producto: Producto, tipo: TipoMovimiento, verCostos = true): Linea {
   return {
     key: crypto.randomUUID(),
     producto,
@@ -41,7 +42,7 @@ export function nuevaLinea(producto: Producto, tipo: TipoMovimiento): Linea {
     series: [],
     unidadIds: [],
     estadoDestino: 'danada',
-    valorUnitario: usaPrecioVenta(tipo) ? producto.precio_venta : producto.precio_costo,
+    valorUnitario: usaPrecioVenta(tipo) ? producto.precio_venta : verCostos ? producto.precio_costo : NaN,
   }
 }
 

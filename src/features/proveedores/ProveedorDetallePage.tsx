@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { usePermisos } from '@/features/auth/permisos'
 import { useMovimientos } from '@/features/movimientos/api'
 import { MovimientosTabla } from '@/features/movimientos/components/MovimientosTabla'
 import { useProveedor } from './api'
@@ -13,6 +14,7 @@ export function ProveedorDetallePage() {
   const { data: proveedor, isLoading, error } = useProveedor(id)
   const entradas = useMovimientos({ proveedorId: id, limite: 100 })
   const [editando, setEditando] = useState(false)
+  const { esAdmin, puedeOperar } = usePermisos()
 
   if (isLoading) return <LoadingBlock />
 
@@ -47,16 +49,18 @@ export function ProveedorDetallePage() {
           <p className="mt-1 text-sm text-slate-400">{proveedor.nit ? `NIT ${proveedor.nit}` : 'Sin NIT'}</p>
         </div>
         <div className="flex gap-2">
-          {proveedor.activo && (
+          {proveedor.activo && puedeOperar && (
             <Link to={`/movimientos/nuevo/entrada?proveedor=${proveedor.id}`} className="btn btn-secondary">
               <ArrowDownToLine className="size-4" />
               Nueva entrada
             </Link>
           )}
-          <button onClick={() => setEditando(true)} className="btn btn-primary">
-            <Pencil className="size-4" />
-            Editar
-          </button>
+          {esAdmin && (
+            <button onClick={() => setEditando(true)} className="btn btn-primary">
+              <Pencil className="size-4" />
+              Editar
+            </button>
+          )}
         </div>
       </div>
 

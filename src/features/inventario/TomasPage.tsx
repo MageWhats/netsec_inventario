@@ -5,6 +5,7 @@ import { FormField } from '@/components/ui/FormField'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { Modal } from '@/components/ui/Modal'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { formatearFecha } from '@/lib/format'
 import { useCategorias } from '@/features/productos/api'
@@ -15,6 +16,7 @@ export function TomasPage() {
   const navigate = useNavigate()
   const { data: tomas = [], isLoading, error } = useTomas()
   const [nueva, setNueva] = useState(false)
+  const { puedeOperar } = usePermisos()
   const enCurso = tomas.find((t) => t.estado === 'en_curso')
 
   return (
@@ -26,13 +28,15 @@ export function TomasPage() {
           enCurso ? (
             <Link to={`/inventario/${enCurso.id}`} className="btn btn-primary">
               <ClipboardCheck className="size-4" />
-              Continuar toma #{enCurso.numero}
+              {puedeOperar ? 'Continuar' : 'Ver'} toma #{enCurso.numero}
             </Link>
           ) : (
-            <button onClick={() => setNueva(true)} className="btn btn-primary">
-              <Play className="size-4" />
-              Nueva toma
-            </button>
+            puedeOperar && (
+              <button onClick={() => setNueva(true)} className="btn btn-primary">
+                <Play className="size-4" />
+                Nueva toma
+              </button>
+            )
           )
         }
       />

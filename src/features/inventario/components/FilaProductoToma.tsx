@@ -11,9 +11,11 @@ interface FilaProductoTomaProps {
   fila: FilaToma
   tomaId: string
   enCurso: boolean
+  /** Toma abierta y usuario que puede contar (admin o bodega) */
+  editable: boolean
 }
 
-export function FilaProductoToma({ fila, tomaId, enCurso }: FilaProductoTomaProps) {
+export function FilaProductoToma({ fila, tomaId, enCurso, editable }: FilaProductoTomaProps) {
   const { producto } = fila
   const [abierta, setAbierta] = useState(false)
 
@@ -38,8 +40,8 @@ export function FilaProductoToma({ fila, tomaId, enCurso }: FilaProductoTomaProp
 
         <div className="w-40">
           {producto.es_serializado ? (
-            <ConteoSerializado fila={fila} tomaId={tomaId} enCurso={enCurso} abierta={abierta} onAlternar={() => setAbierta((v) => !v)} />
-          ) : enCurso ? (
+            <ConteoSerializado fila={fila} tomaId={tomaId} editable={editable} abierta={abierta} onAlternar={() => setAbierta((v) => !v)} />
+          ) : editable ? (
             <ConteoCantidad fila={fila} tomaId={tomaId} />
           ) : (
             <p className="text-right text-sm tabular-nums">{fila.contado ?? '—'}</p>
@@ -51,7 +53,7 @@ export function FilaProductoToma({ fila, tomaId, enCurso }: FilaProductoTomaProp
         </div>
       </div>
 
-      {abierta && <DetalleSeriales fila={fila} tomaId={tomaId} enCurso={enCurso} />}
+      {abierta && <DetalleSeriales fila={fila} tomaId={tomaId} enCurso={enCurso} editable={editable} />}
     </li>
   )
 }
@@ -146,18 +148,18 @@ function ConteoCantidad({ fila, tomaId }: { fila: FilaToma; tomaId: string }) {
 interface ConteoSerializadoProps {
   fila: FilaToma
   tomaId: string
-  enCurso: boolean
+  editable: boolean
   abierta: boolean
   onAlternar: () => void
 }
 
-function ConteoSerializado({ fila, tomaId, enCurso, abierta, onAlternar }: ConteoSerializadoProps) {
+function ConteoSerializado({ fila, tomaId, editable, abierta, onAlternar }: ConteoSerializadoProps) {
   const contar = useContarProducto(tomaId)
   const sinSeriales = fila.seriales.length === 0
 
   return (
     <div className="flex items-center justify-end gap-2">
-      {enCurso && sinSeriales && fila.contado === null && (
+      {editable && sinSeriales && fila.contado === null && (
         <button
           type="button"
           onClick={() => contar.mutate({ productoId: fila.producto.id, contado: 0 })}
@@ -168,7 +170,7 @@ function ConteoSerializado({ fila, tomaId, enCurso, abierta, onAlternar }: Conte
           Marcar 0
         </button>
       )}
-      {enCurso && sinSeriales && fila.contado === 0 && (
+      {editable && sinSeriales && fila.contado === 0 && (
         <button
           type="button"
           onClick={() => contar.mutate({ productoId: fila.producto.id, contado: null })}
@@ -192,7 +194,7 @@ function ConteoSerializado({ fila, tomaId, enCurso, abierta, onAlternar }: Conte
   )
 }
 
-function DetalleSeriales({ fila, tomaId, enCurso }: FilaProductoTomaProps) {
+function DetalleSeriales({ fila, tomaId, enCurso, editable }: FilaProductoTomaProps) {
   const quitar = useQuitarSerial(tomaId)
   // Solo mientras la toma está abierta tiene sentido listar las disponibles no encontradas
   const { data: unidades = [], isLoading } = useUnidades(fila.producto.id, enCurso)
@@ -215,7 +217,7 @@ function DetalleSeriales({ fila, tomaId, enCurso }: FilaProductoTomaProps) {
                     <EstadoUnidadBadge estado={s.unidad.estado} />
                   </span>
                 )}
-                {enCurso && (
+                {editable && (
                   <button
                     type="button"
                     onClick={() => quitar.mutate(s.unidad.id)}

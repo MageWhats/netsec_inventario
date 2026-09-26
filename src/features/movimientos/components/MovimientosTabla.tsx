@@ -1,4 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
+import { usePermisos } from '@/features/auth/permisos'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import type { MovimientoResumen } from '../api'
 import { describirMotivo, formatearNumero, tiposMovimiento, type TipoMovimiento } from '../tipos'
@@ -13,13 +14,15 @@ export function TipoMovimientoBadge({ tipo }: { tipo: TipoMovimiento }) {
   )
 }
 
-/** Valor del movimiento: precio de venta en salidas, costo en el resto */
-function valorMovimiento(m: MovimientoResumen) {
-  return m.tipo === 'salida' ? m.total_venta : m.total_costo
+/** Valor del movimiento: precio de venta en salidas, costo en el resto (solo para quien ve costos) */
+function valorMovimiento(m: MovimientoResumen, verCostos: boolean) {
+  if (m.tipo === 'salida') return m.total_venta
+  return verCostos ? m.total_costo : 0
 }
 
 export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResumen[] }) {
   const navigate = useNavigate()
+  const { verCostos } = usePermisos()
 
   return (
     <div className="overflow-x-auto">
@@ -63,7 +66,7 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
               <td className="px-4 py-3 text-slate-400">{m.referencia ?? '—'}</td>
               <td className="px-4 py-3 text-right text-slate-300">{m.unidades}</td>
               <td className="px-4 py-3 text-right whitespace-nowrap text-slate-300">
-                {valorMovimiento(m) > 0 ? formatearPrecio(valorMovimiento(m)) : '—'}
+                {valorMovimiento(m, verCostos) > 0 ? formatearPrecio(valorMovimiento(m, verCostos)) : '—'}
               </td>
             </tr>
           ))}

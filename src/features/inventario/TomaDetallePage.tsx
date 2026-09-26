@@ -5,6 +5,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { MenuExportar } from '@/components/ui/MenuExportar'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useProductos } from '@/features/productos/api'
@@ -39,6 +40,9 @@ export function TomaDetallePage() {
   const escanear = useEscanearSerial(id)
   const finalizar = useFinalizarToma(id)
   const cancelar = useCancelarToma(id)
+  // Bodega cuenta; finalizar (genera ajustes) o cancelar es solo de admin; lectura solo mira
+  const { esAdmin, puedeOperar, verCostos } = usePermisos()
+  const editable = enCurso && puedeOperar
 
   const [busqueda, setBusqueda] = useState('')
   const [vista, setVista] = useState<Vista>('todos')
@@ -129,10 +133,12 @@ export function TomaDetallePage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <MenuExportar documento={() => documentoToma(t, filas, enCurso)} disabled={filas.length === 0} />
-          {enCurso && (
+          <MenuExportar documento={() => documentoToma(t, filas, enCurso, verCostos)} disabled={filas.length === 0} />
+          {editable && (
+            <BotonEscanear titulo="Contar escaneando" label="Escanear" continuo onDetectado={onEscaneado} className="btn-primary" />
+          )}
+          {enCurso && esAdmin && (
             <>
-              <BotonEscanear titulo="Contar escaneando" label="Escanear" continuo onDetectado={onEscaneado} className="btn-primary" />
               <button onClick={() => setConfirmarCancelar(true)} className="btn btn-secondary">
                 <XCircle className="size-4" />
                 Cancelar toma
@@ -225,7 +231,7 @@ export function TomaDetallePage() {
         ) : (
           <ul className="divide-y divide-brand-border">
             {visibles.map((fila) => (
-              <FilaProductoToma key={fila.producto.id} fila={fila} tomaId={id} enCurso={enCurso} />
+              <FilaProductoToma key={fila.producto.id} fila={fila} tomaId={id} enCurso={enCurso} editable={editable} />
             ))}
           </ul>
         )}

@@ -3,6 +3,7 @@ import { useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { formatearPrecio, formatearPrecioCompacto } from '@/lib/format'
 import { useMovimientos } from '@/features/movimientos/api'
@@ -19,6 +20,7 @@ export function DashboardPage() {
   const productos = useProductos()
   const resumen = useResumenMensual(6)
   const recientes = useMovimientos({ limite: 6 })
+  const { puedeOperar, verCostos } = usePermisos()
 
   const activos = useMemo(() => (productos.data ?? []).filter((p) => p.activo), [productos.data])
   const porReponer = useMemo(
@@ -39,28 +41,32 @@ export function DashboardPage() {
         title="Dashboard"
         description="Resumen del inventario"
         actions={
-          <div className="flex gap-2">
-            <Link to="/movimientos/nuevo/entrada" className="btn btn-secondary">
-              <ArrowDownToLine className="size-4" />
-              Nueva entrada
-            </Link>
-            <Link to="/movimientos/nuevo/salida" className="btn btn-primary">
-              <ArrowUpFromLine className="size-4" />
-              Nueva salida
-            </Link>
-          </div>
+          puedeOperar && (
+            <div className="flex gap-2">
+              <Link to="/movimientos/nuevo/entrada" className="btn btn-secondary">
+                <ArrowDownToLine className="size-4" />
+                Nueva entrada
+              </Link>
+              <Link to="/movimientos/nuevo/salida" className="btn btn-primary">
+                <ArrowUpFromLine className="size-4" />
+                Nueva salida
+              </Link>
+            </div>
+          )
         }
       />
 
       {productos.error && <ErrorBox error={productos.error} />}
 
-      <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatTile
-          label="Valor del inventario"
-          cargando={productos.isLoading}
-          valor={formatearPrecioCompacto(valorInventario)}
-          detalle={`${formatearPrecio(valorInventario)} a precio de costo`}
-        />
+      <div className={`mb-6 grid grid-cols-2 gap-4 ${verCostos ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+        {verCostos && (
+          <StatTile
+            label="Valor del inventario"
+            cargando={productos.isLoading}
+            valor={formatearPrecioCompacto(valorInventario)}
+            detalle={`${formatearPrecio(valorInventario)} a precio de costo`}
+          />
+        )}
         <StatTile
           label="Unidades en stock"
           cargando={productos.isLoading}
@@ -98,15 +104,16 @@ export function DashboardPage() {
         ) : resumen.error ? (
           <ErrorBox error={resumen.error} className="lg:col-span-3" />
         ) : (
-          <MovimientosPorMesChart meses={meses} className="lg:col-span-3" />
+          <MovimientosPorMesChart meses={meses} className={verCostos ? 'lg:col-span-3' : 'lg:col-span-5'} />
         )}
-        {productos.isLoading ? (
-          <Tarjeta className="lg:col-span-2">
-            <LoadingBlock />
-          </Tarjeta>
-        ) : (
-          <ValorPorCategoriaChart datos={valorPorCategoria} className="lg:col-span-2" />
-        )}
+        {verCostos &&
+          (productos.isLoading ? (
+            <Tarjeta className="lg:col-span-2">
+              <LoadingBlock />
+            </Tarjeta>
+          ) : (
+            <ValorPorCategoriaChart datos={valorPorCategoria} className="lg:col-span-2" />
+          ))}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">

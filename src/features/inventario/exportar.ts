@@ -18,7 +18,12 @@ const precio = (valor: (f: FilaToma) => number): Pick<ColumnaExportable<FilaToma
   numerica: true,
 })
 
-function columnas(enCurso: boolean): ColumnaExportable<FilaToma>[] {
+function columnas(enCurso: boolean, verCostos: boolean): ColumnaExportable<FilaToma>[] {
+  const costos: ColumnaExportable<FilaToma>[] = [
+    { titulo: 'Costo unitario', ...precio((f) => f.producto.precio_costo) },
+    { titulo: 'Valor sobrantes', ...precio((f) => f.sobrantes * f.producto.precio_costo), total: formatearPrecio },
+    { titulo: 'Valor faltantes', ...precio((f) => f.faltantes * f.producto.precio_costo), total: formatearPrecio },
+  ]
   return [
     { titulo: 'SKU', valor: (f) => f.producto.sku },
     { titulo: 'Producto', valor: (f) => f.producto.nombre },
@@ -29,20 +34,23 @@ function columnas(enCurso: boolean): ColumnaExportable<FilaToma>[] {
     { titulo: 'Resultado', valor: resultado },
     { titulo: 'Sobrantes', valor: (f) => f.sobrantes, numerica: true, total: (s) => s.toLocaleString('es-CO') },
     { titulo: 'Faltantes', valor: (f) => f.faltantes, numerica: true, total: (s) => s.toLocaleString('es-CO') },
-    { titulo: 'Costo unitario', ...precio((f) => f.producto.precio_costo) },
-    { titulo: 'Valor sobrantes', ...precio((f) => f.sobrantes * f.producto.precio_costo), total: formatearPrecio },
-    { titulo: 'Valor faltantes', ...precio((f) => f.faltantes * f.producto.precio_costo), total: formatearPrecio },
+    ...(verCostos ? costos : []),
     { titulo: 'Seriales encontrados', valor: (f) => f.seriales.map((s) => s.unidad.numero_serie).join(', ') },
   ]
 }
 
 /** El conteo completo de una toma (todos los productos, sin importar el filtro en pantalla) */
-export function documentoToma(toma: TomaResumen, filas: FilaToma[], enCurso: boolean): DocumentoExportable {
+export function documentoToma(
+  toma: TomaResumen,
+  filas: FilaToma[],
+  enCurso: boolean,
+  verCostos: boolean,
+): DocumentoExportable {
   const fechas = [`iniciada el ${formatearFecha(toma.created_at)}`, toma.cerrada_at && `cerrada el ${formatearFecha(toma.cerrada_at)}`]
   return {
     archivo: `toma_${toma.numero}`,
     titulo: `Toma de inventario #${toma.numero} · ${estadosToma[toma.estado].label}`,
     subtitulo: [toma.categoria_nombre ?? 'Todo el inventario', ...fechas].filter(Boolean).join(' · '),
-    ...tablaDesdeColumnas(columnas(enCurso), filas),
+    ...tablaDesdeColumnas(columnas(enCurso, verCostos), filas),
   }
 }

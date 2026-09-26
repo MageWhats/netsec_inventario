@@ -4,6 +4,7 @@ import { Link, useLocation, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
+import { usePermisos } from '@/features/auth/permisos'
 import { etiquetaDocumento } from '@/features/clientes/schema'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useMovimiento, useMovimientosEnlazados, type MovimientoDetalle } from './api'
@@ -49,6 +50,7 @@ export function MovimientoDetallePage() {
   const { data: movimiento, isLoading, error } = useMovimiento(id)
   const { data: enlazados } = useMovimientosEnlazados(movimiento)
   const grupos = useMemo(() => (movimiento ? agruparPorProducto(movimiento) : []), [movimiento])
+  const { esAdmin, verCostos } = usePermisos()
 
   if (isLoading) return <LoadingBlock />
 
@@ -66,6 +68,8 @@ export function MovimientoDetallePage() {
   }
 
   const info = tiposMovimiento[movimiento.tipo]
+  // Las salidas muestran precios de venta; el resto, costos (no visibles para el rol bodega)
+  const mostrarValores = movimiento.tipo === 'salida' || verCostos
   const total = grupos.reduce((s, g) => s + g.subtotal, 0)
   const totalUnidades = grupos.reduce((s, g) => s + g.cantidad, 0)
   // Margen de la venta con el costo guardado en cada línea (solo si todas lo tienen)
@@ -108,7 +112,7 @@ export function MovimientoDetallePage() {
           <p className="mt-1 text-sm text-slate-400 print:text-black">{formatearFecha(movimiento.fecha)}</p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
-          {movimiento.tipo === 'salida' && (
+          {movimiento.tipo === 'salida' && esAdmin && (
             <Link
               to={`/movimientos/nuevo/ajuste_entrada?motivo=devolucion_cliente&origen=${movimiento.id}`}
               className="btn btn-secondary"
@@ -191,10 +195,14 @@ export function MovimientoDetallePage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Producto</th>
                 <th className="px-4 py-3 text-right font-medium">Cantidad</th>
-                <th className="px-4 py-3 text-right font-medium">
-                  {movimiento.tipo === 'salida' ? 'Precio unit.' : 'Costo unit.'}
-                </th>
-                <th className="px-4 py-3 text-right font-medium">Subtotal</th>
+                {mostrarValores && (
+                  <>
+                    <th className="px-4 py-3 text-right font-medium">
+                      {movimiento.tipo === 'salida' ? 'Precio unit.' : 'Costo unit.'}
+                    </th>
+                    <th className="px-4 py-3 text-right font-medium">Subtotal</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-border">
@@ -220,10 +228,14 @@ export function MovimientoDetallePage() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">{g.cantidad}</td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    {g.valorUnitario === null ? 'Varios' : formatearPrecio(g.valorUnitario)}
-                  </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">{formatearPrecio(g.subtotal)}</td>
+                  {mostrarValores && (
+                    <>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {g.valorUnitario === null ? 'Varios' : formatearPrecio(g.valorUnitario)}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">{formatearPrecio(g.subtotal)}</td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -231,8 +243,12 @@ export function MovimientoDetallePage() {
               <tr>
                 <td className="px-4 py-3">Total</td>
                 <td className="px-4 py-3 text-right">{totalUnidades}</td>
-                <td />
-                <td className="px-4 py-3 text-right whitespace-nowrap">{formatearPrecio(total)}</td>
+                {mostrarValores && (
+                  <>
+                    <td />
+                    <td className="px-4 py-3 text-right whitespace-nowrap">{formatearPrecio(total)}</td>
+                  </>
+                )}
               </tr>
             </tfoot>
           </table>
@@ -240,7 +256,7 @@ export function MovimientoDetallePage() {
       </section>
 
       {/* Dato interno: no sale en el comprobante impreso que se le entrega al cliente */}
-      {costoVenta !== null && total > 0 && (
+      {verCostos && costoVenta !== null && total > 0 && (
         <p className="mt-3 text-right text-sm text-slate-400 print:hidden">
           Costo de lo vendido {formatearPrecio(costoVenta)} · Margen{' '}
           <span className={total - costoVenta >= 0 ? 'text-emerald-400' : 'text-red-400'}>

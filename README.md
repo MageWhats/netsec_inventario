@@ -57,6 +57,10 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
 11. `0011_colores.sql`: productos con colores. Una familia guarda los datos comunes (nombre, categoría, marca,
     precio…) y cada color es un producto con su propio SKU, stock y costo. Los datos comunes solo se editan en la
     familia y se copian a sus colores.
+12. `0012_configuracion.sql`: categorías y bodegas se gestionan desde Configuración. Una categoría con productos no se
+    puede borrar, no se repiten nombres (sin importar mayúsculas) y siempre queda al menos una bodega activa.
+13. `0013_usuarios_y_roles.sql`: roles *admin*, *bodega* y *lectura* (ver [Usuarios y roles](#usuarios-y-roles)).
+    Los perfiles guardan el correo y si están activos; un usuario desactivado pierde el acceso de inmediato.
 
 Reglas clave:
 
@@ -70,7 +74,7 @@ Reglas clave:
 | Medida | Cómo |
 |---|---|
 | Claves fuera del código y de Git | `.env.local` (ignorado) y variables de Vercel. Solo se usa la clave pública `anon` |
-| Autorización en el servidor | RLS en todas las tablas: solo el rol *admin* lee y escribe. Los usuarios nuevos nacen como *lectura* (sin acceso) |
+| Autorización en el servidor | RLS en todas las tablas y permisos por rol dentro de cada función (migración 0013). La app oculta lo que cada rol no puede hacer, pero quien decide es la base de datos |
 | Validación de entradas | En los formularios (Zod) **y** en la base de datos (migración 0006: largos y formatos de SKU, documento, email, teléfono, MAC, serial) |
 | Datos que no se pueden manipular | Movimientos inmutables, stock calculado, tomas y ajustes solo mediante funciones que validan |
 | Contenido del usuario | React escapa todo lo que muestra; el CSV neutraliza fórmulas de Excel (`=`, `+`, `-`, `@`) |
@@ -85,8 +89,8 @@ Reglas clave:
 
 ### Ajustes en el panel de Supabase
 
-- **Authentication → Sign In / Providers:** desactivar *Allow new users to sign up* (los usuarios se crean desde
-  el panel, en Authentication → Users).
+- **Authentication → Sign In / Providers:** desactivar *Allow new users to sign up* (los usuarios se invitan desde
+  la app, en Configuración → Usuarios).
 - **Authentication → Rate Limits:** revisar los límites de inicio de sesión.
 - **Advisors → Security Advisor:** revisarlo después de cada migración.
 - **Logs:** consultas a la base de datos (Postgres), a la API y a Auth (inicios de sesión y fallos).
@@ -106,6 +110,39 @@ Respeta el orden: si se activa en Supabase antes de que la app envíe la verific
    **Turnstile** y pega la **Secret Key**.
 
 Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vuelve a funcionar sin él.
+
+## Usuarios y roles
+
+| | Admin | Bodega | Lectura |
+|---|---|---|---|
+| Ver productos, stock, movimientos, clientes y proveedores | ✅ | ✅ | ✅ |
+| Registrar entradas y salidas | ✅ | ✅ | ❌ |
+| Contar en tomas de inventario | ✅ | ✅ | ❌ |
+| Finalizar o cancelar tomas (generan ajustes) y ajustes manuales | ✅ | ❌ | ❌ |
+| Crear o editar productos, clientes y proveedores | ✅ | ❌ | ❌ |
+| Costo promedio, márgenes, valor del inventario y reportes | ✅ | ❌ | ✅ |
+| Configuración (categorías, bodegas, usuarios) | ✅ | ❌ | ❌ |
+
+Bodega digita el costo de la factura al registrar una entrada, pero no ve el costo promedio ni los márgenes. Ocultar
+costos es solo de la interfaz: la base de datos no tiene permisos por columna, así que alguien con conocimientos
+técnicos y un usuario *bodega* podría consultarlos directamente. Los permisos de escritura sí los aplica la base de datos.
+
+Los usuarios se invitan por correo desde **Configuración → Usuarios**: la persona recibe un enlace, crea su
+contraseña en `/bienvenida` y entra. Desde ahí también se cambia el rol, se reenvía la invitación (o un enlace para
+cambiar la contraseña) y se desactiva el acceso. Nadie puede cambiar su propio rol y siempre queda al menos un admin.
+
+### Configuración (una sola vez)
+
+1. Ejecutar la migración `0013_usuarios_y_roles.sql`.
+2. Desplegar la Edge Function `supabase/functions/usuarios/index.ts` (usa la clave de servicio, que nunca llega al
+   navegador): Supabase → **Edge Functions → Deploy a new function → Via Editor**, nombre `usuarios`, pegar el
+   código y desplegar (con *Verify JWT* activado). O con la CLI: `npx supabase functions deploy usuarios`.
+3. **Authentication → URL Configuration:** *Site URL* = la URL de Vercel, y en *Redirect URLs* agregar
+   `https://<tu-app>.vercel.app/bienvenida` y `http://localhost:5173/bienvenida`.
+4. **Correo:** el servicio de correo incluido en Supabase solo envía a los miembros del equipo del proyecto y con un
+   límite muy bajo por hora. Para invitar a cualquier persona hay que configurar un SMTP propio en
+   **Authentication → Emails → SMTP Settings** (por ejemplo Gmail con una contraseña de aplicación, o Resend).
+5. Opcional: traducir el correo en **Authentication → Emails → Templates → Invite user**.
 
 ## Copias de seguridad
 

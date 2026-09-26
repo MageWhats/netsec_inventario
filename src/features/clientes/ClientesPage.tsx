@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { useCambiarActivoCliente, useClientes, type Cliente } from './api'
 import { ClienteFormModal } from './components/ClienteFormModal'
@@ -15,6 +16,7 @@ export function ClientesPage() {
   const navigate = useNavigate()
   const { data: clientes = [], isLoading, error } = useClientes()
   const cambiarActivo = useCambiarActivoCliente()
+  const { esAdmin } = usePermisos()
 
   const [busqueda, setBusqueda] = useState('')
   const [estado, setEstado] = useState<FiltroEstado>('activos')
@@ -50,10 +52,12 @@ export function ClientesPage() {
         title="Clientes"
         description="Personas y empresas a las que se despacha mercancía"
         actions={
-          <button onClick={() => abrirFormulario(null)} className="btn btn-primary">
-            <Plus className="size-4" />
-            Nuevo cliente
-          </button>
+          esAdmin && (
+            <button onClick={() => abrirFormulario(null)} className="btn btn-primary">
+              <Plus className="size-4" />
+              Nuevo cliente
+            </button>
+          )
         }
       />
 
@@ -88,10 +92,15 @@ export function ClientesPage() {
           <div className="p-10 text-center text-sm text-slate-500">
             {clientes.length === 0 ? (
               <>
-                Aún no hay clientes.{' '}
-                <button onClick={() => abrirFormulario(null)} className="text-brand-cyan hover:underline">
-                  Crea el primero
-                </button>
+                Aún no hay clientes.
+                {esAdmin && (
+                  <>
+                    {' '}
+                    <button onClick={() => abrirFormulario(null)} className="text-brand-cyan hover:underline">
+                      Crea el primero
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               'Ningún cliente coincide con los filtros.'
@@ -135,26 +144,28 @@ export function ClientesPage() {
                     <td className="px-4 py-3 text-slate-300">{c.email ?? '—'}</td>
                     <td className="px-4 py-3 text-slate-300">{c.ciudad ?? '—'}</td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => abrirFormulario(c)}
-                          className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                          title="Editar"
-                          aria-label={`Editar ${c.nombre}`}
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <button
-                          onClick={() => setCambiandoActivo(c)}
-                          className={`rounded-lg p-2 text-slate-400 hover:bg-white/5 ${
-                            c.activo ? 'hover:text-red-400' : 'hover:text-emerald-400'
-                          }`}
-                          title={c.activo ? 'Desactivar' : 'Reactivar'}
-                          aria-label={`${c.activo ? 'Desactivar' : 'Reactivar'} ${c.nombre}`}
-                        >
-                          {c.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
-                        </button>
-                      </div>
+                      {esAdmin && (
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => abrirFormulario(c)}
+                            className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                            title="Editar"
+                            aria-label={`Editar ${c.nombre}`}
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => setCambiandoActivo(c)}
+                            className={`rounded-lg p-2 text-slate-400 hover:bg-white/5 ${
+                              c.activo ? 'hover:text-red-400' : 'hover:text-emerald-400'
+                            }`}
+                            title={c.activo ? 'Desactivar' : 'Reactivar'}
+                            aria-label={`${c.activo ? 'Desactivar' : 'Reactivar'} ${c.nombre}`}
+                          >
+                            {c.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -5,6 +5,8 @@ import { Combobox } from '@/components/ui/Combobox'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { FormField } from '@/components/ui/FormField'
+import { SinPermiso } from '@/features/auth/ProtectedRoute'
+import { usePermisos } from '@/features/auth/permisos'
 import { ClienteFormModal } from '@/features/clientes/components/ClienteFormModal'
 import { useClientes, type Cliente } from '@/features/clientes/api'
 import { etiquetaDocumento } from '@/features/clientes/schema'
@@ -46,7 +48,10 @@ import {
 
 export function NuevoMovimientoPage() {
   const { tipo } = useParams()
+  const { esAdmin } = usePermisos()
   if (!esTipoMovimiento(tipo)) return <Navigate to="/movimientos" replace />
+  // Entradas y salidas las protege la ruta (admin y bodega); los ajustes son solo de admin
+  if (esAjuste(tipo) && !esAdmin) return <SinPermiso />
   // key: al cambiar de tipo el formulario empieza de cero
   return <NuevoMovimientoForm key={tipo} tipo={tipo} />
 }
@@ -72,6 +77,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   const { data: proveedores = [] } = useProveedores()
   const { data: bodegas = [] } = useBodegas()
   const registrar = useRegistrarMovimiento()
+  const { esAdmin, verCostos } = usePermisos()
 
   const [fecha, setFecha] = useState(ahoraLocal)
   const [bodegaId, setBodegaId] = useState('')
@@ -106,7 +112,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   if (productoInicial && productos.length > 0) {
     const p = productos.find((x) => x.id === productoInicial && x.activo)
     setProductoInicial(null)
-    if (p) setLineas([nuevaLinea(p, tipo)])
+    if (p) setLineas([nuevaLinea(p, tipo, verCostos)])
   }
 
   // ---- Cambios sin guardar: avisar antes de salir
@@ -132,7 +138,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
 
   function agregarProducto(p: Producto | null) {
     if (!p) return
-    const linea = nuevaLinea(p, tipo)
+    const linea = nuevaLinea(p, tipo, verCostos)
     if (tipo === 'ajuste_salida') linea.estadoDestino = destinoPorMotivo(motivo)
     setLineas((ls) => [...ls, linea])
   }
@@ -326,9 +332,11 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                       emptyText="No hay proveedores que coincidan"
                     />
                   </div>
-                  <button type="button" onClick={() => setModalTercero(true)} className="btn btn-secondary" title="Nuevo proveedor">
-                    <Plus className="size-4" />
-                  </button>
+                  {esAdmin && (
+                    <button type="button" onClick={() => setModalTercero(true)} className="btn btn-secondary" title="Nuevo proveedor">
+                      <Plus className="size-4" />
+                    </button>
+                  )}
                 </div>
               </FormField>
             )}
@@ -354,9 +362,11 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                       emptyText="No hay clientes que coincidan"
                     />
                   </div>
-                  <button type="button" onClick={() => setModalTercero(true)} className="btn btn-secondary" title="Nuevo cliente">
-                    <Plus className="size-4" />
-                  </button>
+                  {esAdmin && (
+                    <button type="button" onClick={() => setModalTercero(true)} className="btn btn-secondary" title="Nuevo cliente">
+                      <Plus className="size-4" />
+                    </button>
+                  )}
                 </div>
               </FormField>
             )}

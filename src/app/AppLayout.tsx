@@ -1,22 +1,34 @@
-import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, Settings, Truck, Users, X } from 'lucide-react'
+import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, Settings, Truck, Users, X, type LucideIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigation } from 'react-router-dom'
 import { LogoHorizontal } from '@/components/ui/Logo'
 import { useAuth } from '@/features/auth/auth-context'
+import { ROLES, usePerfil, usePermisos, type Permisos } from '@/features/auth/permisos'
 
-const navItems = [
+interface NavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+  end: boolean
+  /** Sin este permiso la opción no aparece en el menú */
+  permiso?: keyof Omit<Permisos, 'rol'>
+}
+
+const navItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/productos', label: 'Productos', icon: Package, end: false },
   { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, end: false },
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },
   { to: '/proveedores', label: 'Proveedores', icon: Truck, end: false },
   { to: '/inventario', label: 'Toma de inventario', icon: ClipboardCheck, end: false },
-  { to: '/reportes', label: 'Reportes', icon: FileBarChart, end: false },
-  { to: '/configuracion', label: 'Configuración', icon: Settings, end: false },
+  { to: '/reportes', label: 'Reportes', icon: FileBarChart, end: false, permiso: 'verCostos' },
+  { to: '/configuracion', label: 'Configuración', icon: Settings, end: false, permiso: 'esAdmin' },
 ]
 
 export function AppLayout() {
   const { user, signOut } = useAuth()
+  const { data: perfil } = usePerfil()
+  const permisos = usePermisos()
   const [open, setOpen] = useState(false)
   // Cargando el código de otra página (rutas con carga diferida)
   const cargando = useNavigation().state === 'loading'
@@ -44,7 +56,7 @@ export function AppLayout() {
         </div>
 
         <nav className="flex-1 space-y-1 px-3">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
+          {navItems.filter(({ permiso }) => !permiso || permisos[permiso]).map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -65,9 +77,10 @@ export function AppLayout() {
         </nav>
 
         <div className="border-t border-brand-border p-4">
-          <p className="truncate text-xs text-slate-500" title={user?.email}>
-            {user?.email}
+          <p className="truncate text-sm text-slate-300" title={user?.email}>
+            {perfil?.nombre ?? user?.email}
           </p>
+          {perfil && <p className="text-xs text-slate-500">{ROLES[perfil.rol].label}</p>}
           <button
             onClick={signOut}
             className="mt-2 flex items-center gap-2 text-sm text-slate-400 transition hover:text-red-400"

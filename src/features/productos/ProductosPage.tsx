@@ -3,6 +3,7 @@ import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { usePermisos } from '@/features/auth/permisos'
 import { formatearPrecio } from '@/lib/format'
 import { useBusquedaSerie, useCategorias, useProductos, type Producto } from './api'
 import { ConfirmarActivoModal } from './components/ConfirmarActivoModal'
@@ -97,6 +98,8 @@ export function ProductosPage() {
     setFormAbierto(true)
   }
 
+  const { esAdmin } = usePermisos()
+
   function abrirEdicion(producto: Producto) {
     setEditando(producto)
     setFormAbierto(true)
@@ -108,10 +111,12 @@ export function ProductosPage() {
         title="Productos"
         description="Catálogo de productos de consumo y de redes y seguridad"
         actions={
-          <button onClick={abrirNuevo} className="btn btn-primary">
-            <Plus className="size-4" />
-            Nuevo producto
-          </button>
+          esAdmin && (
+            <button onClick={abrirNuevo} className="btn btn-primary">
+              <Plus className="size-4" />
+              Nuevo producto
+            </button>
+          )
         }
       />
 
@@ -168,10 +173,15 @@ export function ProductosPage() {
           <div className="p-10 text-center text-sm text-slate-500">
             {productos.length === 0 ? (
               <>
-                Aún no hay productos.{' '}
-                <button onClick={abrirNuevo} className="text-brand-cyan hover:underline">
-                  Crea el primero
-                </button>
+                Aún no hay productos.
+                {esAdmin && (
+                  <>
+                    {' '}
+                    <button onClick={abrirNuevo} className="text-brand-cyan hover:underline">
+                      Crea el primero
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               'Ningún producto coincide con los filtros.'
@@ -200,8 +210,8 @@ export function ProductosPage() {
                       producto={fila.producto}
                       serialCoincide={Boolean(termino && coincidenSerie?.has(fila.producto.id))}
                       onAbrir={() => navigate(`/productos/${fila.producto.id}`)}
-                      onEditar={() => abrirEdicion(fila.producto)}
-                      onCambiarActivo={() => setCambiandoActivo(fila.producto)}
+                      onEditar={esAdmin ? () => abrirEdicion(fila.producto) : undefined}
+                      onCambiarActivo={esAdmin ? () => setCambiandoActivo(fila.producto) : undefined}
                     />
                   ) : (
                     <FilaFamilia
@@ -217,8 +227,8 @@ export function ProductosPage() {
                           esColor
                           serialCoincide={Boolean(termino && coincidenSerie?.has(p.id))}
                           onAbrir={() => navigate(`/productos/${p.id}`)}
-                          onEditar={() => abrirEdicion(p)}
-                          onCambiarActivo={() => setCambiandoActivo(p)}
+                          onEditar={esAdmin ? () => abrirEdicion(p) : undefined}
+                          onCambiarActivo={esAdmin ? () => setCambiandoActivo(p) : undefined}
                         />
                       ))}
                     </FilaFamilia>
@@ -248,8 +258,9 @@ interface FilaProductoProps {
   esColor?: boolean
   serialCoincide: boolean
   onAbrir: () => void
-  onEditar: () => void
-  onCambiarActivo: () => void
+  /** Sin ellas (usuarios que no son admin) no se muestran los botones */
+  onEditar?: () => void
+  onCambiarActivo?: () => void
 }
 
 function FilaProducto({ producto: p, esColor, serialCoincide, onAbrir, onEditar, onCambiarActivo }: FilaProductoProps) {
@@ -292,24 +303,28 @@ function FilaProducto({ producto: p, esColor, serialCoincide, onAbrir, onEditar,
       </td>
       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-end gap-1">
-          <button
-            onClick={onEditar}
-            className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
-            title="Editar"
-            aria-label={`Editar ${p.nombre}`}
-          >
-            <Pencil className="size-4" />
-          </button>
-          <button
-            onClick={onCambiarActivo}
-            className={`rounded-lg p-2 hover:bg-white/5 ${
-              p.activo ? 'text-slate-400 hover:text-red-400' : 'text-slate-400 hover:text-emerald-400'
-            }`}
-            title={p.activo ? 'Desactivar' : 'Reactivar'}
-            aria-label={`${p.activo ? 'Desactivar' : 'Reactivar'} ${p.nombre}`}
-          >
-            {p.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
-          </button>
+          {onEditar && (
+            <button
+              onClick={onEditar}
+              className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+              title="Editar"
+              aria-label={`Editar ${p.nombre}`}
+            >
+              <Pencil className="size-4" />
+            </button>
+          )}
+          {onCambiarActivo && (
+            <button
+              onClick={onCambiarActivo}
+              className={`rounded-lg p-2 hover:bg-white/5 ${
+                p.activo ? 'text-slate-400 hover:text-red-400' : 'text-slate-400 hover:text-emerald-400'
+              }`}
+              title={p.activo ? 'Desactivar' : 'Reactivar'}
+              aria-label={`${p.activo ? 'Desactivar' : 'Reactivar'} ${p.nombre}`}
+            >
+              {p.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
+            </button>
+          )}
         </div>
       </td>
     </tr>

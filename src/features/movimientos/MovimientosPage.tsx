@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { usePermisos } from '@/features/auth/permisos'
 import { useDebounce } from '@/lib/useDebounce'
 import { useMovimientos } from './api'
 import { MovimientosTabla } from './components/MovimientosTabla'
@@ -16,6 +17,9 @@ export function MovimientosPage() {
   const [hasta, setHasta] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [limite, setLimite] = useState(TAMANO_PAGINA)
+  const { esAdmin, puedeOperar } = usePermisos()
+  // Entradas y salidas: admin y bodega. Ajustes: solo admin
+  const tiposPermitidos = TIPOS_MOVIMIENTO.filter((t) => (t === 'entrada' || t === 'salida' ? puedeOperar : esAdmin))
 
   const busquedaDebounced = useDebounce(busqueda)
   const { data, isLoading, isFetching, error } = useMovimientos({
@@ -44,22 +48,24 @@ export function MovimientosPage() {
         title="Movimientos"
         description="Entradas, salidas y ajustes de inventario"
         actions={
-          <div className="flex flex-wrap gap-2">
-            {TIPOS_MOVIMIENTO.map((t) => {
-              const { label, icono: Icono } = tiposMovimiento[t]
-              return (
-                <Link
-                  key={t}
-                  to={`/movimientos/nuevo/${t}`}
-                  className={`btn ${t === 'entrada' || t === 'salida' ? 'btn-primary' : 'btn-secondary'}`}
-                  title={tiposMovimiento[t].descripcion}
-                >
-                  <Icono className="size-4" />
-                  {label}
-                </Link>
-              )
-            })}
-          </div>
+          tiposPermitidos.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {tiposPermitidos.map((t) => {
+                const { label, icono: Icono } = tiposMovimiento[t]
+                return (
+                  <Link
+                    key={t}
+                    to={`/movimientos/nuevo/${t}`}
+                    className={`btn ${t === 'entrada' || t === 'salida' ? 'btn-primary' : 'btn-secondary'}`}
+                    title={tiposMovimiento[t].descripcion}
+                  >
+                    <Icono className="size-4" />
+                    {label}
+                  </Link>
+                )
+              })}
+            </div>
+          )
         }
       />
 

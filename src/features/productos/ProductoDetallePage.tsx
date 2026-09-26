@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { usePermisos } from '@/features/auth/permisos'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useProducto } from './api'
 import { ColoresSection } from './components/ColoresSection'
@@ -16,6 +17,7 @@ import { UnidadesSection } from './components/UnidadesSection'
 export function ProductoDetallePage() {
   const { id = '' } = useParams()
   const { data: producto, isLoading, error } = useProducto(id)
+  const { esAdmin, puedeOperar, verCostos } = usePermisos()
   const [editando, setEditando] = useState(false)
   const [cambiandoActivo, setCambiandoActivo] = useState(false)
 
@@ -53,7 +55,7 @@ export function ProductoDetallePage() {
           <p className="mt-1 font-mono text-sm text-slate-400">{producto.sku}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {producto.activo && (
+          {producto.activo && puedeOperar && (
             <>
               <Link to={`/movimientos/nuevo/entrada?producto=${producto.id}`} className="btn btn-secondary">
                 <ArrowDownToLine className="size-4" />
@@ -67,25 +69,29 @@ export function ProductoDetallePage() {
               )}
             </>
           )}
-          <button onClick={() => setCambiandoActivo(true)} className="btn btn-secondary">
-            {producto.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
-            {producto.activo ? 'Desactivar' : 'Reactivar'}
-          </button>
-          <button onClick={() => setEditando(true)} className="btn btn-primary">
-            <Pencil className="size-4" />
-            Editar
-          </button>
+          {esAdmin && (
+            <>
+              <button onClick={() => setCambiandoActivo(true)} className="btn btn-secondary">
+                {producto.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
+                {producto.activo ? 'Desactivar' : 'Reactivar'}
+              </button>
+              <button onClick={() => setEditando(true)} className="btn btn-primary">
+                <Pencil className="size-4" />
+                Editar
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className={`mb-6 grid gap-4 sm:grid-cols-2 ${verCostos ? 'lg:grid-cols-4' : ''}`}>
         <Kpi label="Stock actual">
           <StockBadge stock={producto.stock} minimo={producto.stock_minimo} />
           <span className="ml-2 text-xs text-slate-500">mínimo {producto.stock_minimo}</span>
         </Kpi>
-        <Kpi label="Costo promedio">{formatearPrecio(producto.precio_costo)}</Kpi>
+        {verCostos && <Kpi label="Costo promedio">{formatearPrecio(producto.precio_costo)}</Kpi>}
         <Kpi label="Precio de venta">{formatearPrecio(producto.precio_venta)}</Kpi>
-        <Kpi label="Margen">{margen === null ? '—' : `${(margen * 100).toFixed(1)} %`}</Kpi>
+        {verCostos && <Kpi label="Margen">{margen === null ? '—' : `${(margen * 100).toFixed(1)} %`}</Kpi>}
       </div>
 
       <section className="mb-6 grid gap-6 rounded-2xl border border-brand-border bg-brand-card p-6 md:grid-cols-[14rem_1fr]">

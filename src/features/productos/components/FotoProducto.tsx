@@ -1,6 +1,7 @@
 import { Camera, ImageOff, Loader2, Package, Trash2 } from 'lucide-react'
 import { useRef, useState, type ChangeEvent } from 'react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { useQuitarFoto, useSubirFoto, type Producto } from '../api'
 
@@ -11,6 +12,7 @@ export function FotoProducto({ producto }: { producto: Pick<Producto, 'id' | 'no
   const quitar = useQuitarFoto()
   const [confirmarQuitar, setConfirmarQuitar] = useState(false)
   const [rota, setRota] = useState(false)
+  const { esAdmin } = usePermisos()
   const ocupado = subir.isPending || quitar.isPending
 
   function onArchivo(e: ChangeEvent<HTMLInputElement>) {
@@ -47,31 +49,35 @@ export function FotoProducto({ producto }: { producto: Pick<Producto, 'id' | 'no
         )}
       </div>
 
-      {/* accept="image/*": en el teléfono ofrece tomar la foto con la cámara o elegirla de la galería */}
-      <input ref={input} type="file" accept="image/*" className="hidden" onChange={onArchivo} />
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => input.current?.click()}
-          disabled={ocupado}
-          className="btn btn-secondary flex-1 px-2 text-xs"
-        >
-          <Camera className="size-4" />
-          {producto.imagen_url ? 'Cambiar foto' : 'Subir foto'}
-        </button>
-        {producto.imagen_url && (
-          <button
-            type="button"
-            onClick={() => setConfirmarQuitar(true)}
-            disabled={ocupado}
-            className="btn btn-secondary px-2.5"
-            aria-label="Quitar foto"
-            title="Quitar foto"
-          >
-            <Trash2 className="size-4" />
-          </button>
-        )}
-      </div>
+      {esAdmin && (
+        <>
+          {/* accept="image/*": en el teléfono ofrece tomar la foto con la cámara o elegirla de la galería */}
+          <input ref={input} type="file" accept="image/*" className="hidden" onChange={onArchivo} />
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => input.current?.click()}
+              disabled={ocupado}
+              className="btn btn-secondary flex-1 px-2 text-xs"
+            >
+              <Camera className="size-4" />
+              {producto.imagen_url ? 'Cambiar foto' : 'Subir foto'}
+            </button>
+            {producto.imagen_url && (
+              <button
+                type="button"
+                onClick={() => setConfirmarQuitar(true)}
+                disabled={ocupado}
+                className="btn btn-secondary px-2.5"
+                aria-label="Quitar foto"
+                title="Quitar foto"
+              >
+                <Trash2 className="size-4" />
+              </button>
+            )}
+          </div>
+        </>
+      )}
       {error && <p className="text-xs text-red-400">{mensajeError(error)}</p>}
 
       <ConfirmDialog

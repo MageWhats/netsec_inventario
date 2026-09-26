@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import type { TablesInsert } from '@/types/database'
+import type { Enums, TablesInsert } from '@/types/database'
 
 // Prefijos compartidos con useCategorias() (productos) y useBodegas() (movimientos):
 // al invalidarlos se refrescan también los selectores del resto de la app.
@@ -100,5 +101,63 @@ export function useEliminarBodega() {
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: bodegasKeys.all }),
+  })
+}
+
+// ---------------------------------------------------------------------
+// Usuarios
+// ---------------------------------------------------------------------
+const usuariosKeys = { all: ['usuarios'] as const }
+
+/** Lista de usuarios con su estado de invitación (función usuarios_admin, solo admin) */
+export function useUsuarios() {
+  return useQuery({
+    queryKey: usuariosKeys.all,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('usuarios_admin')
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export type Usuario = NonNullable<ReturnType<typeof useUsuarios>['data']>[number]
+
+type AccionUsuario =
+  | { accion: 'invitar'; email: string; nombre: string; rol: Enums<'rol_usuario'> }
+  | { accion: 'reenviar' | 'desactivar' | 'reactivar'; id: string }
+
+/** Acciones sobre cuentas de Auth: pasan por la Edge Function "usuarios" (usa la clave de servicio) */
+export function useAccionUsuario() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (cuerpo: AccionUsuario) => {
+      const { error } = await supabase.functions.invoke('usuarios', { body: cuerpo })
+      if (!error) return
+      // La función responde { error: "mensaje" } con el motivo en español
+      if (error instanceof FunctionsHttpError) {
+        const respuesta = await error.context.json().catch(() => null)
+        if (respuesta?.error) throw new Error(respuesta.error)
+      }
+      if (error instanceof FunctionsFetchError) {
+        throw new Error('No se pudo contactar el servicio de usuarios. ¿Está desplegada la Edge Function "usuarios"?')
+      }
+      throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: usuariosKeys.all }),
+  })
+}
+
+export function useGuardarUsuario() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, valores }: { id: string; valores: { nombre: string; rol: Enums<'rol_usuario'> } }) => {
+      const { error } = await supabase.from('perfiles').update(valores).eq('id', id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: usuariosKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['perfil'] })
+    },
   })
 }

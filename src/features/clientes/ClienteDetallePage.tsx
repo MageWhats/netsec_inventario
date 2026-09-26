@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { usePermisos } from '@/features/auth/permisos'
 import { formatearFecha } from '@/lib/format'
 import { EstadoUnidadBadge } from '@/features/productos/components/badges'
 import { useMovimientos } from '@/features/movimientos/api'
@@ -16,6 +17,7 @@ export function ClienteDetallePage() {
   const { id = '' } = useParams()
   const { data: cliente, isLoading, error } = useCliente(id)
   const [editando, setEditando] = useState(false)
+  const { esAdmin, puedeOperar } = usePermisos()
 
   if (isLoading) return <LoadingBlock />
 
@@ -48,16 +50,18 @@ export function ClienteDetallePage() {
           <p className="mt-1 text-sm text-slate-400">{etiquetaDocumento(cliente)}</p>
         </div>
         <div className="flex gap-2">
-          {cliente.activo && (
+          {cliente.activo && puedeOperar && (
             <Link to={`/movimientos/nuevo/salida?cliente=${cliente.id}`} className="btn btn-secondary">
               <ArrowUpFromLine className="size-4" />
               Nueva salida
             </Link>
           )}
-          <button onClick={() => setEditando(true)} className="btn btn-primary">
-            <Pencil className="size-4" />
-            Editar
-          </button>
+          {esAdmin && (
+            <button onClick={() => setEditando(true)} className="btn btn-primary">
+              <Pencil className="size-4" />
+              Editar
+            </button>
+          )}
         </div>
       </div>
 

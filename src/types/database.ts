@@ -14,19 +14,25 @@ export type Database = {
         Row: {
           id: string
           nombre: string | null
+          email: string | null
           rol: Database['public']['Enums']['rol_usuario']
+          activo: boolean
           created_at: string
         }
         Insert: {
           id: string
           nombre?: string | null
+          email?: string | null
           rol?: Database['public']['Enums']['rol_usuario']
+          activo?: boolean
           created_at?: string
         }
         Update: {
           id?: string
           nombre?: string | null
+          email?: string | null
           rol?: Database['public']['Enums']['rol_usuario']
+          activo?: boolean
           created_at?: string
         }
         Relationships: []
@@ -631,6 +637,31 @@ export type Database = {
       es_admin: {
         Args: never
         Returns: boolean
+      }
+      puede_operar: {
+        Args: never
+        Returns: boolean
+      }
+      puede_ver: {
+        Args: never
+        Returns: boolean
+      }
+      rol_actual: {
+        Args: never
+        Returns: Database['public']['Enums']['rol_usuario'] | null
+      }
+      usuarios_admin: {
+        Args: never
+        Returns: {
+          id: string
+          nombre: string | null
+          email: string
+          rol: Database['public']['Enums']['rol_usuario']
+          activo: boolean
+          pendiente: boolean
+          ultimo_ingreso: string | null
+          created_at: string
+        }[]
       }
       registrar_movimiento: {
         Args: {

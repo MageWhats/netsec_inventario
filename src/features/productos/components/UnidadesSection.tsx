@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { formatearFecha } from '@/lib/format'
 import { TipoMovimientoBadge } from '@/features/movimientos/components/MovimientosTabla'
 import { formatearNumero } from '@/features/movimientos/tipos'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { useActualizarUnidad, useHistorialUnidad, useUnidades, type Unidad } from '../api'
 import { ESTADOS_UNIDAD, estadosUnidad, type EstadoUnidad } from '../estados'
@@ -156,6 +157,7 @@ type UnidadForm = z.infer<typeof unidadSchema>
 
 function EditarUnidadModal({ unidad, onClose }: { unidad: Unidad | null; onClose: () => void }) {
   const { mutateAsync: actualizar, error: errorGuardar, reset: limpiarError } = useActualizarUnidad()
+  const { esAdmin } = usePermisos()
   const {
     register,
     handleSubmit,
@@ -186,12 +188,15 @@ function EditarUnidadModal({ unidad, onClose }: { unidad: Unidad | null; onClose
     <Modal open={Boolean(unidad)} onClose={onClose} title={`Unidad ${unidad?.numero_serie ?? ''}`} size="max-w-2xl">
       <HistorialUnidad unidadId={unidad?.id} />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        <FormField label="MAC" error={errors.mac?.message}>
-          <input className="input font-mono uppercase" placeholder="AA:BB:CC:DD:EE:FF" {...register('mac')} />
-        </FormField>
-        <FormField label="Notas" error={errors.notas?.message}>
-          <textarea className="input min-h-20" rows={3} {...register('notas')} />
-        </FormField>
+        {/* Solo admin edita MAC y notas; el resto los ve */}
+        <fieldset disabled={!esAdmin} className="space-y-4">
+          <FormField label="MAC" error={errors.mac?.message}>
+            <input className="input font-mono uppercase" placeholder="AA:BB:CC:DD:EE:FF" {...register('mac')} />
+          </FormField>
+          <FormField label="Notas" error={errors.notas?.message}>
+            <textarea className="input min-h-20" rows={3} {...register('notas')} />
+          </FormField>
+        </fieldset>
 
         {errorGuardar && (
           <p role="alert" className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">
@@ -201,12 +206,14 @@ function EditarUnidadModal({ unidad, onClose }: { unidad: Unidad | null; onClose
 
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onClose} className="btn btn-secondary">
-            Cancelar
+            {esAdmin ? 'Cancelar' : 'Cerrar'}
           </button>
-          <button type="submit" disabled={isSubmitting} className="btn btn-primary">
-            {isSubmitting && <Loader2 className="size-4 animate-spin" />}
-            Guardar
-          </button>
+          {esAdmin && (
+            <button type="submit" disabled={isSubmitting} className="btn btn-primary">
+              {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+              Guardar
+            </button>
+          )}
         </div>
       </form>
     </Modal>

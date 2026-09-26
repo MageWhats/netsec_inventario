@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FormField } from '@/components/ui/FormField'
 import { Modal } from '@/components/ui/Modal'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { useAgregarColor, useProductos, type Producto } from '../api'
 import { StockBadge } from './badges'
@@ -11,6 +12,7 @@ import { StockBadge } from './badges'
 export function ColoresSection({ producto }: { producto: Producto }) {
   const { data: productos = [] } = useProductos()
   const [agregando, setAgregando] = useState(false)
+  const { esAdmin } = usePermisos()
   const familia = producto.familia
   if (!familia) return null
 
@@ -26,10 +28,12 @@ export function ColoresSection({ producto }: { producto: Producto }) {
             {colores.length} {colores.length === 1 ? 'color' : 'colores'} · {total} unidades en total
           </p>
         </div>
-        <button onClick={() => setAgregando(true)} className="btn btn-secondary">
-          <Plus className="size-4" />
-          Agregar color
-        </button>
+        {esAdmin && (
+          <button onClick={() => setAgregando(true)} className="btn btn-secondary">
+            <Plus className="size-4" />
+            Agregar color
+          </button>
+        )}
       </div>
 
       <ul className="flex flex-wrap gap-2">

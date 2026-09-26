@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { useCambiarActivoProveedor, useProveedores, type Proveedor } from './api'
 import { ProveedorFormModal } from './components/ProveedorFormModal'
@@ -14,6 +15,7 @@ export function ProveedoresPage() {
   const navigate = useNavigate()
   const { data: proveedores = [], isLoading, error } = useProveedores()
   const cambiarActivo = useCambiarActivoProveedor()
+  const { esAdmin } = usePermisos()
 
   const [busqueda, setBusqueda] = useState('')
   const [estado, setEstado] = useState<FiltroEstado>('activos')
@@ -49,10 +51,12 @@ export function ProveedoresPage() {
         title="Proveedores"
         description="Empresas a las que se compra mercancía"
         actions={
-          <button onClick={() => abrirFormulario(null)} className="btn btn-primary">
-            <Plus className="size-4" />
-            Nuevo proveedor
-          </button>
+          esAdmin && (
+            <button onClick={() => abrirFormulario(null)} className="btn btn-primary">
+              <Plus className="size-4" />
+              Nuevo proveedor
+            </button>
+          )
         }
       />
 
@@ -87,10 +91,15 @@ export function ProveedoresPage() {
           <div className="p-10 text-center text-sm text-slate-500">
             {proveedores.length === 0 ? (
               <>
-                Aún no hay proveedores.{' '}
-                <button onClick={() => abrirFormulario(null)} className="text-brand-cyan hover:underline">
-                  Crea el primero
-                </button>
+                Aún no hay proveedores.
+                {esAdmin && (
+                  <>
+                    {' '}
+                    <button onClick={() => abrirFormulario(null)} className="text-brand-cyan hover:underline">
+                      Crea el primero
+                    </button>
+                  </>
+                )}
               </>
             ) : (
               'Ningún proveedor coincide con los filtros.'
@@ -134,26 +143,28 @@ export function ProveedoresPage() {
                     <td className="px-4 py-3 text-slate-300">{c.telefono ?? '—'}</td>
                     <td className="px-4 py-3 text-slate-300">{c.email ?? '—'}</td>
                     <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <button
-                          onClick={() => abrirFormulario(c)}
-                          className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
-                          title="Editar"
-                          aria-label={`Editar ${c.nombre}`}
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-                        <button
-                          onClick={() => setCambiandoActivo(c)}
-                          className={`rounded-lg p-2 text-slate-400 hover:bg-white/5 ${
-                            c.activo ? 'hover:text-red-400' : 'hover:text-emerald-400'
-                          }`}
-                          title={c.activo ? 'Desactivar' : 'Reactivar'}
-                          aria-label={`${c.activo ? 'Desactivar' : 'Reactivar'} ${c.nombre}`}
-                        >
-                          {c.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
-                        </button>
-                      </div>
+                      {esAdmin && (
+                        <div className="flex justify-end gap-1">
+                          <button
+                            onClick={() => abrirFormulario(c)}
+                            className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                            title="Editar"
+                            aria-label={`Editar ${c.nombre}`}
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => setCambiandoActivo(c)}
+                            className={`rounded-lg p-2 text-slate-400 hover:bg-white/5 ${
+                              c.activo ? 'hover:text-red-400' : 'hover:text-emerald-400'
+                            }`}
+                            title={c.activo ? 'Desactivar' : 'Reactivar'}
+                            aria-label={`${c.activo ? 'Desactivar' : 'Reactivar'} ${c.nombre}`}
+                          >
+                            {c.activo ? <PowerOff className="size-4" /> : <Power className="size-4" />}
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import type { TablesInsert } from '@/types/database'
-import type { BodegaConUso, CategoriaConUso } from './api'
+import type { BodegaConUso, CategoriaConUso, Usuario } from './api'
 
 const nombre = z.string().trim().min(2, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres')
 
@@ -29,4 +29,18 @@ export function bodegaAFormulario(b: BodegaConUso): BodegaForm {
 
 export function formularioABodega(f: BodegaForm): TablesInsert<'bodegas'> {
   return { nombre: f.nombre, direccion: f.direccion || null }
+}
+
+export const usuarioSchema = z.object({
+  nombre,
+  email: z.email('Email inválido'),
+  rol: z.enum(['admin', 'bodega', 'lectura']),
+})
+
+export type UsuarioForm = z.infer<typeof usuarioSchema>
+
+export const usuarioVacio: UsuarioForm = { nombre: '', email: '', rol: 'bodega' }
+
+export function usuarioAFormulario(u: Usuario): UsuarioForm {
+  return { nombre: u.nombre ?? '', email: u.email, rol: u.rol }
 }

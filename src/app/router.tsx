@@ -2,13 +2,17 @@ import { createBrowserRouter } from 'react-router-dom'
 import { AppLayout } from '@/app/AppLayout'
 import { NotFoundPage } from '@/app/NotFoundPage'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
+import { BienvenidaPage } from '@/features/auth/BienvenidaPage'
 import { LoginPage } from '@/features/auth/LoginPage'
-import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
+import { ProtectedRoute, RequierePermiso } from '@/features/auth/ProtectedRoute'
 
 // Cada página se descarga al visitarla por primera vez: el teléfono no baja de entrada
 // el código de las gráficas, los reportes o el escáner.
+// RequierePermiso solo decide qué se muestra: la base de datos aplica los permisos por su cuenta.
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  // Destino de los enlaces de invitación: ahí se crea la contraseña
+  { path: '/bienvenida', element: <BienvenidaPage /> },
   {
     element: <ProtectedRoute />,
     hydrateFallbackElement: <FullScreenLoader />,
@@ -35,8 +39,16 @@ export const router = createBrowserRouter([
           },
           {
             path: 'movimientos/nuevo/:tipo',
-            lazy: () =>
-              import('@/features/movimientos/NuevoMovimientoPage').then((m) => ({ Component: m.NuevoMovimientoPage })),
+            element: <RequierePermiso permiso="puedeOperar" />,
+            children: [
+              {
+                index: true,
+                lazy: () =>
+                  import('@/features/movimientos/NuevoMovimientoPage').then((m) => ({
+                    Component: m.NuevoMovimientoPage,
+                  })),
+              },
+            ],
           },
           {
             path: 'movimientos/:id',
@@ -72,12 +84,26 @@ export const router = createBrowserRouter([
           },
           {
             path: 'reportes',
-            lazy: () => import('@/features/reportes/ReportesPage').then((m) => ({ Component: m.ReportesPage })),
+            element: <RequierePermiso permiso="verCostos" />,
+            children: [
+              {
+                index: true,
+                lazy: () => import('@/features/reportes/ReportesPage').then((m) => ({ Component: m.ReportesPage })),
+              },
+            ],
           },
           {
             path: 'configuracion',
-            lazy: () =>
-              import('@/features/configuracion/ConfiguracionPage').then((m) => ({ Component: m.ConfiguracionPage })),
+            element: <RequierePermiso permiso="esAdmin" />,
+            children: [
+              {
+                index: true,
+                lazy: () =>
+                  import('@/features/configuracion/ConfiguracionPage').then((m) => ({
+                    Component: m.ConfiguracionPage,
+                  })),
+              },
+            ],
           },
         ],
       },
