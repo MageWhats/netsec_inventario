@@ -110,7 +110,7 @@ function AgregarColorModal({ open, onClose, producto }: { open: boolean; onClose
   return (
     <Modal open={open} onClose={cerrar} title={`Nuevo color de ${producto.familia?.nombre}`}>
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
-        <FormField label="Color *" error={errorColor} hint="El SKU se crea solo, p. ej. REL-X-VER">
+        <FormField label="Color *" error={errorColor} hint={`El SKU se crea solo: ${producto.familia?.sku_base}-VER, ${producto.familia?.sku_base}-NEG…`}>
           <input
             value={color}
             onChange={(e) => setColor(e.target.value)}

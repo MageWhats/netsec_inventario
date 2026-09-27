@@ -61,6 +61,9 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
     puede borrar, no se repiten nombres (sin importar mayúsculas) y siempre queda al menos una bodega activa.
 13. `0013_usuarios_y_roles.sql`: roles *admin*, *bodega* y *lectura* (ver [Usuarios y roles](#usuarios-y-roles)).
     Los perfiles guardan el correo y si están activos; un usuario desactivado pierde el acceso de inmediato.
+14. `0014_sku_automatico.sql`: el SKU lo genera la base de datos con el prefijo de la categoría y un consecutivo
+    propio de cada una (NS-SW-0001, NS-SW-0002, NS-RT-0001…); los colores agregan su sufijo (NS-REL-0001-NEG). El SKU
+    no se edita ni cambia si se cambia la categoría. Renumera los productos existentes en el orden en que se crearon.
 
 Reglas clave:
 
@@ -68,6 +71,8 @@ Reglas clave:
 - Los movimientos solo se crean con `registrar_movimiento()`, que valida el stock, los seriales y los estados en una
   sola transacción. Son **inmutables**: no se editan ni se borran, y las correcciones se hacen con ajustes.
 - Clientes, proveedores y productos no se borran: se desactivan, para conservar el historial.
+- El SKU no se escribe a mano: `NS-<prefijo de la categoría>-<consecutivo>`. El prefijo se define en
+  Configuración → Categorías.
 
 ## Seguridad
 

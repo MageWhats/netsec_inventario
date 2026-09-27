@@ -65,16 +65,22 @@ export type Database = {
         Row: {
           id: string
           nombre: string
+          prefijo: string
+          ultimo_sku: number
           created_at: string
         }
         Insert: {
           id?: string
           nombre: string
+          prefijo: string
+          ultimo_sku?: number
           created_at?: string
         }
         Update: {
           id?: string
           nombre?: string
+          prefijo?: string
+          ultimo_sku?: number
           created_at?: string
         }
         Relationships: []
@@ -183,7 +189,7 @@ export type Database = {
         Insert: {
           id?: string
           nombre: string
-          sku_base: string
+          sku_base?: string
           categoria_id?: string | null
           marca?: string | null
           modelo?: string | null
@@ -239,7 +245,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          sku: string
+          sku?: string
           nombre: string
           descripcion?: string | null
           categoria_id?: string | null

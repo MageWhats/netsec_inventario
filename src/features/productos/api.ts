@@ -156,7 +156,7 @@ export function useCrearFamilia() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (datos: {
-      familia: DatosFamilia & { sku_base: string }
+      familia: DatosFamilia
       colores: string[]
       costoInicial: number
       stockMinimo: number
@@ -170,7 +170,11 @@ export function useCrearFamilia() {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productosKeys.all })
+      // Crear un producto consume un número del consecutivo de su categoría
+      queryClient.invalidateQueries({ queryKey: ['categorias'] })
+    },
   })
 }
 
@@ -187,7 +191,11 @@ export function useAgregarColor() {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productosKeys.all })
+      // Crear un producto consume un número del consecutivo de su categoría
+      queryClient.invalidateQueries({ queryKey: ['categorias'] })
+    },
   })
 }
 
@@ -204,7 +212,7 @@ export function useGuardarColor() {
       id: string
       familiaId: string
       comunes: DatosFamilia
-      propios: Pick<TablesUpdate<'productos'>, 'sku' | 'codigo_barras' | 'stock_minimo'>
+      propios: Pick<TablesUpdate<'productos'>, 'codigo_barras' | 'stock_minimo'>
     }) => {
       const familia = await supabase.from('familias').update(comunes).eq('id', familiaId)
       if (familia.error) throw familia.error
@@ -228,7 +236,11 @@ export function useGuardarProducto() {
       if (error) throw error
       return data.id
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productosKeys.all })
+      // Crear un producto consume un número del consecutivo de su categoría
+      queryClient.invalidateQueries({ queryKey: ['categorias'] })
+    },
   })
 }
 

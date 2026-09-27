@@ -4,14 +4,22 @@ import type { BodegaConUso, CategoriaConUso, Usuario } from './api'
 
 const nombre = z.string().trim().min(2, 'El nombre es obligatorio').max(100, 'Máximo 100 caracteres')
 
-export const categoriaSchema = z.object({ nombre })
+export const categoriaSchema = z.object({
+  nombre,
+  // Va en el SKU de sus productos: NS-<prefijo>-0001
+  prefijo: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{2,5}$/, 'De 2 a 5 letras o números, sin espacios ni tildes'),
+})
 
 export type CategoriaForm = z.infer<typeof categoriaSchema>
 
-export const categoriaVacia: CategoriaForm = { nombre: '' }
+export const categoriaVacia: CategoriaForm = { nombre: '', prefijo: '' }
 
 export function categoriaAFormulario(c: CategoriaConUso): CategoriaForm {
-  return { nombre: c.nombre }
+  return { nombre: c.nombre, prefijo: c.prefijo }
 }
 
 export const bodegaSchema = z.object({

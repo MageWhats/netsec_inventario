@@ -9,15 +9,10 @@ const numero = (mensaje: string) =>
 
 export const productoSchema = z
   .object({
-    sku: z
-      .string()
-      .trim()
-      .min(1, 'El SKU es obligatorio')
-      .max(50, 'Máximo 50 caracteres')
-      .regex(/^[A-Za-z0-9._-]+$/, 'Solo letras, números, punto, guion y guion bajo (sin espacios)'),
+    // El SKU no está aquí: lo genera la base de datos con el prefijo de la categoría (migración 0014)
     nombre: z.string().trim().min(2, 'El nombre es obligatorio').max(150, 'Máximo 150 caracteres'),
     descripcion: textoOpcional,
-    categoria_id: z.string(),
+    categoria_id: z.string().min(1, 'Elige una categoría'),
     marca: textoOpcional,
     modelo: textoOpcional,
     codigo_barras: z.string().trim().max(50, 'Máximo 50 caracteres'),
@@ -34,7 +29,6 @@ export const productoSchema = z
 export type ProductoForm = z.infer<typeof productoSchema>
 
 export const productoVacio: ProductoForm = {
-  sku: '',
   nombre: '',
   descripcion: '',
   categoria_id: '',
@@ -49,7 +43,6 @@ export const productoVacio: ProductoForm = {
 
 export function productoAFormulario(p: Producto): ProductoForm {
   return {
-    sku: p.sku,
     nombre: p.nombre,
     descripcion: p.descripcion ?? '',
     categoria_id: p.categoria_id ?? '',
@@ -68,7 +61,6 @@ export function formularioAProducto(f: ProductoForm): TablesInsert<'productos'> 
   const nulo = (valor: string) => valor || null
   return {
     ...f,
-    sku: f.sku.toUpperCase(),
     descripcion: nulo(f.descripcion),
     categoria_id: nulo(f.categoria_id),
     marca: nulo(f.marca),

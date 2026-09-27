@@ -51,6 +51,7 @@ export function CategoriasTab() {
             <thead className="border-b border-brand-border text-left text-xs tracking-wide text-slate-400 uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">Categoría</th>
+                <th className="px-4 py-3 font-medium">SKU</th>
                 <th className="px-4 py-3 text-right font-medium">Productos</th>
                 <th className="px-4 py-3">
                   <span className="sr-only">Acciones</span>
@@ -61,6 +62,10 @@ export function CategoriasTab() {
               {categorias.map((c) => (
                 <tr key={c.id}>
                   <td className="px-4 py-3 font-medium">{c.nombre}</td>
+                  <td className="px-4 py-3 font-mono text-slate-300">
+                    NS-{c.prefijo}-{String(c.ultimo_sku + 1).padStart(4, '0')}
+                    <span className="ml-2 font-sans text-xs text-slate-500">siguiente</span>
+                  </td>
                   <td className="px-4 py-3 text-right text-slate-300 tabular-nums">{c.productos}</td>
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-1">

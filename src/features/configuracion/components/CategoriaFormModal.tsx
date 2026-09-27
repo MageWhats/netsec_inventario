@@ -48,6 +48,17 @@ export function CategoriaFormModal({ open, onClose, categoria }: CategoriaFormMo
         >
           <input className="input" autoFocus {...register('nombre')} />
         </FormField>
+        <FormField
+          label="Prefijo del SKU *"
+          error={errors.prefijo?.message}
+          hint={
+            categoria && categoria.ultimo_sku > 0
+              ? 'Solo aplica a los productos nuevos: los que ya existen conservan su SKU'
+              : 'Sus productos serán NS-PREFIJO-0001, NS-PREFIJO-0002…'
+          }
+        >
+          <input className="input w-32 font-mono uppercase" maxLength={5} placeholder="SW" {...register('prefijo')} />
+        </FormField>
 
         {errorGuardar && (
           <p role="alert" className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">

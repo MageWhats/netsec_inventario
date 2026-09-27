@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2, X } from 'lucide-react'
 import { useEffect, useState, type KeyboardEvent } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { BotonEscanear } from '@/components/ui/Escaner'
 import { FormField } from '@/components/ui/FormField'
 import { Modal } from '@/components/ui/Modal'
@@ -60,6 +60,7 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<ProductoForm>({ resolver: zodResolver(productoSchema), defaultValues: productoVacio })
 
@@ -73,6 +74,15 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
     guardarColor.reset()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset de las mutaciones: solo al abrir
   }, [open, producto, reset, limpiarError])
+
+  // Vista previa del SKU: lo asigna la base de datos al guardar con el consecutivo de la categoría
+  const categoriaId = useWatch({ control, name: 'categoria_id' })
+  const categoria = categorias.find((c) => c.id === categoriaId)
+  const skuMostrado = producto
+    ? producto.sku
+    : categoria
+      ? `NS-${categoria.prefijo}-${String(categoria.ultimo_sku + 1).padStart(4, '0')}${conColores ? '-…' : ''}`
+      : 'Elige una categoría'
 
   async function onSubmit(valores: ProductoForm) {
     const datos = formularioAProducto(valores)
@@ -93,7 +103,7 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
           return
         }
         id = await crearFamilia.mutateAsync({
-          familia: { ...comunes, sku_base: datos.sku },
+          familia: comunes,
           colores,
           costoInicial: datos.precio_costo ?? 0,
           stockMinimo: datos.stock_minimo ?? 0,
@@ -103,7 +113,7 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
           id: producto.id,
           familiaId: producto.familia.id,
           comunes,
-          propios: { sku: datos.sku, codigo_barras: datos.codigo_barras, stock_minimo: datos.stock_minimo },
+          propios: { codigo_barras: datos.codigo_barras, stock_minimo: datos.stock_minimo },
         })
       } else {
         id = await guardar({ id: producto?.id, valores: datos })
@@ -126,8 +136,8 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
         {esColor && (
           <p className="rounded-lg bg-brand-accent/10 px-3 py-2 text-sm text-slate-300">
             Nombre, categoría, marca, modelo, descripción, precio de venta y control por serial se aplican a{' '}
-            <strong>todos los colores</strong> de {producto?.familia?.nombre}. SKU, código de barras y stock mínimo son
-            solo de este color ({producto?.color}).
+            <strong>todos los colores</strong> de {producto?.familia?.nombre}. Código de barras y stock mínimo son solo
+            de este color ({producto?.color}).
           </p>
         )}
 
@@ -160,26 +170,29 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
         )}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <FormField
-            label={conColores ? 'SKU base *' : 'SKU *'}
-            error={errors.sku?.message}
-            hint={
-              conColores
-                ? 'Cada color le suma su código: REL-X → REL-X-NEG, REL-X-ROJ…'
-                : 'Código interno único, p. ej. SW-TPL-8P'
-            }
-          >
-            <input className="input uppercase" autoFocus {...register('sku')} />
-          </FormField>
-          <FormField label="Categoría" error={errors.categoria_id?.message}>
-            <select className="input" {...register('categoria_id')}>
-              <option value="">Sin categoría</option>
+          <FormField label="Categoría *" error={errors.categoria_id?.message}>
+            <select className="input" autoFocus={!editando} {...register('categoria_id')}>
+              <option value="" disabled>
+                Elige una categoría…
+              </option>
               {categorias.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.nombre}
                 </option>
               ))}
             </select>
+          </FormField>
+          <FormField
+            label="SKU"
+            hint={
+              editando
+                ? 'Se generó al crearlo y no cambia, aunque cambies la categoría'
+                : conColores
+                  ? 'Se asigna al guardar; cada color le agrega su código (-NEG, -AZU…)'
+                  : 'Se asigna al guardar, según la categoría'
+            }
+          >
+            <input className="input cursor-not-allowed font-mono opacity-70" readOnly tabIndex={-1} value={skuMostrado} />
           </FormField>
 
           <FormField
