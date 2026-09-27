@@ -59,7 +59,8 @@ export function ColoresSection({ producto }: { producto: Producto }) {
   )
 }
 
-function AgregarColorModal({ open, onClose, producto }: { open: boolean; onClose: () => void; producto: Producto }) {
+/** También se abre desde la fila del producto con colores en la lista de productos */
+export function AgregarColorModal({ open, onClose, producto }: { open: boolean; onClose: () => void; producto: Producto }) {
   const navigate = useNavigate()
   const agregar = useAgregarColor()
   const [color, setColor] = useState('')

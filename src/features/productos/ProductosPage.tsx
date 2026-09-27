@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/ui/PageHeader'
 import { usePermisos } from '@/features/auth/permisos'
 import { formatearPrecio } from '@/lib/format'
 import { useBusquedaSerie, useCategorias, useProductos, type Producto } from './api'
+import { AgregarColorModal } from './components/ColoresSection'
 import { ConfirmarActivoModal } from './components/ConfirmarActivoModal'
 import { ProductoFormModal } from './components/ProductoFormModal'
 import { StockBadge, TipoControlBadge } from './components/badges'
@@ -99,6 +100,7 @@ export function ProductosPage() {
   }
 
   const { esAdmin } = usePermisos()
+  const [agregandoColor, setAgregandoColor] = useState<Producto | null>(null)
 
   function abrirEdicion(producto: Producto) {
     setEditando(producto)
@@ -219,6 +221,9 @@ export function ProductosPage() {
                       fila={fila}
                       abierta={estaAbierta(fila.familia.id)}
                       onAlternar={() => alternar(fila.familia.id)}
+                      // Editar un color abre los datos comunes, que se aplican a todos
+                      onEditar={esAdmin ? () => abrirEdicion(fila.colores[0]) : undefined}
+                      onAgregarColor={esAdmin ? () => setAgregandoColor(fila.colores[0]) : undefined}
                     >
                       {fila.colores.map((p) => (
                         <FilaProducto
@@ -248,6 +253,9 @@ export function ProductosPage() {
 
       <ProductoFormModal open={formAbierto} onClose={() => setFormAbierto(false)} producto={editando} />
       <ConfirmarActivoModal producto={cambiandoActivo} onClose={() => setCambiandoActivo(null)} />
+      {agregandoColor && (
+        <AgregarColorModal open onClose={() => setAgregandoColor(null)} producto={agregandoColor} />
+      )}
     </>
   )
 }
@@ -335,11 +343,14 @@ interface FilaFamiliaProps {
   fila: Extract<Fila, { tipo: 'familia' }>
   abierta: boolean
   onAlternar: () => void
+  /** Solo admin: sin ellas no se muestran los botones */
+  onEditar?: () => void
+  onAgregarColor?: () => void
   children: ReactNode
 }
 
 /** Fila del producto con colores: stock total y, al abrirla, una fila por color */
-function FilaFamilia({ fila, abierta, onAlternar, children }: FilaFamiliaProps) {
+function FilaFamilia({ fila, abierta, onAlternar, onEditar, onAgregarColor, children }: FilaFamiliaProps) {
   const { familia, colores } = fila
   const primero = colores[0]
   const total = colores.reduce((s, p) => s + p.stock, 0)
@@ -387,7 +398,30 @@ function FilaFamilia({ fila, abierta, onAlternar, children }: FilaFamiliaProps) 
           </span>
         </td>
         <td className="px-4 py-3 text-right whitespace-nowrap text-slate-300">{formatearPrecio(primero.precio_venta)}</td>
-        <td className="px-4 py-3" />
+        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+          <div className="flex justify-end gap-1">
+            {onAgregarColor && (
+              <button
+                onClick={onAgregarColor}
+                className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-emerald-400"
+                title="Agregar color"
+                aria-label={`Agregar color a ${familia.nombre}`}
+              >
+                <Plus className="size-4" />
+              </button>
+            )}
+            {onEditar && (
+              <button
+                onClick={onEditar}
+                className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                title="Editar (nombre, categoría, precio… de todos los colores)"
+                aria-label={`Editar ${familia.nombre}`}
+              >
+                <Pencil className="size-4" />
+              </button>
+            )}
+          </div>
+        </td>
       </tr>
       {abierta && children}
     </>
