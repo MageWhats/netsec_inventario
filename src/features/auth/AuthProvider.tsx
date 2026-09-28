@@ -1,8 +1,9 @@
 import type { Session } from '@supabase/supabase-js'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import { AuthContext, type AuthContextValue } from './auth-context'
+import { reiniciarActividad, useCierrePorInactividad } from './inactividad'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
@@ -21,11 +22,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe()
   }, [])
 
+  const signOut = useCallback(async () => {
+    reiniciarActividad(false)
+    await supabase.auth.signOut()
+    // Evita que datos del usuario anterior queden en caché
+    queryClient.clear()
+  }, [queryClient])
+
+  useCierrePorInactividad(session !== null, signOut)
+
   const value: AuthContextValue = {
     session,
     user: session?.user ?? null,
     loading,
     async signIn(email, password, captchaToken) {
+      // Antes de iniciar sesión, para que el contador de inactividad no arranque con el valor de una sesión vieja
+      reiniciarActividad(true)
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -33,11 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       if (error) throw error
     },
-    async signOut() {
-      await supabase.auth.signOut()
-      // Evita que datos del usuario anterior queden en caché
-      queryClient.clear()
-    },
+    signOut,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

@@ -13,6 +13,9 @@ nitidez. Se abren en Illustrator, Inkscape, Figma, Canva, CorelDRAW o en el nave
 | `simbolo-plano.svg` | Símbolo sin sombreado 3D (degradado simple): bordado, vinilo de corte, grabado y tamaños muy pequeños |
 | `NetSec_Suministros_logo.svg` | Archivo original recibido (contiene una imagen PNG de 152×161 px) |
 
+`public/brand/eslogan-blanco.svg` es solo el eslogan en blanco (sacado de `logo-blanco.svg`), para la animación
+de bienvenida de la app.
+
 Los archivos de `public/brand/` son copias que usa la app, junto con los íconos PNG para el teléfono,
 generados a partir de `simbolo.svg`.
 

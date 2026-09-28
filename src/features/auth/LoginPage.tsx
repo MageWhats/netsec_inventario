@@ -1,12 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Lock, Mail } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { Clock, Loader2, Lock, Mail } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 import { LogoCompleto } from '@/components/ui/Logo'
+import { mostrarSplash } from '@/components/ui/splash'
 import { useAuth } from './auth-context'
+import { descartarAvisoInactividad, huboCierrePorInactividad, MINUTOS_INACTIVIDAD } from './inactividad'
 import { Turnstile } from './Turnstile'
 
 /** Si está configurada, el login exige la verificación anti-bots (también hay que activarla en Supabase) */
@@ -39,6 +41,12 @@ export function LoginPage() {
   const [serverError, setServerError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [reinicioCaptcha, setReinicioCaptcha] = useState(0)
+  const [cerradaPorInactividad] = useState(huboCierrePorInactividad)
+
+  // El aviso se muestra una sola vez
+  useEffect(() => {
+    if (cerradaPorInactividad) descartarAvisoInactividad()
+  }, [cerradaPorInactividad])
 
   const {
     register,
@@ -55,6 +63,8 @@ export function LoginPage() {
     setServerError(null)
     try {
       await signIn(values.email, values.password, captchaToken ?? undefined)
+      // La animación del logo cubre la carga del dashboard
+      mostrarSplash()
       navigate(from, { replace: true })
     } catch (error) {
       setServerError(mensajeLogin(error))
@@ -71,6 +81,13 @@ export function LoginPage() {
           <h1 className="text-lg font-semibold">Inventario</h1>
           <p className="mt-1 text-sm text-slate-400">Inicia sesión para continuar</p>
         </div>
+
+        {cerradaPorInactividad && (
+          <p role="status" className="mb-4 flex items-start gap-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+            <Clock className="mt-0.5 size-4 shrink-0" />
+            Tu sesión se cerró tras {MINUTOS_INACTIVIDAD} minutos sin actividad. Vuelve a iniciar sesión.
+          </p>
+        )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           <Field label="Email" icon={<Mail className="size-4" />} error={errors.email?.message}>
