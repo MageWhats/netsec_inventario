@@ -149,7 +149,7 @@ function Field({
     <label className="block">
       <span className="mb-1 block text-sm text-slate-300">{label}</span>
       <div className="relative">
-        <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-500">{icon}</span>
+        <span className="pointer-events-none absolute top-1/2 z-10 left-3 -translate-y-1/2 text-slate-500">{icon}</span>
         {children}
       </div>
       {error && <span className="mt-1 block text-xs text-red-400">{error}</span>}
