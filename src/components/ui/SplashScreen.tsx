@@ -82,11 +82,21 @@ export function SplashScreen() {
           key={`splash-${vez}`}
           role="presentation"
           onClick={() => setVisible(false)}
-          className="fixed inset-0 z-[100] flex cursor-pointer flex-col items-center justify-center overflow-hidden bg-brand-bg print:hidden"
-          exit={{ opacity: 0, transform: reducido ? 'scale(1)' : 'scale(1.04)' }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
+          className="fixed inset-0 z-[100] cursor-pointer overflow-hidden bg-brand-bg print:hidden"
+          // Salida en dos pasos: primero se va el logo (abajo) y luego el fondo, para que el logo y su
+          // resplandor nunca queden superpuestos a medias sobre la pantalla que aparece debajo
+          exit={{ opacity: 0, transition: { duration: 0.4, delay: reducido ? 0 : 0.25, ease: 'easeInOut' } }}
         >
-          <Animacion modo={modo} reducido={reducido ?? false} />
+          <motion.div
+            className="absolute inset-0 flex flex-col items-center justify-center"
+            exit={{
+              opacity: 0,
+              transform: reducido ? 'none' : 'scale(0.96)',
+              transition: { duration: 0.3, ease: 'easeIn' },
+            }}
+          >
+            <Animacion modo={modo} reducido={reducido ?? false} />
+          </motion.div>
         </motion.div>
       )}
     </AnimatePresence>
