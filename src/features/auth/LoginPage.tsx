@@ -6,6 +6,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 import { LogoCompleto } from '@/components/ui/Logo'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { mostrarSplash } from '@/components/ui/splash'
 import { useAuth } from './auth-context'
 import { descartarAvisoInactividad, huboCierrePorInactividad, MINUTOS_INACTIVIDAD } from './inactividad'
@@ -101,8 +102,7 @@ export function LoginPage() {
           </Field>
 
           <Field label="Contraseña" icon={<Lock className="size-4" />} error={errors.password?.message}>
-            <input
-              type="password"
+            <PasswordInput
               autoComplete="current-password"
               placeholder="••••••••"
               className="input pl-9"

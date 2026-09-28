@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { FormField } from '@/components/ui/FormField'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 import { LogoCompleto } from '@/components/ui/Logo'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from './auth-context'
 
@@ -75,10 +76,10 @@ export function BienvenidaPage() {
         ) : (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <FormField label="Contraseña" error={errors.password?.message}>
-              <input type="password" autoComplete="new-password" className="input" autoFocus {...register('password')} />
+              <PasswordInput autoComplete="new-password" className="input" autoFocus {...register('password')} />
             </FormField>
             <FormField label="Repite la contraseña" error={errors.confirmacion?.message}>
-              <input type="password" autoComplete="new-password" className="input" {...register('confirmacion')} />
+              <PasswordInput autoComplete="new-password" className="input" {...register('confirmacion')} />
             </FormField>
 
             {errorServidor && (
