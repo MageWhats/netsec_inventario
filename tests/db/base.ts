@@ -7,6 +7,7 @@
  * así las pruebas pasan por RLS y por los permisos de cada tabla, columna y función.
  */
 import { PGlite } from '@electric-sql/pglite'
+import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
 import { readdirSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
@@ -36,6 +37,10 @@ create function auth.jwt() returns jsonb language sql stable as $$
   select jsonb_build_object('email', current_setting('request.jwt.claim.email', true)) $$;
 grant execute on all functions in schema auth to anon, authenticated, service_role;
 
+-- En Supabase las extensiones (pgcrypto) viven en el esquema extensions
+create schema extensions;
+grant usage on schema extensions to anon, authenticated, service_role;
+
 create schema storage;
 create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text, name text, owner uuid);
@@ -52,7 +57,7 @@ export type Usuario = keyof typeof USUARIOS
 
 /** Base nueva con todas las migraciones y un usuario de cada rol */
 export async function crearBase(): Promise<PGlite> {
-  const db = new PGlite()
+  const db = new PGlite({ extensions: { pgcrypto } })
   await db.exec(SUPABASE_SIMULADO)
   for (const archivo of readdirSync(MIGRACIONES)
     .filter((f) => f.endsWith('.sql'))

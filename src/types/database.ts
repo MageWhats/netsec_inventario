@@ -531,6 +531,10 @@ export type Database = {
           credito: boolean
           vence: string | null
           cotizacion_id: string | null
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+          anula_id: string | null
         }
         Insert: {
           id?: string
@@ -875,6 +879,8 @@ export type Database = {
           total_venta: number
           motivo: Database['public']['Enums']['motivo_ajuste'] | null
           movimiento_origen_id: string | null
+          anulado_at: string | null
+          anula_id: string | null
         }
         Relationships: []
       }
@@ -967,6 +973,18 @@ export type Database = {
       costos_productos: {
         Args: never
         Returns: { producto_id: string; precio_costo: number }[]
+      }
+      hay_clave_anulacion: {
+        Args: never
+        Returns: boolean
+      }
+      definir_clave_anulacion: {
+        Args: { p_nueva: string; p_actual?: string | null }
+        Returns: Json
+      }
+      anular_movimiento: {
+        Args: { p_id: string; p_motivo: string; p_clave: string }
+        Returns: Json
       }
       guardar_cotizacion: {
         Args: {

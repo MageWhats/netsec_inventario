@@ -43,7 +43,7 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
             <tr
               key={m.id}
               onClick={() => navigate(`/movimientos/${m.id}`)}
-              className="cursor-pointer transition hover:bg-tinte/[0.03]"
+              className={`cursor-pointer transition hover:bg-tinte/[0.03] ${m.anulado_at || m.anula_id ? 'opacity-60' : ''}`}
             >
               <td data-principal className="px-4 py-3">
                 <Link
@@ -58,7 +58,15 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
                 {formatearFecha(m.fecha)}
               </td>
               <td data-label="Tipo" className="px-4 py-3">
-                <TipoMovimientoBadge tipo={m.tipo} />
+                <div className="flex flex-wrap items-center gap-1">
+                  <TipoMovimientoBadge tipo={m.tipo} />
+                  {m.anulado_at && (
+                    <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs text-red-400">Anulado</span>
+                  )}
+                  {m.anula_id && (
+                    <span className="rounded-full bg-slate-500/15 px-2 py-0.5 text-xs text-slate-400">Anulación</span>
+                  )}
+                </div>
               </td>
               <td data-label="Tercero / motivo" className="max-w-xs truncate px-4 py-3 text-slate-300">
                 {m.proveedor_nombre ?? m.cliente_nombre ?? (

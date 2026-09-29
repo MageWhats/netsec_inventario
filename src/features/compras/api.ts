@@ -53,7 +53,7 @@ export function useOrden(id: string) {
         // Entregas: las entradas enlazadas a la orden
         supabase
           .from('movimientos')
-          .select('id, numero, tipo, fecha, referencia')
+          .select('id, numero, tipo, fecha, referencia, anulado_at')
           .eq('orden_compra_id', id)
           .order('fecha'),
       ])

@@ -81,6 +81,14 @@ export function KardexSection({ producto }: KardexSectionProps) {
                       {formatearNumero(f)}
                     </Link>
                     <TipoMovimientoBadge tipo={f.tipo} />
+                    {f.anulado_at && (
+                      <span className="ml-1 rounded-full bg-red-500/15 px-2 py-0.5 text-xs text-red-400">Anulado</span>
+                    )}
+                    {f.anula_id && (
+                      <span className="ml-1 rounded-full bg-slate-500/15 px-2 py-0.5 text-xs text-slate-400">
+                        Anulación
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <Trazabilidad vinculos={f.vinculos} quedan={f.quedan} />

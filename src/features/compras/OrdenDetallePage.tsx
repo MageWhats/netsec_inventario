@@ -173,6 +173,11 @@ export function OrdenDetallePage() {
                 </Link>
                 <span className="text-slate-400">{formatearFecha(m.fecha)}</span>
                 {m.referencia && <span className="text-slate-500">Factura {m.referencia}</span>}
+                {m.anulado_at && (
+                  <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs text-red-400">
+                    Anulada: no cuenta
+                  </span>
+                )}
               </li>
             ))}
           </ul>

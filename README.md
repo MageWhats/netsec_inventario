@@ -82,12 +82,19 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
     crédito reciben abonos hasta quedar saldadas y lo devuelto descuenta del saldo. Los abonos no se borran: se anulan
     con un motivo. Desde aquí las salidas se registran con `registrar_venta()`, así que **esta migración debe
     ejecutarse antes de subir el código**.
+20. `0020_anular_movimientos.sql`: anular entradas y ventas registradas por error. Se registra el ajuste contrario
+    (enlazado) y el original queda marcado como anulado; stock, seriales y costo promedio vuelven a como estaban, y lo
+    anulado deja de contar en reportes, dashboard, cartera y órdenes de compra. Solo *admin*, y con la **clave de
+    anulación** (Configuración → Seguridad), que se guarda cifrada; 5 intentos fallidos bloquean 15 minutos. Si se
+    olvida: `update public.seguridad set clave_anulacion = null;` en el SQL Editor y se define otra.
 
 Reglas clave:
 
 - El stock **no se edita a mano**: se calcula a partir de los movimientos (vista `stock_actual`).
 - Los movimientos solo se crean con `registrar_movimiento()`, que valida el stock, los seriales y los estados en una
-  sola transacción. Son **inmutables**: no se editan ni se borran, y las correcciones se hacen con ajustes.
+  sola transacción. Son **inmutables**: no se editan ni se borran, y las correcciones se hacen con ajustes. Una
+  entrada o una venta errada se puede **anular** (con la clave de anulación): queda en el historial junto al ajuste
+  que la revierte.
 - Clientes, proveedores y productos no se borran: se desactivan, para conservar el historial.
 - El SKU no se escribe a mano: `NS-<prefijo de la categoría>-<consecutivo>`. El prefijo se define en
   Configuración → Categorías.
@@ -150,6 +157,7 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 | Crear, editar y convertir cotizaciones en venta | ✅ | ✅ | ❌ |
 | Ver la cartera (saldos y abonos) | ✅ | ❌ | ✅ |
 | Registrar y anular abonos; cambiar la forma de pago de una venta | ✅ | ❌ | ❌ |
+| Anular entradas y ventas (con la clave de anulación) | ✅ | ❌ | ❌ |
 | Consultar seriales y garantías; remisiones en PDF | ✅ | ✅ | ✅ |
 | Configuración (categorías, bodegas, usuarios, empresa) | ✅ | ❌ | ❌ |
 

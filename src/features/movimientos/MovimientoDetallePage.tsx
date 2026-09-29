@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, FileDown, Loader2, Printer, Undo2 } from 'lucide-react'
+import { ArrowLeft, Ban, CheckCircle2, FileDown, Loader2, Printer, Undo2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
@@ -14,6 +14,7 @@ import { mensajeError } from '@/lib/errores'
 import { imprimirPdf } from '@/lib/exportar'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useMovimiento, useMovimientosEnlazados } from './api'
+import { AnularMovimientoModal } from './components/AnularMovimientoModal'
 import { TipoMovimientoBadge } from './components/MovimientosTabla'
 import { agruparPorProducto, tituloDocumento } from './detalle'
 import { describirMotivo, esAjuste, formatearNumero, tiposMovimiento } from './tipos'
@@ -30,6 +31,7 @@ export function MovimientoDetallePage() {
   const { data: empresa } = useEmpresa()
   const [generandoPdf, setGenerandoPdf] = useState<'descargar' | 'imprimir' | null>(null)
   const [errorPdf, setErrorPdf] = useState<string | null>(null)
+  const [anulando, setAnulando] = useState(false)
 
   if (isLoading) return <LoadingBlock />
 
@@ -47,6 +49,10 @@ export function MovimientoDetallePage() {
   }
 
   const info = tiposMovimiento[movimiento.tipo]
+  const anulado = movimiento.anulado_at !== null
+  // Se anulan entradas y ventas vigentes (los ajustes se corrigen con el ajuste contrario)
+  const puedeAnular =
+    esAdmin && !anulado && !movimiento.anula_id && (movimiento.tipo === 'entrada' || movimiento.tipo === 'salida')
   // Las salidas muestran precios de venta; el resto, costos (no visibles para el rol bodega)
   const mostrarValores = movimiento.tipo === 'salida' || verCostos
   const total = grupos.reduce((s, g) => s + g.subtotal, 0)
@@ -103,11 +109,14 @@ export function MovimientoDetallePage() {
             <span className="print:hidden">
               <TipoMovimientoBadge tipo={movimiento.tipo} />
             </span>
+            {anulado && (
+              <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-400">Anulado</span>
+            )}
           </div>
           <p className="mt-1 text-sm text-slate-400 print:text-black">{formatearFecha(movimiento.fecha)}</p>
         </div>
         <div className="flex flex-wrap gap-2 print:hidden">
-          {movimiento.tipo === 'salida' && esAdmin && (
+          {movimiento.tipo === 'salida' && esAdmin && !anulado && (
             <Link
               to={`/movimientos/nuevo/ajuste_entrada?motivo=devolucion_cliente&origen=${movimiento.id}`}
               className="btn btn-secondary"
@@ -115,6 +124,12 @@ export function MovimientoDetallePage() {
               <Undo2 className="size-4" />
               Registrar devolución
             </Link>
+          )}
+          {puedeAnular && (
+            <button onClick={() => setAnulando(true)} className="btn btn-secondary text-red-400">
+              <Ban className="size-4" />
+              Anular
+            </button>
           )}
           <button onClick={() => usarPdf('imprimir')} disabled={generandoPdf !== null} className="btn btn-secondary">
             {generandoPdf === 'imprimir' ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
@@ -126,6 +141,37 @@ export function MovimientoDetallePage() {
           </button>
         </div>
       </div>
+
+      {anulado && (
+        <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300 print:hidden">
+          <p className="font-medium text-red-400">
+            Anulado el {formatearFecha(movimiento.anulado_at!)}
+            {movimiento.anuladoPor && ` por ${movimiento.anuladoPor}`}
+          </p>
+          {movimiento.motivo_anulacion && <p className="mt-1">Motivo: {movimiento.motivo_anulacion}</p>}
+          {enlazados?.anulacion && (
+            <p className="mt-1">
+              Lo revirtió el ajuste{' '}
+              <Link
+                to={`/movimientos/${enlazados.anulacion.id}`}
+                className="font-mono underline-offset-2 hover:underline"
+              >
+                {formatearNumero(enlazados.anulacion)}
+              </Link>
+              . No cuenta en reportes, dashboard ni cartera.
+            </p>
+          )}
+        </div>
+      )}
+      {movimiento.anula_id && (
+        <div className="mb-6 rounded-lg bg-slate-500/10 px-4 py-3 text-sm text-slate-300 print:hidden">
+          Este ajuste anula el movimiento{' '}
+          <Link to={`/movimientos/${movimiento.anula_id}`} className="text-brand-cyan hover:underline">
+            original
+          </Link>
+          : devuelve el stock, los seriales y el costo a como estaban antes.
+        </div>
+      )}
 
       {errorPdf && (
         <p role="alert" className="mb-6 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 print:hidden">
@@ -208,7 +254,7 @@ export function MovimientoDetallePage() {
       </section>
 
       {/* Cobro: dato interno (admin y lectura), no sale en el comprobante impreso */}
-      {movimiento.tipo === 'salida' && verCostos && <PagosVenta venta={movimiento} />}
+      {movimiento.tipo === 'salida' && verCostos && !anulado && <PagosVenta venta={movimiento} />}
 
       <section className="overflow-hidden rounded-2xl border border-brand-border bg-brand-card print:border-slate-300 print:bg-white">
         <div className="overflow-x-auto">
@@ -292,6 +338,8 @@ export function MovimientoDetallePage() {
           </span>
         </p>
       )}
+
+      <AnularMovimientoModal open={anulando} movimiento={movimiento} onClose={() => setAnulando(false)} />
     </div>
   )
 }

@@ -20,7 +20,7 @@ const LOTE_IDS = 150
 
 const SELECT_ORIGEN = `
   id, cantidad, producto_id, unidad_id,
-  movimiento:movimientos!inner(id, numero, tipo, fecha, created_at, referencia, proveedor:proveedores(nombre))
+  movimiento:movimientos!inner(id, numero, tipo, fecha, created_at, referencia, anulado_at, anula_id, proveedor:proveedores(nombre))
 `
 
 /**
@@ -51,7 +51,8 @@ function traerItems(columna: 'unidad_id' | 'producto_id', ids: string[], hasta?:
     let query = supabase.from('movimiento_items').select(SELECT_ORIGEN).in(columna, ids).order('id')
     if (hasta) query = query.lte('movimiento.fecha', new Date(`${hasta}T23:59:59.999`).toISOString())
     return query.range(desde, fin)
-  }, 100_000).then((r) => r.filas)
+    // Un movimiento anulado y el ajuste que lo anula se cancelan entre sí: no son origen de nada
+  }, 100_000).then((r) => r.filas.filter((i) => !i.movimiento.anulado_at && !i.movimiento.anula_id))
 }
 
 async function enLotes(ids: string[], consulta: (lote: string[]) => Promise<ItemOrigen[]>) {

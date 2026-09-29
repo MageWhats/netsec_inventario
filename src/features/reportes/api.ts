@@ -41,6 +41,9 @@ export function useLineasMovimiento(filtros: FiltrosLineas) {
             .select(SELECT_LINEA)
             .gte('movimiento.fecha', inicio)
             .lte('movimiento.fecha', fin)
+            // Lo anulado y los ajustes que lo anulan se cancelan entre sí: no cuentan en los reportes
+            .is('movimiento.anulado_at', null)
+            .is('movimiento.anula_id', null)
             .order('id')
           if (filtros.tipo) query = query.eq('movimiento.tipo', filtros.tipo)
           return query.range(desde, hasta)

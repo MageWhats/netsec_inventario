@@ -94,13 +94,16 @@ export function useMovimiento(id: string, enabled = true) {
       // El costo de cada línea solo llega a quien ve costos (migración 0015); para el resto queda en null
       const items = data.items.map((i) => ({ ...i, costo_unitario: costos.get(i.id) ?? null }))
 
-      // usuario_id apunta a auth.users; el nombre visible está en perfiles
-      let usuario: string | null = null
-      if (data.usuario_id) {
-        const { data: perfil } = await supabase.from('perfiles').select('nombre').eq('id', data.usuario_id).maybeSingle()
-        usuario = perfil?.nombre ?? null
+      // usuario_id y anulado_por apuntan a auth.users; el nombre visible está en perfiles
+      const ids = [data.usuario_id, data.anulado_por].filter((x): x is string => Boolean(x))
+      const nombres = new Map<string, string>()
+      if (ids.length) {
+        const { data: perfiles } = await supabase.from('perfiles').select('id, nombre').in('id', ids)
+        for (const p of perfiles ?? []) if (p.nombre) nombres.set(p.id, p.nombre)
       }
-      return { ...data, items, usuario }
+      const usuario = (data.usuario_id && nombres.get(data.usuario_id)) || null
+      const anuladoPor = (data.anulado_por && nombres.get(data.anulado_por)) || null
+      return { ...data, items, usuario, anuladoPor }
     },
   })
 }
@@ -117,6 +120,7 @@ export function useSalidasParaDevolucion(enabled: boolean) {
         .from('movimientos_resumen')
         .select('id, numero, tipo, fecha, cliente_nombre, referencia, unidades')
         .eq('tipo', 'salida')
+        .is('anulado_at', null)
         .order('created_at', { ascending: false })
         .limit(1000)
       if (error) throw error
@@ -134,15 +138,18 @@ export function useMovimientosEnlazados(movimiento: { id: string; movimiento_ori
     enabled: Boolean(movimiento),
     queryFn: async () => {
       const campos = 'id, numero, tipo, fecha, referencia'
-      const [origen, devoluciones] = await Promise.all([
+      const [origen, devoluciones, anulacion] = await Promise.all([
         movimiento!.movimiento_origen_id
           ? supabase.from('movimientos').select(campos).eq('id', movimiento!.movimiento_origen_id).maybeSingle()
           : Promise.resolve({ data: null, error: null }),
         supabase.from('movimientos').select(campos).eq('movimiento_origen_id', movimiento!.id).order('created_at'),
+        // El ajuste que anula este movimiento, si fue anulado
+        supabase.from('movimientos').select(campos).eq('anula_id', movimiento!.id).maybeSingle(),
       ])
       if (origen.error) throw origen.error
       if (devoluciones.error) throw devoluciones.error
-      return { origen: origen.data, devoluciones: devoluciones.data }
+      if (anulacion.error) throw anulacion.error
+      return { origen: origen.data, devoluciones: devoluciones.data, anulacion: anulacion.data }
     },
   })
 }
@@ -219,5 +226,69 @@ export function useRegistrarVenta() {
         queryClient.invalidateQueries({ queryKey: ['cotizaciones'] }),
         queryClient.invalidateQueries({ queryKey: ['cartera'] }),
       ]),
+  })
+}
+
+/** ¿Hay clave de anulación definida? (false para quien no es admin) */
+export function useHayClaveAnulacion(enabled = true) {
+  return useQuery({
+    queryKey: ['seguridad', 'clave-anulacion'],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('hay_clave_anulacion')
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+interface ResultadoClave {
+  ok: boolean
+  error?: string
+  anulacion_id?: string
+}
+
+/** Las funciones de la clave no lanzan error con una clave incorrecta (para registrar el intento): lo devuelven */
+function comprobar(data: unknown): ResultadoClave {
+  const r = data as ResultadoClave
+  if (!r.ok) throw new Error(r.error ?? 'No se pudo completar la operación')
+  return r
+}
+
+/** Anula una entrada o una venta con la clave de anulación; devuelve el id del movimiento contrario */
+export function useAnularMovimiento() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (args: { p_id: string; p_motivo: string; p_clave: string }) => {
+      const { data, error } = await supabase.rpc('anular_movimiento', args)
+      if (error) throw error
+      return comprobar(data).anulacion_id!
+    },
+    onSuccess: () =>
+      Promise.all(
+        [
+          'movimientos',
+          'productos',
+          'clientes',
+          'proveedores',
+          'cotizaciones',
+          'cartera',
+          'ordenes-compra',
+          'reportes',
+          'dashboard',
+        ].map((clave) => queryClient.invalidateQueries({ queryKey: [clave] })),
+      ),
+  })
+}
+
+export function useDefinirClaveAnulacion() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (args: { p_nueva: string; p_actual?: string | null }) => {
+      const { data, error } = await supabase.rpc('definir_clave_anulacion', args)
+      if (error) throw error
+      comprobar(data)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seguridad'] }),
   })
 }

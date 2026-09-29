@@ -44,6 +44,7 @@ export function useResumenMensual(meses = 6) {
           .from('movimientos_resumen')
           .select('tipo, fecha, unidades, total_venta')
           .in('tipo', ['entrada', 'salida'])
+          .is('anulado_at', null)
           .gte('fecha', desde.toISOString())
           .order('id')
           .range(inicio, fin),
@@ -87,6 +88,7 @@ export function useMasVendidosDelMes(limite = 5) {
             'id, cantidad, precio_unitario, producto:productos(id, nombre, sku), movimiento:movimientos!inner(tipo, fecha)',
           )
           .eq('movimiento.tipo', 'salida')
+          .is('movimiento.anulado_at', null)
           .gte('movimiento.fecha', inicioMes.toISOString())
           .order('id')
           .range(inicio, fin),

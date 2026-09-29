@@ -345,7 +345,11 @@ const SELECT_MOVIMIENTO_ITEM =
   'cantidad, movimiento:movimientos!inner(id, numero, tipo, fecha, referencia, notas, motivo, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
 
 const SELECT_KARDEX =
-  'id, cantidad, unidad_id, movimiento:movimientos!inner(id, numero, tipo, fecha, created_at, referencia, notas, motivo, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
+  'id, cantidad, unidad_id, movimiento:movimientos!inner(id, numero, tipo, fecha, created_at, referencia, notas, motivo, anulado_at, anula_id, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
+
+/** Un movimiento anulado y el ajuste que lo anula se cancelan entre sí: no entran en la trazabilidad */
+const vigente = (item: { movimiento: { anulado_at: string | null; anula_id: string | null } }) =>
+  !item.movimiento.anulado_at && !item.movimiento.anula_id
 
 /**
  * Kardex: movimientos del producto agrupados, con el saldo acumulado después de cada uno
@@ -363,7 +367,7 @@ export function useKardex(productoId: string) {
           .order('id')
           .range(desde, hasta),
       )
-      const { vinculos, quedan } = trazarKardex(data)
+      const { vinculos, quedan } = trazarKardex(data.filter(vigente))
 
       type Fila = (typeof data)[number]['movimiento'] & {
         entra: number
@@ -404,7 +408,8 @@ export function useKardex(productoId: string) {
   })
 }
 
-const SELECT_TRAZABILIDAD = 'id, cantidad, unidad_id, producto_id, movimiento:movimientos!inner(id, numero, tipo, fecha, created_at)'
+const SELECT_TRAZABILIDAD =
+  'id, cantidad, unidad_id, producto_id, movimiento:movimientos!inner(id, numero, tipo, fecha, created_at, anulado_at, anula_id)'
 
 /**
  * Trazabilidad de un movimiento, por id de producto: si es salida, de qué entradas vino cada producto;
@@ -427,7 +432,7 @@ export function useTrazabilidadMovimiento(
           .range(desde, hasta),
       )
       const porProducto = new Map<string, typeof filas>()
-      for (const item of filas) porProducto.set(item.producto_id, [...(porProducto.get(item.producto_id) ?? []), item])
+      for (const item of filas.filter(vigente)) porProducto.set(item.producto_id, [...(porProducto.get(item.producto_id) ?? []), item])
 
       const { id, tipo } = movimiento!
       const resultado = new Map<string, { vinculos: Vinculo[]; quedan: number | null }>()

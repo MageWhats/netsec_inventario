@@ -1,9 +1,10 @@
-import { Building2, Tags, UserCog, Warehouse, type LucideIcon } from 'lucide-react'
+import { Building2, KeyRound, Tags, UserCog, Warehouse, type LucideIcon } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { BodegasTab } from './components/BodegasTab'
 import { CategoriasTab } from './components/CategoriasTab'
 import { EmpresaTab } from './components/EmpresaTab'
+import { SeguridadTab } from './components/SeguridadTab'
 import { UsuariosTab } from './components/UsuariosTab'
 
 interface InfoSeccion {
@@ -17,6 +18,7 @@ const secciones = {
   bodegas: { label: 'Bodegas', icono: Warehouse, componente: BodegasTab },
   usuarios: { label: 'Usuarios', icono: UserCog, componente: UsuariosTab },
   empresa: { label: 'Empresa', icono: Building2, componente: EmpresaTab },
+  seguridad: { label: 'Seguridad', icono: KeyRound, componente: SeguridadTab },
 } satisfies Record<string, InfoSeccion>
 
 type ClaveSeccion = keyof typeof secciones
