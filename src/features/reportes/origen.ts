@@ -4,7 +4,7 @@ import { traerTodo } from '@/lib/paginar'
 import type { TipoMovimiento } from '@/features/movimientos/tipos'
 import type { LineaMovimiento } from './api'
 
-/** Entrada (o ajuste +) de la que salió lo vendido en una línea de venta */
+/** Entrada (o ajuste +) de la que salió la mercancía de una línea de salida (venta o ajuste −) */
 export interface Origen {
   movimientoId: string
   numero: number
@@ -24,16 +24,17 @@ const SELECT_ORIGEN = `
 `
 
 /**
- * Origen de cada línea de venta, por id de línea:
+ * Origen de cada línea que saca mercancía (venta o ajuste −), por id de línea; las entradas se ignoran:
  * - Con serial: la entrada en la que se registró esa unidad (exacto).
  * - Por cantidad: PEPS (lo primero que entró es lo primero que sale), recorriendo todo el kardex
  *   del producto hasta el final del período. Una línea puede salir de varias entradas.
  */
-export function useOrigenVentas(lineas: LineaMovimiento[], rango: { desde: string; hasta: string }, enabled: boolean) {
+export function useOrigenLineas(todas: LineaMovimiento[], rango: { desde: string; hasta: string }, enabled: boolean) {
   const { hasta } = rango
+  const lineas = todas.filter((l) => !TIPOS_ENTRADA.includes(l.movimiento.tipo))
   return useQuery({
-    // Las líneas dependen solo del rango; se cambian cuando se registra una venta, y entonces cambia la cantidad
-    queryKey: ['reportes', 'origen-ventas', rango.desde, hasta, lineas.length],
+    // Las líneas dependen del rango y del filtro de tipo; al registrar un movimiento cambia la cantidad
+    queryKey: ['reportes', 'origen-lineas', rango.desde, hasta, lineas.length, lineas[0]?.id, lineas.at(-1)?.id],
     enabled: enabled && lineas.length > 0,
     queryFn: async () => {
       const origenes = new Map<string, Origen[]>()
@@ -76,16 +77,20 @@ const aOrigen = (item: ItemOrigen, cantidad: number): Origen => ({
 async function origenSeriales(lineas: LineaMovimiento[], origenes: Map<string, Origen[]>) {
   const conSerial = lineas.filter((l) => l.unidad)
   if (conSerial.length === 0) return
+  const cantidadPorLinea = new Map(conSerial.map((l) => [l.id, l.cantidad]))
 
   const items = await enLotes([...new Set(conSerial.map((l) => l.unidad!.id))], (lote) => traerItems('unidad_id', lote))
-  // La primera entrada de la unidad es la que la registró (las siguientes serían reingresos)
-  const primera = new Map<string, ItemOrigen>()
-  for (const item of items.filter((i) => TIPOS_ENTRADA.includes(i.movimiento.tipo)).sort(cronologico)) {
-    if (item.unidad_id && !primera.has(item.unidad_id)) primera.set(item.unidad_id, item)
-  }
-  for (const l of conSerial) {
-    const item = primera.get(l.unidad!.id)
-    if (item) origenes.set(l.id, [aOrigen(item, l.cantidad)])
+  // Cada unidad sale de la última entrada en la que ingresó antes de la salida (cuenta reingresos, como el kardex)
+  const ultimaEntrada = new Map<string, ItemOrigen>()
+  for (const item of items.sort(cronologico)) {
+    if (!item.unidad_id) continue
+    if (TIPOS_ENTRADA.includes(item.movimiento.tipo)) {
+      ultimaEntrada.set(item.unidad_id, item)
+      continue
+    }
+    const entrada = ultimaEntrada.get(item.unidad_id)
+    const cantidad = cantidadPorLinea.get(item.id)
+    if (entrada && cantidad !== undefined) origenes.set(item.id, [aOrigen(entrada, cantidad)])
   }
 }
 

@@ -6,6 +6,8 @@ import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
 import { usePermisos } from '@/features/auth/permisos'
 import { etiquetaDocumento } from '@/features/clientes/schema'
+import { useTrazabilidadMovimiento } from '@/features/productos/api'
+import { Trazabilidad } from '@/features/productos/components/Trazabilidad'
 import { useEmpresa } from '@/features/configuracion/api'
 import { mensajeError } from '@/lib/errores'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
@@ -20,6 +22,7 @@ export function MovimientoDetallePage() {
   const recienCreado = (location.state as { creado?: boolean } | null)?.creado
   const { data: movimiento, isLoading, error } = useMovimiento(id)
   const { data: enlazados } = useMovimientosEnlazados(movimiento)
+  const { data: trazabilidad } = useTrazabilidadMovimiento(movimiento)
   const grupos = useMemo(() => (movimiento ? agruparPorProducto(movimiento) : []), [movimiento])
   const { esAdmin, verCostos } = usePermisos()
   const { data: empresa } = useEmpresa()
@@ -229,6 +232,12 @@ export function MovimientoDetallePage() {
                           </li>
                         ))}
                       </ul>
+                    )}
+                    {/* Dato interno: no sale en el comprobante impreso */}
+                    {trazabilidad?.get(g.producto.id) && (
+                      <div className="mt-2 print:hidden">
+                        <Trazabilidad {...trazabilidad.get(g.producto.id)!} detallado />
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">{g.cantidad}</td>

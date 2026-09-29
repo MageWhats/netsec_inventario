@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { TipoMovimientoBadge } from '@/features/movimientos/components/MovimientosTabla'
@@ -10,7 +10,9 @@ import {
   type TipoMovimiento,
 } from '@/features/movimientos/tipos'
 import { LIMITE_LINEAS, useLineasMovimiento, type LineaMovimiento } from '../api'
+import { useOrigenLineas } from '../origen'
 import { describirRango, rangoEsteMes, type Rango } from '../rangos'
+import { columnasOrigen } from './columnasOrigen'
 import { RangoFechas } from './RangoFechas'
 import { tablaDesdeColumnas } from '@/lib/exportar'
 import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
@@ -78,7 +80,22 @@ export function ReporteMovimientos() {
   const [tipo, setTipo] = useState<TipoMovimiento | ''>('')
   const lineas = useLineasMovimiento({ ...rango, tipo })
 
-  const filas = lineas.data ?? []
+  const filas = useMemo(() => lineas.data ?? [], [lineas.data])
+  // De qué entrada salió la mercancía de cada salida o ajuste − (las entradas no aplican)
+  const origen = useOrigenLineas(filas, rango, !lineas.isPlaceholderData)
+  const hayOrigen = filas.some((l) => !tiposMovimiento[l.movimiento.tipo].esEntrada)
+  const cols = useMemo(
+    () =>
+      hayOrigen
+        ? [
+            ...columnas,
+            ...columnasOrigen<LineaMovimiento>((l) =>
+              tiposMovimiento[l.movimiento.tipo].esEntrada ? null : origen.data && (origen.data.get(l.id) ?? []),
+            ),
+          ]
+        : columnas,
+    [hayOrigen, origen.data],
+  )
   const unidades = (entrada: boolean) =>
     filas
       .filter((l) => tiposMovimiento[l.movimiento.tipo].esEntrada === entrada)
@@ -90,9 +107,9 @@ export function ReporteMovimientos() {
       titulo={`Movimientos${tipo ? ` · ${tiposMovimiento[tipo].label}` : ''}`}
       subtitulo={describirRango(rango)}
       cargando={lineas.isLoading}
-      error={lineas.error}
-      puedeExportar={filas.length > 0}
-      exportar={() => ({ archivo: `movimientos_${rango.desde}_a_${rango.hasta}`, ...tablaDesdeColumnas(columnas, filas) })}
+      error={lineas.error ?? origen.error}
+      puedeExportar={filas.length > 0 && (!hayOrigen || origen.isSuccess)}
+      exportar={() => ({ archivo: `movimientos_${rango.desde}_a_${rango.hasta}`, ...tablaDesdeColumnas(cols, filas) })}
       aviso={
         filas.length >= LIMITE_LINEAS &&
         `Se alcanzó el máximo de ${LIMITE_LINEAS.toLocaleString('es-CO')} líneas: acorta el período para ver el reporte completo.`
@@ -126,7 +143,7 @@ export function ReporteMovimientos() {
         </>
       }
     >
-      <TablaReporte columnas={columnas} filas={filas} clave={(l) => l.id} vacio="No hay movimientos en este período." />
+      <TablaReporte columnas={cols} filas={filas} clave={(l) => l.id} vacio="No hay movimientos en este período." />
     </Reporte>
   )
 }

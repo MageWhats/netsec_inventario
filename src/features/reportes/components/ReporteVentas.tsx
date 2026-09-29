@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { formatearNumero } from '@/features/movimientos/tipos'
 import { LIMITE_LINEAS, useLineasMovimiento, type LineaMovimiento } from '../api'
-import { useOrigenVentas, type Origen } from '../origen'
+import { useOrigenLineas, type Origen } from '../origen'
+import { columnasOrigen } from './columnasOrigen'
 import { describirRango, rangoEsteMes, type Rango } from '../rangos'
 import { RangoFechas } from './RangoFechas'
 import { tablaDesdeColumnas } from '@/lib/exportar'
@@ -91,21 +92,6 @@ interface FilaDetalle {
 
 const totalLinea = (l: LineaMovimiento) => l.cantidad * (l.precio_unitario ?? 0)
 
-/** NetE-… si vino de una compra, NetA-… si vino de un ajuste + */
-const numeroOrigen = (o: Origen) => formatearNumero(o)
-
-/** "000003" o, si la venta salió de varias entradas, "000003 (2), 000005 (1)" */
-const describirEntradas = (origen: Origen[]) =>
-  origen.map((o) => (origen.length > 1 ? `${numeroOrigen(o)} (${o.cantidad})` : numeroOrigen(o))).join(', ')
-
-const unicos = (valores: (string | null)[]) => [...new Set(valores.filter(Boolean))].join(', ')
-
-function textoOrigen(f: FilaDetalle, dato: (origen: Origen[]) => string) {
-  if (f.origen === undefined) return '…'
-  if (f.origen.length === 0) return 'Sin registro'
-  return dato(f.origen) || '—'
-}
-
 const columnasDetalle: Columna<FilaDetalle>[] = [
   { titulo: 'Fecha', valor: (f) => formatearFecha(f.linea.movimiento.fecha), className: 'whitespace-nowrap text-slate-300' },
   {
@@ -135,28 +121,7 @@ const columnasDetalle: Columna<FilaDetalle>[] = [
     numerica: true,
     total: formatearPrecio,
   },
-  {
-    titulo: 'Entrada (compra)',
-    valor: (f) => textoOrigen(f, describirEntradas),
-    mostrar: (f) =>
-      f.origen?.length ? (
-        <span className="whitespace-nowrap">
-          {f.origen.map((o, i) => (
-            <span key={o.movimientoId}>
-              {i > 0 && ', '}
-              <Link to={`/movimientos/${o.movimientoId}`} className="font-mono hover:text-brand-cyan">
-                {numeroOrigen(o)}
-              </Link>
-              {f.origen!.length > 1 && <span className="text-slate-500"> ({o.cantidad})</span>}
-            </span>
-          ))}
-        </span>
-      ) : (
-        <span className="text-slate-500">{textoOrigen(f, describirEntradas)}</span>
-      ),
-  },
-  { titulo: 'Factura / referencia', valor: (f) => textoOrigen(f, (o) => unicos(o.map((x) => x.referencia))) },
-  { titulo: 'Proveedor', valor: (f) => textoOrigen(f, (o) => unicos(o.map((x) => x.proveedor))) },
+  ...columnasOrigen<FilaDetalle>((f) => f.origen),
 ]
 
 /** Ventas (movimientos de salida) de un período, por producto, por cliente o en detalle */
@@ -167,7 +132,7 @@ export function ReporteVentas() {
 
   const datos = useMemo(() => lineas.data ?? [], [lineas.data])
   const esDetalle = agrupacion === 'detalle'
-  const origen = useOrigenVentas(datos, rango, esDetalle && !lineas.isPlaceholderData)
+  const origen = useOrigenLineas(datos, rango, esDetalle && !lineas.isPlaceholderData)
   // En la vista de detalle, las cifras del resumen salen de la agrupación por producto
   const agrupacionResumen = esDetalle ? 'producto' : agrupacion
   const filas = useMemo(() => agrupar(datos, agrupacionResumen), [datos, agrupacionResumen])

@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase'
 import { traerCostosProductos } from '@/lib/costos'
 import { prepararFoto } from '@/lib/imagen'
 import { traerTodo } from '@/lib/paginar'
+import { tiposMovimiento, type TipoMovimiento } from '@/features/movimientos/tipos'
+import { trazarKardex, type Vinculo } from './trazabilidad'
 import type { Json, Tables, TablesInsert, TablesUpdate } from '@/types/database'
 
 export type Categoria = Tables<'categorias'>
@@ -342,7 +344,13 @@ export function useActualizarUnidad() {
 const SELECT_MOVIMIENTO_ITEM =
   'cantidad, movimiento:movimientos!inner(id, numero, tipo, fecha, referencia, notas, motivo, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
 
-/** Kardex: movimientos del producto agrupados, con el saldo acumulado después de cada uno */
+const SELECT_KARDEX =
+  'id, cantidad, unidad_id, movimiento:movimientos!inner(id, numero, tipo, fecha, created_at, referencia, notas, motivo, cliente:clientes(id, nombre), proveedor:proveedores(id, nombre))'
+
+/**
+ * Kardex: movimientos del producto agrupados, con el saldo acumulado después de cada uno
+ * y la trazabilidad entre entradas y salidas (de dónde salió y a dónde fue la mercancía)
+ */
 export function useKardex(productoId: string) {
   return useQuery({
     queryKey: [...productosKeys.all, 'kardex', productoId],
@@ -350,29 +358,87 @@ export function useKardex(productoId: string) {
       const { filas: data } = await traerTodo((desde, hasta) =>
         supabase
           .from('movimiento_items')
-          .select(SELECT_MOVIMIENTO_ITEM)
+          .select(SELECT_KARDEX)
           .eq('producto_id', productoId)
           .order('id')
           .range(desde, hasta),
       )
+      const { vinculos, quedan } = trazarKardex(data)
 
-      type Fila = (typeof data)[number]['movimiento'] & { entra: number; sale: number; saldo: number }
+      type Fila = (typeof data)[number]['movimiento'] & {
+        entra: number
+        sale: number
+        saldo: number
+        /** Salida: entradas de las que vino. Entrada: salidas a las que fue */
+        vinculos: Vinculo[]
+        /** Solo entradas: unidades del lote que siguen en stock */
+        quedan: number | null
+      }
       const porMovimiento = new Map<string, Fila>()
       for (const item of data) {
         const m = item.movimiento
-        const fila = porMovimiento.get(m.id) ?? { ...m, entra: 0, sale: 0, saldo: 0 }
-        if (m.tipo === 'entrada' || m.tipo === 'ajuste_entrada') fila.entra += item.cantidad
+        const esEntrada = tiposMovimiento[m.tipo].esEntrada
+        const fila = porMovimiento.get(m.id) ?? {
+          ...m,
+          entra: 0,
+          sale: 0,
+          saldo: 0,
+          vinculos: vinculos.get(m.id) ?? [],
+          quedan: esEntrada ? (quedan.get(m.id) ?? 0) : null,
+        }
+        if (esEntrada) fila.entra += item.cantidad
         else fila.sale += item.cantidad
         porMovimiento.set(m.id, fila)
       }
 
-      const filas = [...porMovimiento.values()].sort((a, b) => a.fecha.localeCompare(b.fecha) || a.numero - b.numero)
+      const filas = [...porMovimiento.values()].sort(
+        (a, b) => a.fecha.localeCompare(b.fecha) || a.created_at.localeCompare(b.created_at),
+      )
       let saldo = 0
       for (const f of filas) {
         saldo += f.entra - f.sale
         f.saldo = saldo
       }
       return filas.reverse() // más recientes primero
+    },
+  })
+}
+
+const SELECT_TRAZABILIDAD = 'id, cantidad, unidad_id, producto_id, movimiento:movimientos!inner(id, numero, tipo, fecha, created_at)'
+
+/**
+ * Trazabilidad de un movimiento, por id de producto: si es salida, de qué entradas vino cada producto;
+ * si es entrada, a qué salidas fue y cuánto queda del lote. Recorre el kardex completo de cada producto.
+ */
+export function useTrazabilidadMovimiento(
+  movimiento: { id: string; tipo: TipoMovimiento; items: { producto: { id: string } | null }[] } | null | undefined,
+) {
+  const productoIds = [...new Set(movimiento?.items.flatMap((i) => (i.producto ? [i.producto.id] : [])) ?? [])].sort()
+  return useQuery({
+    queryKey: [...productosKeys.all, 'trazabilidad-movimiento', movimiento?.id, productoIds],
+    enabled: productoIds.length > 0,
+    queryFn: async () => {
+      const { filas } = await traerTodo((desde, hasta) =>
+        supabase
+          .from('movimiento_items')
+          .select(SELECT_TRAZABILIDAD)
+          .in('producto_id', productoIds)
+          .order('id')
+          .range(desde, hasta),
+      )
+      const porProducto = new Map<string, typeof filas>()
+      for (const item of filas) porProducto.set(item.producto_id, [...(porProducto.get(item.producto_id) ?? []), item])
+
+      const { id, tipo } = movimiento!
+      const resultado = new Map<string, { vinculos: Vinculo[]; quedan: number | null }>()
+      for (const [productoId, items] of porProducto) {
+        const { vinculos, quedan } = trazarKardex(items)
+        resultado.set(productoId, {
+          vinculos: vinculos.get(id) ?? [],
+          quedan: tiposMovimiento[tipo].esEntrada ? (quedan.get(id) ?? 0) : null,
+        })
+      }
+      return resultado
     },
   })
 }

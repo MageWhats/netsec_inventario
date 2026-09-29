@@ -6,15 +6,20 @@ import { describirMotivo, formatearNumero, tiposMovimiento } from '@/features/mo
 import { tablaDesdeColumnas, type ColumnaExportable } from '@/lib/exportar'
 import { formatearFecha } from '@/lib/format'
 import { useKardex } from '../api'
+import { describirTrazabilidad } from '../trazabilidad'
+import { Trazabilidad } from './Trazabilidad'
 
 type FilaKardex = NonNullable<ReturnType<typeof useKardex>['data']>[number]
 
 const tercero = (f: FilaKardex) => f.proveedor?.nombre ?? f.cliente?.nombre ?? describirMotivo(f) ?? f.referencia ?? '—'
 
+const describirVinculos = (f: FilaKardex) => describirTrazabilidad(f) || null
+
 const columnasExportacion: ColumnaExportable<FilaKardex>[] = [
   { titulo: 'Fecha', valor: (f) => formatearFecha(f.fecha) },
   { titulo: 'Movimiento', valor: (f) => formatearNumero(f) },
   { titulo: 'Tipo', valor: (f) => tiposMovimiento[f.tipo].label },
+  { titulo: 'Origen / destino', valor: describirVinculos },
   { titulo: 'Tercero / motivo', valor: tercero },
   { titulo: 'Referencia', valor: (f) => f.referencia },
   { titulo: 'Entra', valor: (f) => f.entra || null, numerica: true },
@@ -60,6 +65,7 @@ export function KardexSection({ producto }: KardexSectionProps) {
               <tr>
                 <th className="px-4 py-3 font-medium">Fecha</th>
                 <th className="px-4 py-3 font-medium">Movimiento</th>
+                <th className="px-4 py-3 font-medium">Origen / destino</th>
                 <th className="px-4 py-3 font-medium">Tercero / motivo</th>
                 <th className="px-4 py-3 text-right font-medium">Entra</th>
                 <th className="px-4 py-3 text-right font-medium">Sale</th>
@@ -75,6 +81,9 @@ export function KardexSection({ producto }: KardexSectionProps) {
                       {formatearNumero(f)}
                     </Link>
                     <TipoMovimientoBadge tipo={f.tipo} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <Trazabilidad vinculos={f.vinculos} quedan={f.quedan} />
                   </td>
                   <td className="max-w-xs truncate px-4 py-3 text-slate-400">
                     {tercero(f)}
