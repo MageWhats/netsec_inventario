@@ -63,6 +63,10 @@ export function useLineasMovimiento(filtros: FiltrosLineas) {
 
 export type LineaMovimiento = NonNullable<ReturnType<typeof useLineasMovimiento>['data']>[number]
 
+/** Precio de venta en salidas, costo en el resto (igual que en el historial de movimientos) */
+export const valorUnitario = (l: LineaMovimiento) =>
+  (l.movimiento.tipo === 'salida' ? l.precio_unitario : l.costo_unitario) ?? null
+
 export interface FiltrosAuditoria {
   desde: string
   hasta: string

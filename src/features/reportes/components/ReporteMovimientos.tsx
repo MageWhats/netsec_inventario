@@ -9,17 +9,14 @@ import {
   tiposMovimiento,
   type TipoMovimiento,
 } from '@/features/movimientos/tipos'
-import { LIMITE_LINEAS, useLineasMovimiento, type LineaMovimiento } from '../api'
+import { LIMITE_LINEAS, useLineasMovimiento, valorUnitario, type LineaMovimiento } from '../api'
 import { useOrigenLineas } from '../origen'
-import { describirRango, rangoEsteMes, type Rango } from '../rangos'
+import { describirRango, rangoAnterior, rangoEsteMes, type Rango } from '../rangos'
 import { columnasOrigen } from './columnasOrigen'
 import { RangoFechas } from './RangoFechas'
 import { tablaDesdeColumnas } from '@/lib/exportar'
-import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
-
-/** Precio de venta en salidas, costo en el resto (igual que en el historial de movimientos) */
-const valorUnitario = (l: LineaMovimiento) =>
-  (l.movimiento.tipo === 'salida' ? l.precio_unitario : l.costo_unitario) ?? null
+import { ResumenMovimientos } from './ResumenMovimientos'
+import { Reporte, TablaReporte, type Columna } from './TablaReporte'
 
 const tercero = (l: LineaMovimiento) =>
   l.movimiento.proveedor?.nombre ??
@@ -79,6 +76,9 @@ export function ReporteMovimientos() {
   const [rango, setRango] = useState<Rango>(rangoEsteMes)
   const [tipo, setTipo] = useState<TipoMovimiento | ''>('')
   const lineas = useLineasMovimiento({ ...rango, tipo })
+  // Mismo filtro en el período anterior, para las comparaciones del resumen
+  const previo = useMemo(() => rangoAnterior(rango), [rango])
+  const previas = useLineasMovimiento({ ...previo, tipo })
 
   const filas = useMemo(() => lineas.data ?? [], [lineas.data])
   // De qué entrada salió la mercancía de cada salida o ajuste − (las entradas no aplican)
@@ -96,12 +96,6 @@ export function ReporteMovimientos() {
         : columnas,
     [hayOrigen, origen.data],
   )
-  const unidades = (entrada: boolean) =>
-    filas
-      .filter((l) => tiposMovimiento[l.movimiento.tipo].esEntrada === entrada)
-      .reduce((s, l) => s + l.cantidad, 0)
-      .toLocaleString('es-CO')
-
   return (
     <Reporte
       titulo={`Movimientos${tipo ? ` · ${tiposMovimiento[tipo].label}` : ''}`}
@@ -135,12 +129,14 @@ export function ReporteMovimientos() {
         </>
       }
       resumen={
-        <>
-          <Cifra label="Movimientos" valor={new Set(filas.map((l) => l.movimiento.id)).size} />
-          <Cifra label="Líneas" valor={filas.length.toLocaleString('es-CO')} />
-          <Cifra label="Unidades que entran" valor={unidades(true)} />
-          <Cifra label="Unidades que salen" valor={unidades(false)} />
-        </>
+        <ResumenMovimientos
+          filas={filas}
+          anteriores={previas.isPlaceholderData ? undefined : previas.data}
+          rango={rango}
+          rangoPrevio={previo}
+          tipo={tipo}
+          onTipo={setTipo}
+        />
       }
     >
       <TablaReporte columnas={cols} filas={filas} clave={(l) => l.id} vacio="No hay movimientos en este período." />

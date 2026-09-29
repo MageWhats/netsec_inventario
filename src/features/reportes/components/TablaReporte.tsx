@@ -1,4 +1,4 @@
-import { Loader2, Printer } from 'lucide-react'
+import { Loader2, Printer, type LucideIcon } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
@@ -167,11 +167,34 @@ export function Reporte({
   )
 }
 
-export function Cifra({ label, valor }: { label: string; valor: ReactNode }) {
+interface CifraProps {
+  label: string
+  valor: ReactNode
+  icono?: LucideIcon
+  /** Clases de color del icono (fondo y texto), p. ej. las de tiposMovimiento */
+  tono?: string
+  /** Línea secundaria bajo la cifra */
+  detalle?: ReactNode
+  /** Contenido extra al pie de la tarjeta (chips, barra de proporción...) */
+  children?: ReactNode
+}
+
+export function Cifra({ label, valor, icono: Icono, tono = 'bg-slate-500/15 text-slate-400', detalle, children }: CifraProps) {
   return (
-    <div className="rounded-2xl border border-brand-border bg-brand-card px-4 py-3">
-      <p className="text-xs tracking-wide text-slate-400 uppercase">{label}</p>
-      <p className="mt-1 text-lg font-semibold">{valor}</p>
+    <div className="flex flex-col rounded-2xl border border-brand-border bg-brand-card px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-xs tracking-wide text-slate-400 uppercase">{label}</p>
+          <p className="mt-1 text-lg font-semibold">{valor}</p>
+          {detalle && <p className="mt-0.5 truncate text-xs text-slate-500">{detalle}</p>}
+        </div>
+        {Icono && (
+          <span className={`grid size-9 shrink-0 place-items-center rounded-xl ${tono}`}>
+            <Icono className="size-4.5" />
+          </span>
+        )}
+      </div>
+      {children && <div className="mt-auto pt-3">{children}</div>}
     </div>
   )
 }
