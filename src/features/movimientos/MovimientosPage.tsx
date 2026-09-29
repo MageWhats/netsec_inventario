@@ -1,19 +1,25 @@
-import { Loader2, Search, X } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeftRight, Loader2, Search, SearchX, X } from 'lucide-react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { usePermisos } from '@/features/auth/permisos'
 import { useDebounce } from '@/lib/useDebounce'
 import { useMovimientos } from './api'
 import { MovimientosTabla } from './components/MovimientosTabla'
-import { TIPOS_MOVIMIENTO, tiposMovimiento, type TipoMovimiento } from './tipos'
+import { esTipoMovimiento, TIPOS_MOVIMIENTO, tiposMovimiento, type TipoMovimiento } from './tipos'
 
 const TAMANO_PAGINA = 50
 
 export function MovimientosPage() {
-  const [tipo, setTipo] = useState<TipoMovimiento | ''>('')
-  const [desde, setDesde] = useState('')
+  // Filtros iniciales desde la URL (p. ej. el dashboard enlaza a ?tipo=salida&desde=2026-09-01)
+  const [params] = useSearchParams()
+  const [tipo, setTipo] = useState<TipoMovimiento | ''>(() => {
+    const t = params.get('tipo') ?? undefined
+    return esTipoMovimiento(t) ? t : ''
+  })
+  const [desde, setDesde] = useState(() => params.get('desde') ?? '')
   const [hasta, setHasta] = useState('')
   const [busqueda, setBusqueda] = useState('')
   const [limite, setLimite] = useState(TAMANO_PAGINA)
@@ -136,11 +142,27 @@ export function MovimientosPage() {
         ) : error ? (
           <p className="p-6 text-sm text-red-400">No se pudieron cargar los movimientos: {error.message}</p>
         ) : movimientos.length === 0 ? (
-          <p className="p-10 text-center text-sm text-slate-500">
-            {hayFiltros
-              ? 'Ningún movimiento coincide con los filtros.'
-              : 'Aún no hay movimientos. Empieza registrando una entrada de mercancía.'}
-          </p>
+          hayFiltros ? (
+            <EstadoVacio
+              icono={SearchX}
+              titulo="Sin resultados"
+              descripcion="Ningún movimiento coincide con los filtros."
+            />
+          ) : (
+            <EstadoVacio
+              icono={ArrowLeftRight}
+              titulo="Aún no hay movimientos"
+              descripcion="Empieza registrando una entrada de mercancía: el stock se calcula a partir de los movimientos."
+              accion={
+                puedeOperar && (
+                  <Link to="/movimientos/nuevo/entrada" className="btn btn-primary">
+                    <ArrowDownToLine className="size-4" />
+                    Registrar una entrada
+                  </Link>
+                )
+              }
+            />
+          )
         ) : (
           <MovimientosTabla movimientos={movimientos} />
         )}

@@ -113,7 +113,7 @@ export function UsuariosTab() {
                         <div className="flex justify-end gap-1">
                           <button
                             onClick={() => abrirFormulario(u)}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                            className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-slate-200"
                             title="Editar nombre y rol"
                             aria-label={`Editar ${u.nombre ?? u.email}`}
                           >
@@ -122,7 +122,7 @@ export function UsuariosTab() {
                           {u.activo && !esUnoMismo && (
                             <button
                               onClick={() => setConfirmando({ usuario: u, accion: 'reenviar' })}
-                              className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-brand-cyan"
+                              className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-brand-cyan"
                               title={u.pendiente ? 'Reenviar invitación' : 'Enviar enlace para cambiar la contraseña'}
                               aria-label={`Enviar correo a ${u.email}`}
                             >
@@ -131,8 +131,10 @@ export function UsuariosTab() {
                           )}
                           {!esUnoMismo && (
                             <button
-                              onClick={() => setConfirmando({ usuario: u, accion: u.activo ? 'desactivar' : 'reactivar' })}
-                              className={`rounded-lg p-2 text-slate-400 hover:bg-white/5 ${
+                              onClick={() =>
+                                setConfirmando({ usuario: u, accion: u.activo ? 'desactivar' : 'reactivar' })
+                              }
+                              className={`rounded-lg p-2 text-slate-400 hover:bg-tinte/5 ${
                                 u.activo ? 'hover:text-red-400' : 'hover:text-emerald-400'
                               }`}
                               title={u.activo ? 'Desactivar' : 'Reactivar'}

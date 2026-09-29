@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { History, Loader2, Search } from 'lucide-react'
+import { Barcode, History, Loader2, Search, SearchX } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { FormField } from '@/components/ui/FormField'
 import { Modal } from '@/components/ui/Modal'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { formatearFecha } from '@/lib/format'
 import { TipoMovimientoBadge } from '@/features/movimientos/components/MovimientosTabla'
 import { formatearNumero } from '@/features/movimientos/tipos'
@@ -73,11 +74,15 @@ export function UnidadesSection({ productoId }: { productoId: string }) {
       ) : error ? (
         <p className="p-6 text-sm text-red-400">No se pudieron cargar las unidades: {error.message}</p>
       ) : filtradas.length === 0 ? (
-        <p className="p-10 text-center text-sm text-slate-500">
-          {unidades.length === 0
-            ? 'Todavía no hay unidades registradas para este producto.'
-            : 'Ninguna unidad coincide con la búsqueda.'}
-        </p>
+        unidades.length === 0 ? (
+          <EstadoVacio
+            icono={Barcode}
+            titulo="Sin unidades todavía"
+            descripcion="Los seriales de este producto se registran al hacer una entrada en Movimientos."
+          />
+        ) : (
+          <EstadoVacio icono={SearchX} titulo="Sin resultados" descripcion="Ninguna unidad coincide con la búsqueda." />
+        )
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -108,7 +113,7 @@ export function UnidadesSection({ productoId }: { productoId: string }) {
                   <td className="px-4 py-3 text-right">
                     <button
                       onClick={() => setEditando(u)}
-                      className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                      className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-slate-200"
                       title="Historial, MAC y notas"
                       aria-label={`Ver unidad ${u.numero_serie}`}
                     >

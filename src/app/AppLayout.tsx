@@ -1,6 +1,25 @@
-import { ArrowLeftRight, ClipboardCheck, FileBarChart, LayoutDashboard, LogOut, Menu, Package, Settings, Truck, Users, X, type LucideIcon } from 'lucide-react'
+import {
+  ArrowLeftRight,
+  ClipboardCheck,
+  FileBarChart,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Package,
+  Search,
+  Settings,
+  ShieldCheck,
+  ShoppingCart,
+  Truck,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, Outlet, useNavigation } from 'react-router-dom'
+import { BusquedaGlobal } from '@/app/BusquedaGlobal'
+import { BotonTema } from '@/components/ui/BotonTema'
+import { abrirBusqueda, atajoBusqueda } from '@/lib/busqueda'
 import { LogoHorizontal } from '@/components/ui/Logo'
 import { useAuth } from '@/features/auth/auth-context'
 import { ROLES, usePerfil, usePermisos, type Permisos } from '@/features/auth/permisos'
@@ -18,6 +37,8 @@ const navItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/productos', label: 'Productos', icon: Package, end: false },
   { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, end: false },
+  { to: '/seriales', label: 'Seriales y garantías', icon: ShieldCheck, end: false },
+  { to: '/compras', label: 'Órdenes de compra', icon: ShoppingCart, end: false, permiso: 'verCostos' },
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },
   { to: '/proveedores', label: 'Proveedores', icon: Truck, end: false },
   { to: '/inventario', label: 'Toma de inventario', icon: ClipboardCheck, end: false },
@@ -55,25 +76,41 @@ export function AppLayout() {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3">
-          {navItems.filter(({ permiso }) => !permiso || permisos[permiso]).map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                  isActive
-                    ? 'bg-brand-accent/15 text-brand-accent'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
-                }`
-              }
-            >
-              <Icon className="size-4" />
-              {label}
-            </NavLink>
-          ))}
+        <div className="px-3 pb-3">
+          <button
+            onClick={() => {
+              setOpen(false)
+              abrirBusqueda()
+            }}
+            className="flex w-full items-center gap-2 rounded-lg border border-brand-border px-3 py-2 text-sm text-slate-500 transition hover:border-slate-500 hover:text-slate-300"
+          >
+            <Search className="size-4" />
+            <span className="flex-1 text-left">Buscar…</span>
+            <kbd className="hidden rounded border border-brand-border px-1.5 text-xs lg:inline">{atajoBusqueda()}</kbd>
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1 overflow-y-auto px-3">
+          {navItems
+            .filter(({ permiso }) => !permiso || permisos[permiso])
+            .map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+                    isActive
+                      ? 'bg-brand-accent/15 text-brand-accent'
+                      : 'text-slate-400 hover:bg-tinte/5 hover:text-slate-200'
+                  }`
+                }
+              >
+                <Icon className="size-4" />
+                {label}
+              </NavLink>
+            ))}
         </nav>
 
         <div className="border-t border-brand-border p-4">
@@ -81,13 +118,16 @@ export function AppLayout() {
             {perfil?.nombre ?? user?.email}
           </p>
           {perfil && <p className="text-xs text-slate-500">{ROLES[perfil.rol].label}</p>}
-          <button
-            onClick={signOut}
-            className="mt-2 flex items-center gap-2 text-sm text-slate-400 transition hover:text-red-400"
-          >
-            <LogOut className="size-4" />
-            Cerrar sesión
-          </button>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 text-sm text-slate-400 transition hover:text-red-400"
+            >
+              <LogOut className="size-4" />
+              Cerrar sesión
+            </button>
+            <BotonTema className="rounded-lg p-1.5 hover:bg-tinte/5" />
+          </div>
         </div>
       </aside>
 
@@ -99,10 +139,17 @@ export function AppLayout() {
           <Link to="/" className="ml-4" aria-label="Ir al dashboard">
             <LogoHorizontal />
           </Link>
+          <div className="ml-auto flex items-center gap-1">
+            <button onClick={abrirBusqueda} className="rounded-lg p-2 text-slate-300" aria-label="Buscar">
+              <Search className="size-5" />
+            </button>
+            <BotonTema className="rounded-lg p-2" />
+          </div>
         </header>
         <main className="flex-1 p-4 lg:p-8 print:p-0">
           <Outlet />
         </main>
+        <BusquedaGlobal />
       </div>
     </div>
   )

@@ -3,6 +3,7 @@ import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
+import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -17,7 +18,27 @@ export default defineConfig(({ mode }) => {
   const turnstileSiteKey = env.VITE_TURNSTILE_SITE_KEY || env.TURNSTILE_SITE_KEY || ''
 
   return {
-    plugins: [react(), tailwindcss(), movil && basicSsl({ name: 'netsec-inventario' })],
+    plugins: [
+      react(),
+      tailwindcss(),
+      movil && basicSsl({ name: 'netsec-inventario' }),
+      // App instalable que abre al instante: el service worker guarda el código de la app (no los datos,
+      // que siempre se piden a Supabase). Con una versión nueva, la app ofrece actualizar (ActualizacionApp).
+      VitePWA({
+        registerType: 'prompt',
+        injectRegister: false,
+        manifest: false, // se usa public/manifest.webmanifest
+        workbox: {
+          globPatterns: ['**/*.{js,css,html,svg,png,woff2,wasm,webmanifest}'],
+          // Alfabetos que no se usan (el navegador solo los pediría si aparecieran) y partes de jsPDF que la app no usa
+          globIgnores: ['**/*-cyrillic*', '**/*-vietnamese*', '**/html2canvas-*', '**/purify.es-*'],
+          // El motor del escáner (WebAssembly) pesa ~1 MB
+          maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+          navigateFallback: '/index.html',
+          cleanupOutdatedCaches: true,
+        },
+      }),
+    ],
     server: movil ? { host: true } : undefined,
     define: {
       'import.meta.env.VITE_TURNSTILE_SITE_KEY': JSON.stringify(turnstileSiteKey),

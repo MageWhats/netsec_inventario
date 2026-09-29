@@ -92,3 +92,15 @@ export const serieMovimiento = (tipo: TipoMovimiento) => (tipo === 'entrada' ? '
 /** Prefijo + consecutivo de su serie: NetE-000001, NetS-000001, NetA-000001 */
 export const formatearNumero = ({ tipo, numero }: { tipo: TipoMovimiento; numero: number }) =>
   `Net${serieMovimiento(tipo)}-${String(numero).padStart(6, '0')}`
+
+/**
+ * Número de movimiento escrito por el usuario: "12" (cualquier serie) o con prefijo, "NetE-000012", "s12" o "#A-3",
+ * para una sola serie. tipos vacío = cualquier serie. null si el texto no es un número de movimiento.
+ */
+export function parsearNumeroMovimiento(texto: string): { numero: number; tipos: TipoMovimiento[] } | null {
+  const consecutivo = /^#?(?:net)?([esa])?-?(\d+)$/i.exec(texto.trim())
+  const numero = Number(consecutivo?.[2])
+  if (!consecutivo || !(numero > 0)) return null
+  const serie = consecutivo[1]?.toUpperCase()
+  return { numero, tipos: serie ? TIPOS_MOVIMIENTO.filter((t) => serieMovimiento(t) === serie) : [] }
+}

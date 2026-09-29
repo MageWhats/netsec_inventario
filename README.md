@@ -22,6 +22,8 @@ App web de inventario de Net&Sec Suministros.
 - **TanStack Query** (datos del servidor) y **TanStack Table** (tablas)
 - **React Hook Form + Zod** (formularios y validación)
 - **React Router 7**, **Recharts**, **lucide-react**
+- **jsPDF** (remisiones y reportes en PDF), **read-excel-file** (importación desde Excel)
+- **vite-plugin-pwa** (app instalable) y **Vitest** + **PGlite** (pruebas)
 
 ## Puesta en marcha
 
@@ -64,6 +66,17 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
 14. `0014_sku_automatico.sql`: el SKU lo genera la base de datos con el prefijo de la categoría y un consecutivo
     propio de cada una (NS-SW-0001, NS-SW-0002, NS-RT-0001…); los colores agregan su sufijo (NS-REL-0001-NEG). El SKU
     no se edita ni cambia si se cambia la categoría. Renumera los productos existentes en el orden en que se crearon.
+15. `0015_costos_protegidos.sql`: el costo promedio y el costo de cada línea ya no se pueden leer de las tablas;
+    solo los entregan funciones que responden a *admin* y *lectura*. El rol *bodega* no puede consultarlos ni con
+    conocimientos técnicos.
+16. `0016_empresa_y_garantias.sql`: datos de la empresa (razón social, NIT, dirección…) que encabezan las
+    remisiones en PDF, en Configuración → Empresa; y meses de garantía por categoría, con los que la consulta de
+    seriales dice si una unidad vendida sigue en garantía.
+17. `0017_ordenes_compra.sql`: órdenes de compra a proveedores (OC-000001). Al recibirlas se registra una entrada
+    normal enlazada a la orden; se pueden recibir en varias entregas y se cierran solas al llegar todo. Solo *admin*
+    las gestiona; *admin* y *lectura* las ven.
+18. `0018_importar_productos.sql`: importación de productos desde Excel o CSV, con su stock inicial (ajuste +
+    «Inventario inicial»). Todo o nada: si una fila falla, no se crea ninguno.
 
 Reglas clave:
 
@@ -80,6 +93,7 @@ Reglas clave:
 |---|---|
 | Claves fuera del código y de Git | `.env.local` (ignorado) y variables de Vercel. Solo se usa la clave pública `anon` |
 | Autorización en el servidor | RLS en todas las tablas y permisos por rol dentro de cada función (migración 0013). La app oculta lo que cada rol no puede hacer, pero quien decide es la base de datos |
+| Costos ocultos para *bodega* | Permisos por columna: el costo solo se obtiene con funciones que revisan el rol (migración 0015) |
 | Validación de entradas | En los formularios (Zod) **y** en la base de datos (migración 0006: largos y formatos de SKU, documento, email, teléfono, MAC, serial) |
 | Datos que no se pueden manipular | Movimientos inmutables, stock calculado, tomas y ajustes solo mediante funciones que validan |
 | Contenido del usuario | React escapa todo lo que muestra; el CSV neutraliza fórmulas de Excel (`=`, `+`, `-`, `@`) |
@@ -126,11 +140,14 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 | Finalizar o cancelar tomas (generan ajustes) y ajustes manuales | ✅ | ❌ | ❌ |
 | Crear o editar productos, clientes y proveedores | ✅ | ❌ | ❌ |
 | Costo promedio, márgenes, valor del inventario y reportes | ✅ | ❌ | ✅ |
-| Configuración (categorías, bodegas, usuarios) | ✅ | ❌ | ❌ |
+| Ver órdenes de compra | ✅ | ❌ | ✅ |
+| Crear, recibir y cancelar órdenes de compra; importar productos | ✅ | ❌ | ❌ |
+| Consultar seriales y garantías; remisiones en PDF | ✅ | ✅ | ✅ |
+| Configuración (categorías, bodegas, usuarios, empresa) | ✅ | ❌ | ❌ |
 
-Bodega digita el costo de la factura al registrar una entrada, pero no ve el costo promedio ni los márgenes. Ocultar
-costos es solo de la interfaz: la base de datos no tiene permisos por columna, así que alguien con conocimientos
-técnicos y un usuario *bodega* podría consultarlos directamente. Los permisos de escritura sí los aplica la base de datos.
+Bodega digita el costo de la factura al registrar una entrada, pero no ve el costo promedio ni los márgenes. Esto
+también lo aplica la base de datos (migración 0015): las columnas de costo no se pueden leer de las tablas y solo las
+entregan las funciones `costos_productos()` y `costos_lineas()`, que responden únicamente a *admin* y *lectura*.
 
 Los usuarios se invitan por correo desde **Configuración → Usuarios**: la persona recibe un enlace, crea su
 contraseña en `/bienvenida` y entra. Desde ahí también se cambia el rol, se reenvía la invitación (o un enlace para
@@ -231,6 +248,39 @@ servido desde la propia app). El navegador **solo permite la cámara en HTTPS**:
 
 En producción el hosting ya sirve la app con HTTPS.
 
+## Funciones
+
+- **Remisión en PDF:** en el detalle de cada movimiento, *Remisión PDF* (salidas) o *Comprobante PDF* (entradas y
+  ajustes). Lleva los datos de la empresa (Configuración → Empresa), el cliente o proveedor, los seriales, la
+  garantía de cada producto con su fecha de vencimiento, el pie configurable y espacio para las firmas. No incluye
+  costos ni márgenes.
+- **Seriales y garantías** (menú lateral): se escanea o escribe un serial o una MAC y se ve el producto, su estado,
+  su historia, a quién se vendió y hasta cuándo tiene garantía (meses de su categoría desde la venta).
+- **Órdenes de compra:** lo que se le pide a cada proveedor, con PDF para enviárselo. *Recibir mercancía* abre una
+  entrada con lo pendiente precargado al costo pactado. El botón *Agregar los por reponer* llena la orden con los
+  productos en o bajo el mínimo.
+- **Importar productos** (Productos → Importar): plantilla descargable, vista previa con los errores de cada fila y
+  stock inicial opcional.
+- **Búsqueda global:** `Ctrl + K` (o el botón *Buscar*) encuentra productos, seriales, clientes, proveedores y
+  movimientos por su número (`NetS-12`, `e7`…) desde cualquier pantalla.
+- **Tema claro u oscuro:** botón del sol / luna en el menú; cada navegador recuerda su elección.
+- **App instalable:** el navegador ofrece instalarla; abre al instante porque guarda el código de la app (no los
+  datos, que siempre vienen de Supabase). Cuando se publica una versión nueva aparece *Actualizar*, y si se va la
+  conexión se avisa que no se pueden guardar cambios.
+
+## Pruebas
+
+`npm test` corre dos tipos de pruebas (también en cada push, en `.github/workflows/ci.yml`):
+
+- **Lógica de la app** (`src/**/*.test.ts`): líneas de movimientos, diferencias de las tomas, garantías, lectura de
+  archivos de Excel/CSV, exportación.
+- **Base de datos** (`tests/db/`): carga **todas** las migraciones en un PostgreSQL embebido (PGlite, sin Docker ni
+  conexión a Supabase) y comprueba el costo promedio, el stock, los seriales, los permisos de cada rol (incluido que
+  *bodega* no pueda leer costos), las órdenes de compra y la importación.
+
+Al escribir una migración nueva, agrega sus pruebas en `tests/db/`: si una migración tiene un error, `npm test` lo
+dice antes de ejecutarla en Supabase.
+
 ## Scripts
 
 | Script | Descripción |
@@ -240,6 +290,8 @@ En producción el hosting ya sirve la app con HTTPS.
 | `npm run build` | Chequeo de tipos + build de producción |
 | `npm run typecheck` | Solo chequeo de tipos |
 | `npm run lint` | ESLint |
+| `npm test` | Pruebas: lógica de la app y migraciones SQL (ver [Pruebas](#pruebas)) |
+| `npm run test:watch` | Pruebas en modo observación, mientras se programa |
 
 ## Estructura
 
@@ -248,6 +300,8 @@ src/
   app/          router, providers, páginas globales
   lib/          cliente Supabase y utilidades
   components/ui componentes reutilizables
-  features/     un módulo por funcionalidad (auth, productos, movimientos, clientes, proveedores, dashboard)
+  features/     un módulo por funcionalidad (auth, productos, movimientos, clientes, proveedores, compras,
+                seriales, inventario, reportes, configuración, dashboard)
   types/        tipos (incluye los generados desde Supabase)
+tests/db/       pruebas de las migraciones y funciones SQL (PostgreSQL embebido)
 ```

@@ -82,7 +82,7 @@ export function SplashScreen() {
           key={`splash-${vez}`}
           role="presentation"
           onClick={() => setVisible(false)}
-          className="fixed inset-0 z-[100] cursor-pointer overflow-hidden bg-brand-bg print:hidden"
+          className="tema-oscuro fixed inset-0 z-[100] cursor-pointer overflow-hidden bg-brand-bg print:hidden"
           // Salida en dos pasos: primero se va el logo (abajo) y luego el fondo, para que el logo y su
           // resplandor nunca queden superpuestos a medias sobre la pantalla que aparece debajo
           exit={{ opacity: 0, transition: { duration: 0.4, delay: reducido ? 0 : 0.25, ease: 'easeInOut' } }}

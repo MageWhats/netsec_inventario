@@ -1,7 +1,8 @@
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Tags, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { mensajeError } from '@/lib/errores'
 import { useCategoriasConUso, useEliminarCategoria, type CategoriaConUso } from '../api'
 import { CategoriaFormModal } from './CategoriaFormModal'
@@ -40,18 +41,24 @@ export function CategoriasTab() {
         ) : error ? (
           <p className="p-6 text-sm text-red-400">No se pudieron cargar las categorías: {error.message}</p>
         ) : categorias.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-500">
-            Aún no hay categorías.{' '}
-            <button onClick={() => abrirFormulario(null)} className="text-brand-cyan hover:underline">
-              Crea la primera
-            </button>
-          </div>
+          <EstadoVacio
+            icono={Tags}
+            titulo="Aún no hay categorías"
+            descripcion="Las categorías clasifican los productos, definen el prefijo de su SKU y sus meses de garantía."
+            accion={
+              <button onClick={() => abrirFormulario(null)} className="btn btn-primary">
+                <Plus className="size-4" />
+                Crear la primera
+              </button>
+            }
+          />
         ) : (
-          <table className="w-full text-sm">
+          <table className="tabla-tarjetas w-full text-sm">
             <thead className="border-b border-brand-border text-left text-xs tracking-wide text-slate-400 uppercase">
               <tr>
                 <th className="px-4 py-3 font-medium">Categoría</th>
                 <th className="px-4 py-3 font-medium">SKU</th>
+                <th className="px-4 py-3 font-medium">Garantía</th>
                 <th className="px-4 py-3 text-right font-medium">Productos</th>
                 <th className="px-4 py-3">
                   <span className="sr-only">Acciones</span>
@@ -61,17 +68,24 @@ export function CategoriasTab() {
             <tbody className="divide-y divide-brand-border">
               {categorias.map((c) => (
                 <tr key={c.id}>
-                  <td className="px-4 py-3 font-medium">{c.nombre}</td>
-                  <td className="px-4 py-3 font-mono text-slate-300">
+                  <td data-principal className="px-4 py-3 font-medium">
+                    {c.nombre}
+                  </td>
+                  <td data-label="Siguiente SKU" className="px-4 py-3 font-mono text-slate-300">
                     NS-{c.prefijo}-{String(c.ultimo_sku + 1).padStart(4, '0')}
                     <span className="ml-2 font-sans text-xs text-slate-500">siguiente</span>
                   </td>
-                  <td className="px-4 py-3 text-right text-slate-300 tabular-nums">{c.productos}</td>
-                  <td className="px-4 py-3">
+                  <td data-label="Garantía" className="px-4 py-3 whitespace-nowrap text-slate-300">
+                    {c.garantia_meses > 0 ? `${c.garantia_meses} ${c.garantia_meses === 1 ? 'mes' : 'meses'}` : '—'}
+                  </td>
+                  <td data-label="Productos" className="px-4 py-3 text-right text-slate-300 tabular-nums">
+                    {c.productos}
+                  </td>
+                  <td data-acciones className="px-4 py-3">
                     <div className="flex justify-end gap-1">
                       <button
                         onClick={() => abrirFormulario(c)}
-                        className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                        className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-slate-200"
                         title="Editar"
                         aria-label={`Editar ${c.nombre}`}
                       >
@@ -80,8 +94,10 @@ export function CategoriasTab() {
                       <button
                         onClick={() => setEliminando(c)}
                         disabled={c.productos > 0}
-                        className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
-                        title={c.productos > 0 ? 'Tiene productos: cámbialos de categoría para poder eliminarla' : 'Eliminar'}
+                        className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                        title={
+                          c.productos > 0 ? 'Tiene productos: cámbialos de categoría para poder eliminarla' : 'Eliminar'
+                        }
                         aria-label={`Eliminar ${c.nombre}`}
                       >
                         <Trash2 className="size-4" />

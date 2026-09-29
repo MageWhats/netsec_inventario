@@ -26,7 +26,7 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="tabla-tarjetas w-full text-sm">
         <thead className="border-b border-brand-border text-left text-xs tracking-wide text-slate-400 uppercase">
           <tr>
             <th className="px-4 py-3 font-medium">Movimiento</th>
@@ -43,29 +43,35 @@ export function MovimientosTabla({ movimientos }: { movimientos: MovimientoResum
             <tr
               key={m.id}
               onClick={() => navigate(`/movimientos/${m.id}`)}
-              className="cursor-pointer transition hover:bg-white/[0.03]"
+              className="cursor-pointer transition hover:bg-tinte/[0.03]"
             >
-              <td className="px-4 py-3">
+              <td data-principal className="px-4 py-3">
                 <Link
                   to={`/movimientos/${m.id}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="font-mono font-medium hover:text-brand-cyan"
+                  className="font-mono font-medium whitespace-nowrap hover:text-brand-cyan"
                 >
                   {formatearNumero(m)}
                 </Link>
               </td>
-              <td className="px-4 py-3 whitespace-nowrap text-slate-300">{formatearFecha(m.fecha)}</td>
-              <td className="px-4 py-3">
+              <td data-label="Fecha" className="px-4 py-3 whitespace-nowrap text-slate-300">
+                {formatearFecha(m.fecha)}
+              </td>
+              <td data-label="Tipo" className="px-4 py-3">
                 <TipoMovimientoBadge tipo={m.tipo} />
               </td>
-              <td className="max-w-xs truncate px-4 py-3 text-slate-300">
+              <td data-label="Tercero / motivo" className="max-w-xs truncate px-4 py-3 text-slate-300">
                 {m.proveedor_nombre ?? m.cliente_nombre ?? (
                   <span className="text-slate-500">{m.tipo === 'salida' ? 'Consumidor final' : (describirMotivo(m) ?? '—')}</span>
                 )}
               </td>
-              <td className="px-4 py-3 text-slate-400">{m.referencia ?? '—'}</td>
-              <td className="px-4 py-3 text-right text-slate-300">{m.unidades}</td>
-              <td className="px-4 py-3 text-right whitespace-nowrap text-slate-300">
+              <td data-label="Referencia" className="px-4 py-3 text-slate-400">
+                {m.referencia ?? '—'}
+              </td>
+              <td data-label="Unidades" className="px-4 py-3 text-right text-slate-300">
+                {m.unidades}
+              </td>
+              <td data-label="Valor" className="px-4 py-3 text-right whitespace-nowrap text-slate-300">
                 {valorMovimiento(m, verCostos) > 0 ? formatearPrecio(valorMovimiento(m, verCostos)) : '—'}
               </td>
             </tr>

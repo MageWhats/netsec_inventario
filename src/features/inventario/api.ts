@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { traerTodo } from '@/lib/paginar'
+import { traerCostosProductos } from '@/lib/costos'
 import type { Enums, Views } from '@/types/database'
 
 export type EstadoToma = Enums<'estado_toma'>
@@ -46,7 +47,7 @@ export function useToma(id: string) {
 
 const SELECT_TOMA_PRODUCTO = `
   producto_id, stock_inicial, contado,
-  producto:productos(id, sku, nombre, codigo_barras, es_serializado, precio_costo, activo, categoria:categorias(nombre))
+  producto:productos(id, sku, nombre, codigo_barras, es_serializado, activo, categoria:categorias(nombre))
 `
 
 export function useTomaProductos(id: string, enCurso: boolean) {
@@ -54,15 +55,20 @@ export function useTomaProductos(id: string, enCurso: boolean) {
     queryKey: tomasKeys.productos(id),
     refetchInterval: enCurso ? REFRESCO_EN_CURSO_MS : false,
     queryFn: async () => {
-      const { filas } = await traerTodo((desde, hasta) =>
-        supabase
-          .from('toma_productos')
-          .select(SELECT_TOMA_PRODUCTO)
-          .eq('toma_id', id)
-          .order('producto_id')
-          .range(desde, hasta),
-      )
-      return filas.sort((a, b) => a.producto.nombre.localeCompare(b.producto.nombre))
+      const [{ filas }, costos] = await Promise.all([
+        traerTodo((desde, hasta) =>
+          supabase
+            .from('toma_productos')
+            .select(SELECT_TOMA_PRODUCTO)
+            .eq('toma_id', id)
+            .order('producto_id')
+            .range(desde, hasta),
+        ),
+        traerCostosProductos(),
+      ])
+      return filas
+        .map((f) => ({ ...f, producto: { ...f.producto, precio_costo: costos.get(f.producto.id) ?? 0 } }))
+        .sort((a, b) => a.producto.nombre.localeCompare(b.producto.nombre))
     },
   })
 }

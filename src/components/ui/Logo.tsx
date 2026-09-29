@@ -1,13 +1,28 @@
 // Logo vectorial de Net&Sec (originales en branding/, copias servidas desde public/brand)
+import { useTema } from '@/lib/tema'
 
-/** Símbolo + "Net&Sec SUMINISTROS" en blanco, para el tema oscuro (menú lateral y barra móvil) */
+/** Símbolo + "Net&Sec SUMINISTROS" (menú lateral y barra móvil): texto blanco en el tema oscuro, azul en el claro */
 export function LogoHorizontal({ className = '' }: { className?: string }) {
-  return <img src="/brand/logo-horizontal-blanco.svg" alt="Net&Sec Suministros" className={`h-10 w-auto ${className}`} />
+  const tema = useTema()
+  return (
+    <img
+      src={tema === 'claro' ? '/brand/logo-horizontal-color.svg' : '/brand/logo-horizontal-blanco.svg'}
+      alt="Net&Sec Suministros"
+      className={`h-10 w-auto ${className}`}
+    />
+  )
 }
 
-/** Logo completo con el eslogan, en blanco, para el tema oscuro (inicio de sesión) */
+/** Logo completo con el eslogan (inicio de sesión): en blanco en el tema oscuro, a color en el claro */
 export function LogoCompleto({ className = '' }: { className?: string }) {
-  return <img src="/brand/logo-blanco.svg" alt="Net&Sec Suministros" className={`w-auto ${className}`} />
+  const tema = useTema()
+  return (
+    <img
+      src={tema === 'claro' ? '/brand/logo-color.svg' : '/brand/logo-blanco.svg'}
+      alt="Net&Sec Suministros"
+      className={`w-auto ${className}`}
+    />
+  )
 }
 
 /** Logo a color: solo aparece al imprimir comprobantes y reportes */

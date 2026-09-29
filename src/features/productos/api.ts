@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { traerCostosProductos } from '@/lib/costos'
 import { prepararFoto } from '@/lib/imagen'
 import { traerTodo } from '@/lib/paginar'
-import type { Tables, TablesInsert, TablesUpdate } from '@/types/database'
+import type { Json, Tables, TablesInsert, TablesUpdate } from '@/types/database'
 
 export type Categoria = Tables<'categorias'>
 export type Familia = Tables<'familias'>
@@ -25,7 +26,12 @@ export const productosKeys = {
   busquedaSerie: (texto: string) => [...productosKeys.all, 'busqueda-serie', texto] as const,
 }
 
-const SELECT_PRODUCTO = '*, categoria:categorias(id, nombre), familia:familias(id, nombre, sku_base)'
+// Todas las columnas menos precio_costo, que no se puede leer de la tabla (migración 0015): llega de traerCostosProductos
+const SELECT_PRODUCTO = `
+  id, sku, nombre, descripcion, categoria_id, marca, modelo, codigo_barras, es_serializado, precio_venta,
+  stock_minimo, activo, imagen_url, created_at, updated_at, familia_id, color,
+  categoria:categorias(id, nombre), familia:familias(id, nombre, sku_base)
+`
 
 async function obtenerStock(productoId?: string) {
   const { filas: data } = await traerTodo((desde, hasta) => {
@@ -50,13 +56,14 @@ export function useProductos() {
   return useQuery({
     queryKey: productosKeys.lista(),
     queryFn: async (): Promise<Producto[]> => {
-      const [{ filas: data }, stock] = await Promise.all([
+      const [{ filas: data }, stock, costos] = await Promise.all([
         traerTodo((desde, hasta) =>
           supabase.from('productos').select(SELECT_PRODUCTO).order('nombre').order('id').range(desde, hasta),
         ),
         obtenerStock(),
+        traerCostosProductos(),
       ])
-      return data.map((p) => ({ ...p, stock: stock.get(p.id) ?? 0 }))
+      return data.map((p) => ({ ...p, precio_costo: costos.get(p.id) ?? 0, stock: stock.get(p.id) ?? 0 }))
     },
   })
 }
@@ -65,12 +72,13 @@ export function useProducto(id: string) {
   return useQuery({
     queryKey: productosKeys.detalle(id),
     queryFn: async (): Promise<Producto | null> => {
-      const [{ data, error }, stock] = await Promise.all([
+      const [{ data, error }, stock, costos] = await Promise.all([
         supabase.from('productos').select(SELECT_PRODUCTO).eq('id', id).maybeSingle(),
         obtenerStock(id),
+        traerCostosProductos(),
       ])
       if (error) throw error
-      return data && { ...data, stock: stock.get(data.id) ?? 0 }
+      return data && { ...data, precio_costo: costos.get(data.id) ?? 0, stock: stock.get(data.id) ?? 0 }
     },
   })
 }
@@ -384,5 +392,27 @@ export function useHistorialUnidad(unidadId: string | undefined) {
         .map((item) => item.movimiento)
         .sort((a, b) => b.fecha.localeCompare(a.fecha) || b.numero - a.numero)
     },
+  })
+}
+
+// ---------------------------------------------------------------------
+// Importación desde Excel / CSV (migración 0018)
+// ---------------------------------------------------------------------
+
+/** Crea todos los productos (y el ajuste de stock inicial) en una sola transacción */
+export function useImportarProductos() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (productos: Json) => {
+      const { data, error } = await supabase.rpc('importar_productos', { p_productos: productos })
+      if (error) throw error
+      return data as { creados: number; ajuste_id: string | null }
+    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: productosKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['categorias'] }),
+        queryClient.invalidateQueries({ queryKey: ['movimientos'] }),
+      ]),
   })
 }

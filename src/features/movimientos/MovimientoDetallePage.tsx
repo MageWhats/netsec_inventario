@@ -1,47 +1,18 @@
-import { ArrowLeft, CheckCircle2, Printer, Undo2 } from 'lucide-react'
-import { useMemo } from 'react'
+import { ArrowLeft, CheckCircle2, FileDown, Loader2, Printer, Undo2 } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
 import { usePermisos } from '@/features/auth/permisos'
 import { etiquetaDocumento } from '@/features/clientes/schema'
+import { useEmpresa } from '@/features/configuracion/api'
+import { mensajeError } from '@/lib/errores'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
-import { useMovimiento, useMovimientosEnlazados, type MovimientoDetalle } from './api'
+import { useMovimiento, useMovimientosEnlazados } from './api'
 import { TipoMovimientoBadge } from './components/MovimientosTabla'
+import { agruparPorProducto, tituloDocumento } from './detalle'
 import { describirMotivo, esAjuste, formatearNumero, tiposMovimiento } from './tipos'
-
-interface GrupoProducto {
-  producto: NonNullable<MovimientoDetalle['items'][number]['producto']>
-  cantidad: number
-  valorUnitario: number | null
-  subtotal: number
-  seriales: { numero_serie: string; mac: string | null }[]
-}
-
-/** Agrupa las líneas por producto (los serializados tienen una línea por unidad) */
-function agruparPorProducto(movimiento: MovimientoDetalle): GrupoProducto[] {
-  const usaPrecio = movimiento.tipo === 'salida'
-  const grupos = new Map<string, GrupoProducto>()
-
-  for (const item of movimiento.items) {
-    if (!item.producto) continue
-    const valor = usaPrecio ? item.precio_unitario : item.costo_unitario
-    const grupo = grupos.get(item.producto.id) ?? {
-      producto: item.producto,
-      cantidad: 0,
-      valorUnitario: valor,
-      subtotal: 0,
-      seriales: [],
-    }
-    grupo.cantidad += item.cantidad
-    grupo.subtotal += item.cantidad * (valor ?? 0)
-    if (grupo.valorUnitario !== valor) grupo.valorUnitario = null // valores distintos en el mismo producto
-    if (item.unidad) grupo.seriales.push({ numero_serie: item.unidad.numero_serie, mac: item.unidad.mac })
-    grupos.set(item.producto.id, grupo)
-  }
-  return [...grupos.values()].sort((a, b) => a.producto.nombre.localeCompare(b.producto.nombre))
-}
 
 export function MovimientoDetallePage() {
   const { id = '' } = useParams()
@@ -51,6 +22,9 @@ export function MovimientoDetallePage() {
   const { data: enlazados } = useMovimientosEnlazados(movimiento)
   const grupos = useMemo(() => (movimiento ? agruparPorProducto(movimiento) : []), [movimiento])
   const { esAdmin, verCostos } = usePermisos()
+  const { data: empresa } = useEmpresa()
+  const [generandoPdf, setGenerandoPdf] = useState(false)
+  const [errorPdf, setErrorPdf] = useState<string | null>(null)
 
   if (isLoading) return <LoadingBlock />
 
@@ -78,6 +52,21 @@ export function MovimientoDetallePage() {
       ? movimiento.items.reduce((s, i) => s + i.cantidad * (i.costo_unitario ?? 0), 0)
       : null
 
+  async function descargarPdf() {
+    if (!movimiento) return
+    setGenerandoPdf(true)
+    setErrorPdf(null)
+    try {
+      // El generador (jsPDF) se descarga solo al pedir el primer PDF
+      const { descargarRemision } = await import('./remisionPdf')
+      await descargarRemision({ movimiento, grupos, empresa, mostrarValores })
+    } catch (e) {
+      setErrorPdf(`No se pudo generar el PDF: ${mensajeError(e)}`)
+    } finally {
+      setGenerandoPdf(false)
+    }
+  }
+
   return (
     <div className="print:text-black">
       <Link
@@ -98,9 +87,7 @@ export function MovimientoDetallePage() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <LogoImpresion className="mb-3" />
-          <p className="hidden text-sm print:block">
-            {movimiento.tipo === 'salida' ? 'Comprobante de salida / Remisión' : 'Comprobante de movimiento de inventario'}
-          </p>
+          <p className="hidden text-sm print:block">{tituloDocumento(movimiento.tipo)}</p>
           <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-2xl font-bold">
               {info.label} <span className="font-mono">{formatearNumero(movimiento)}</span>
@@ -125,8 +112,18 @@ export function MovimientoDetallePage() {
             <Printer className="size-4" />
             Imprimir
           </button>
+          <button onClick={descargarPdf} disabled={generandoPdf} className="btn btn-primary">
+            {generandoPdf ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+            {movimiento.tipo === 'salida' ? 'Remisión PDF' : 'Comprobante PDF'}
+          </button>
         </div>
       </div>
+
+      {errorPdf && (
+        <p role="alert" className="mb-6 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 print:hidden">
+          {errorPdf}
+        </p>
+      )}
 
       <section className="mb-6 rounded-2xl border border-brand-border bg-brand-card p-6 print:border-slate-300 print:bg-white">
         <dl className="grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -158,6 +155,13 @@ export function MovimientoDetallePage() {
             {movimiento.tipo === 'salida' ? (movimiento.referencia ?? 'Sin factura') : movimiento.referencia}
           </Dato>
           <Dato label="Bodega">{movimiento.bodega?.nombre}</Dato>
+          {movimiento.orden_compra_id && verCostos && (
+            <Dato label="Orden de compra">
+              <Link to={`/compras/${movimiento.orden_compra_id}`} className="hover:text-brand-cyan">
+                Ver orden
+              </Link>
+            </Dato>
+          )}
           <Dato label="Registrado por">{movimiento.usuario}</Dato>
           {enlazados?.origen && (
             <Dato label="Devolución de la venta">

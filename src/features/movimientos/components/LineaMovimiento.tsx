@@ -47,7 +47,7 @@ export function LineaMovimiento({ tipo, linea, error, onChange, onRemove, devolu
         <button
           type="button"
           onClick={onRemove}
-          className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-red-400"
+          className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-red-400"
           aria-label={`Quitar ${producto.nombre}`}
         >
           <Trash2 className="size-4" />

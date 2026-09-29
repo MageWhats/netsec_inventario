@@ -1,8 +1,21 @@
-import { Barcode, ChevronRight, Loader2, Pencil, Plus, Power, PowerOff, Search } from 'lucide-react'
+import {
+  Barcode,
+  ChevronRight,
+  FileSpreadsheet,
+  Loader2,
+  Package,
+  Pencil,
+  Plus,
+  Power,
+  PowerOff,
+  Search,
+  SearchX,
+} from 'lucide-react'
 import { useDeferredValue, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { BotonEscanear, type ResultadoEscaneo } from '@/components/ui/Escaner'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { usePermisos } from '@/features/auth/permisos'
 import { formatearPrecio } from '@/lib/format'
 import { useBusquedaSerie, useCategorias, useProductos, type Producto } from './api'
@@ -114,10 +127,16 @@ export function ProductosPage() {
         description="Catálogo de productos de consumo y de redes y seguridad"
         actions={
           esAdmin && (
-            <button onClick={abrirNuevo} className="btn btn-primary">
-              <Plus className="size-4" />
-              Nuevo producto
-            </button>
+            <div className="flex gap-2">
+              <Link to="/productos/importar" className="btn btn-secondary">
+                <FileSpreadsheet className="size-4" />
+                Importar
+              </Link>
+              <button onClick={abrirNuevo} className="btn btn-primary">
+                <Plus className="size-4" />
+                Nuevo producto
+              </button>
+            </div>
           )
         }
       />
@@ -172,26 +191,36 @@ export function ProductosPage() {
         ) : error ? (
           <p className="p-6 text-sm text-red-400">No se pudieron cargar los productos: {error.message}</p>
         ) : filtrados.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-500">
-            {productos.length === 0 ? (
-              <>
-                Aún no hay productos.
-                {esAdmin && (
-                  <>
-                    {' '}
-                    <button onClick={abrirNuevo} className="text-brand-cyan hover:underline">
-                      Crea el primero
+          productos.length === 0 ? (
+            <EstadoVacio
+              icono={Package}
+              titulo="Aún no hay productos"
+              descripcion="Crea tus productos uno por uno o impórtalos todos de una vez desde Excel, con su stock inicial."
+              accion={
+                esAdmin && (
+                  <div className="flex flex-wrap justify-center gap-2">
+                    <Link to="/productos/importar" className="btn btn-secondary">
+                      <FileSpreadsheet className="size-4" />
+                      Importar desde Excel
+                    </Link>
+                    <button onClick={abrirNuevo} className="btn btn-primary">
+                      <Plus className="size-4" />
+                      Crear el primero
                     </button>
-                  </>
-                )}
-              </>
-            ) : (
-              'Ningún producto coincide con los filtros.'
-            )}
-          </div>
+                  </div>
+                )
+              }
+            />
+          ) : (
+            <EstadoVacio
+              icono={SearchX}
+              titulo="Sin resultados"
+              descripcion="Ningún producto coincide con la búsqueda o los filtros."
+            />
+          )
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-tarjetas w-full text-sm">
               <thead className="border-b border-brand-border text-left text-xs tracking-wide text-slate-400 uppercase">
                 <tr>
                   <th className="px-4 py-3 font-medium">Producto</th>
@@ -275,9 +304,9 @@ function FilaProducto({ producto: p, esColor, serialCoincide, onAbrir, onEditar,
   return (
     <tr
       onClick={onAbrir}
-      className={`cursor-pointer transition hover:bg-white/[0.03] ${p.activo ? '' : 'opacity-50'} ${esColor ? 'bg-white/[0.015]' : ''}`}
+      className={`cursor-pointer transition hover:bg-tinte/[0.03] ${p.activo ? '' : 'opacity-50'} ${esColor ? 'bg-tinte/[0.015]' : ''}`}
     >
-      <td className={`py-3 pr-4 ${esColor ? 'pl-12' : 'pl-4'}`}>
+      <td data-principal data-sangria={esColor || undefined} className={`py-3 pr-4 ${esColor ? 'pl-12' : 'pl-4'}`}>
         <div className="flex items-center gap-3">
           <MiniaturaProducto url={p.imagen_url} nombre={p.nombre} />
           <div className="min-w-0">
@@ -301,20 +330,24 @@ function FilaProducto({ producto: p, esColor, serialCoincide, onAbrir, onEditar,
           </div>
         </div>
       </td>
-      <td className="px-4 py-3 text-slate-300">{esColor ? '' : (p.categoria?.nombre ?? '—')}</td>
-      <td className="px-4 py-3">{!esColor && <TipoControlBadge serializado={p.es_serializado} />}</td>
-      <td className="px-4 py-3 text-right">
+      <td data-label="Categoría" className="px-4 py-3 text-slate-300">
+        {esColor ? '' : (p.categoria?.nombre ?? '—')}
+      </td>
+      <td data-label="Control" className="px-4 py-3">
+        {!esColor && <TipoControlBadge serializado={p.es_serializado} />}
+      </td>
+      <td data-label="Stock" className="px-4 py-3 text-right">
         <StockBadge stock={p.stock} minimo={p.stock_minimo} />
       </td>
-      <td className="px-4 py-3 text-right whitespace-nowrap text-slate-300">
+      <td data-label="Precio venta" className="px-4 py-3 text-right whitespace-nowrap text-slate-300">
         {esColor ? '' : formatearPrecio(p.precio_venta)}
       </td>
-      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+      <td data-acciones className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-end gap-1">
           {onEditar && (
             <button
               onClick={onEditar}
-              className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+              className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-slate-200"
               title="Editar"
               aria-label={`Editar ${p.nombre}`}
             >
@@ -324,7 +357,7 @@ function FilaProducto({ producto: p, esColor, serialCoincide, onAbrir, onEditar,
           {onCambiarActivo && (
             <button
               onClick={onCambiarActivo}
-              className={`rounded-lg p-2 hover:bg-white/5 ${
+              className={`rounded-lg p-2 hover:bg-tinte/5 ${
                 p.activo ? 'text-slate-400 hover:text-red-400' : 'text-slate-400 hover:text-emerald-400'
               }`}
               title={p.activo ? 'Desactivar' : 'Reactivar'}
@@ -360,8 +393,8 @@ function FilaFamilia({ fila, abierta, onAlternar, onEditar, onAgregarColor, chil
 
   return (
     <>
-      <tr onClick={onAlternar} className="cursor-pointer transition hover:bg-white/[0.03]">
-        <td className="px-4 py-3">
+      <tr onClick={onAlternar} className="cursor-pointer transition hover:bg-tinte/[0.03]">
+        <td data-principal className="px-4 py-3">
           <div className="flex items-center gap-3">
             <MiniaturaProducto url={primero.imagen_url} nombre={familia.nombre} />
             <div className="min-w-0">
@@ -381,11 +414,13 @@ function FilaFamilia({ fila, abierta, onAlternar, onEditar, onAgregarColor, chil
             </div>
           </div>
         </td>
-        <td className="px-4 py-3 text-slate-300">{primero.categoria?.nombre ?? '—'}</td>
-        <td className="px-4 py-3">
+        <td data-label="Categoría" className="px-4 py-3 text-slate-300">
+          {primero.categoria?.nombre ?? '—'}
+        </td>
+        <td data-label="Control" className="px-4 py-3">
           <TipoControlBadge serializado={primero.es_serializado} />
         </td>
-        <td className="px-4 py-3 text-right">
+        <td data-label="Stock total" className="px-4 py-3 text-right">
           <span
             className={`inline-block min-w-8 rounded-full px-2 py-0.5 text-center font-semibold ${claseStock}`}
             title={
@@ -397,13 +432,15 @@ function FilaFamilia({ fila, abierta, onAlternar, onEditar, onAgregarColor, chil
             {total}
           </span>
         </td>
-        <td className="px-4 py-3 text-right whitespace-nowrap text-slate-300">{formatearPrecio(primero.precio_venta)}</td>
-        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <td data-label="Precio venta" className="px-4 py-3 text-right whitespace-nowrap text-slate-300">
+          {formatearPrecio(primero.precio_venta)}
+        </td>
+        <td data-acciones className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-end gap-1">
             {onAgregarColor && (
               <button
                 onClick={onAgregarColor}
-                className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-emerald-400"
+                className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-emerald-400"
                 title="Agregar color"
                 aria-label={`Agregar color a ${familia.nombre}`}
               >
@@ -413,7 +450,7 @@ function FilaFamilia({ fila, abierta, onAlternar, onEditar, onAgregarColor, chil
             {onEditar && (
               <button
                 onClick={onEditar}
-                className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-slate-200"
                 title="Editar (nombre, categoría, precio… de todos los colores)"
                 aria-label={`Editar ${familia.nombre}`}
               >

@@ -64,3 +64,57 @@ export function useResumenMensual(meses = 6) {
     },
   })
 }
+
+export interface ProductoVendido {
+  id: string
+  nombre: string
+  sku: string
+  unidades: number
+  total: number
+}
+
+/** Productos más vendidos (por unidades) desde el primer día del mes actual */
+export function useMasVendidosDelMes(limite = 5) {
+  return useQuery({
+    queryKey: ['dashboard', 'mas-vendidos', limite],
+    queryFn: async (): Promise<ProductoVendido[]> => {
+      const hoy = new Date()
+      const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+      const { filas } = await traerTodo((inicio, fin) =>
+        supabase
+          .from('movimiento_items')
+          .select(
+            'id, cantidad, precio_unitario, producto:productos(id, nombre, sku), movimiento:movimientos!inner(tipo, fecha)',
+          )
+          .eq('movimiento.tipo', 'salida')
+          .gte('movimiento.fecha', inicioMes.toISOString())
+          .order('id')
+          .range(inicio, fin),
+      )
+
+      const porProducto = new Map<string, ProductoVendido>()
+      for (const l of filas) {
+        const p = porProducto.get(l.producto.id) ?? { ...l.producto, unidades: 0, total: 0 }
+        p.unidades += l.cantidad
+        p.total += l.cantidad * (l.precio_unitario ?? 0)
+        porProducto.set(p.id, p)
+      }
+      return [...porProducto.values()].sort((a, b) => b.unidades - a.unidades || b.total - a.total).slice(0, limite)
+    },
+  })
+}
+
+/** Unidades enviadas a garantía (con el proveedor o en revisión) que aún no regresan */
+export function useUnidadesEnGarantia() {
+  return useQuery({
+    queryKey: ['dashboard', 'unidades-en-garantia'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('unidades')
+        .select('id', { count: 'exact', head: true })
+        .eq('estado', 'en_garantia')
+      if (error) throw error
+      return count ?? 0
+    },
+  })
+}

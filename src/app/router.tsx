@@ -29,6 +29,19 @@ export const router = createBrowserRouter([
             lazy: () => import('@/features/productos/ProductosPage').then((m) => ({ Component: m.ProductosPage })),
           },
           {
+            path: 'productos/importar',
+            element: <RequierePermiso permiso="esAdmin" />,
+            children: [
+              {
+                index: true,
+                lazy: () =>
+                  import('@/features/productos/ImportarProductosPage').then((m) => ({
+                    Component: m.ImportarProductosPage,
+                  })),
+              },
+            ],
+          },
+          {
             path: 'productos/:id',
             lazy: () =>
               import('@/features/productos/ProductoDetallePage').then((m) => ({ Component: m.ProductoDetallePage })),
@@ -56,6 +69,41 @@ export const router = createBrowserRouter([
               import('@/features/movimientos/MovimientoDetallePage').then((m) => ({
                 Component: m.MovimientoDetallePage,
               })),
+          },
+          {
+            path: 'seriales',
+            lazy: () => import('@/features/seriales/SerialesPage').then((m) => ({ Component: m.SerialesPage })),
+          },
+          {
+            path: 'compras',
+            element: <RequierePermiso permiso="verCostos" />,
+            children: [
+              {
+                index: true,
+                lazy: () => import('@/features/compras/OrdenesPage').then((m) => ({ Component: m.OrdenesPage })),
+              },
+              {
+                path: ':id',
+                lazy: () =>
+                  import('@/features/compras/OrdenDetallePage').then((m) => ({ Component: m.OrdenDetallePage })),
+              },
+              {
+                // Crear y editar: solo admin
+                element: <RequierePermiso permiso="esAdmin" />,
+                children: [
+                  {
+                    path: 'nueva',
+                    lazy: () =>
+                      import('@/features/compras/OrdenFormPage').then((m) => ({ Component: m.OrdenFormPage })),
+                  },
+                  {
+                    path: ':id/editar',
+                    lazy: () =>
+                      import('@/features/compras/OrdenFormPage').then((m) => ({ Component: m.OrdenFormPage })),
+                  },
+                ],
+              },
+            ],
           },
           {
             path: 'clientes',

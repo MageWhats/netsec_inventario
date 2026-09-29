@@ -7,6 +7,10 @@
   --color-brand-border: #1e293b;   /* Bordes sutiles de componentes */
   --color-brand-accent: #0772c7;   /* Azul principal Net&Sec (del degradado del logo) */
   --color-brand-cyan: #00b4f0;     /* Cian del logo, para enlaces y acentos */
+  /* Tinte para resaltar al pasar el mouse (bg-tinte/5): blanco en el tema oscuro, casi negro en el claro */
+  --color-tinte: #ffffff;
+  /* Texto principal */
+  --color-texto: #f8fafc;
 
   /* Tipografías (se cargan en main.tsx). font-display = Montserrat, la del logo */
   --font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, sans-serif;
@@ -15,9 +19,61 @@
 
 body {
   background-color: var(--color-brand-bg);
-  color: #f8fafc;
+  color: var(--color-texto);
   font-family: var(--font-sans);
   margin: 0;
+}
+
+/*
+ * Tema claro (botón en el menú; se guarda en el navegador). Se redefinen las variables del tema:
+ * los grises se invierten (slate-100 pasa a ser el más oscuro) y los colores de estado se oscurecen
+ * para que se lean sobre fondo blanco. El resto de la app no cambia.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --color-brand-bg: #f3f5f9;
+  --color-brand-card: #ffffff;
+  --color-brand-border: #e2e8f0;
+  --color-brand-cyan: #0369a1;
+  --color-tinte: #0f172a;
+  --color-texto: #0f172a;
+
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #475569;
+  --color-slate-500: #64748b;
+  --color-slate-600: #94a3b8;
+
+  --color-emerald-300: #065f46;
+  --color-emerald-400: #047857;
+  --color-red-300: #991b1b;
+  --color-red-400: #dc2626;
+  --color-amber-300: #92400e;
+  --color-amber-400: #b45309;
+  --color-blue-400: #1d4ed8;
+}
+
+:root:not([data-theme='light']) {
+  color-scheme: dark;
+}
+
+/* Siempre oscuro, aunque el tema sea claro: la animación de bienvenida (logo y eslogan en blanco) */
+.tema-oscuro {
+  color-scheme: dark;
+  --color-brand-bg: #0b0f19;
+  --color-brand-card: #121824;
+  --color-brand-border: #1e293b;
+  --color-brand-cyan: #00b4f0;
+  --color-tinte: #ffffff;
+  --color-texto: #f8fafc;
+  --color-slate-100: oklch(96.8% 0.007 247.896);
+  --color-slate-200: oklch(92.9% 0.013 255.508);
+  --color-slate-300: oklch(86.9% 0.022 252.894);
+  --color-slate-400: oklch(70.4% 0.04 256.788);
+  --color-slate-500: oklch(55.4% 0.046 257.417);
+  --color-slate-600: oklch(44.6% 0.043 257.281);
+  color: var(--color-texto);
 }
 
 @layer base {
@@ -55,7 +111,7 @@ body {
     background-color: var(--color-brand-bg);
     padding: 0.625rem 0.75rem;
     font-size: var(--text-sm);
-    color: #f8fafc;
+    color: var(--color-texto);
     outline: none;
     transition: border-color 150ms;
 
@@ -105,7 +161,7 @@ body {
     color: var(--color-slate-300);
 
     &:hover:not(:disabled) {
-      background-color: rgb(255 255 255 / 0.05);
+      background-color: color-mix(in oklab, var(--color-tinte) 5%, transparent);
     }
   }
 
@@ -116,5 +172,64 @@ body {
     &:hover:not(:disabled) {
       background-color: rgb(239 68 68 / 0.25);
     }
+  }
+}
+
+/*
+ * Tablas que en el teléfono se ven como tarjetas (clase tabla-tarjetas en el <table>). Cada fila pasa a ser
+ * una tarjeta: la celda data-principal arriba, las demás como "etiqueta: valor" en dos columnas (la etiqueta
+ * sale de data-label) y la celda data-acciones en la esquina. Fuera de las capas de Tailwind a propósito,
+ * para ganarle a los px-4 / py-3 de las celdas sin usar !important.
+ */
+@media (width < 48rem) {
+  .tabla-tarjetas thead {
+    display: none;
+  }
+  .tabla-tarjetas tbody,
+  .tabla-tarjetas tfoot {
+    display: block;
+  }
+  .tabla-tarjetas tr {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 0.75rem;
+    padding: 0.875rem 1rem;
+  }
+  .tabla-tarjetas td {
+    display: block;
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    text-align: left;
+  }
+  .tabla-tarjetas td[data-principal] {
+    grid-column: 1 / -1;
+  }
+  /* Espacio para los botones de la esquina */
+  .tabla-tarjetas tr:has(td[data-acciones] button) td[data-principal] {
+    padding-right: 5.5rem;
+  }
+  /* Los colores de un producto van con sangría bajo su producto */
+  .tabla-tarjetas td[data-principal][data-sangria] {
+    padding-left: 1.5rem;
+  }
+  .tabla-tarjetas td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.125rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--color-slate-500);
+  }
+  .tabla-tarjetas td[data-acciones] {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+  .tabla-tarjetas td[data-ocultar-movil],
+  .tabla-tarjetas td:empty {
+    display: none;
   }
 }

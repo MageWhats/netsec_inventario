@@ -28,7 +28,7 @@ export function FotoProducto({ producto }: { producto: Pick<Producto, 'id' | 'no
 
   return (
     <div className="space-y-2">
-      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border border-brand-border bg-white/[0.03]">
+      <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border border-brand-border bg-tinte/[0.03]">
         {producto.imagen_url && !rota ? (
           <img
             src={producto.imagen_url}
@@ -99,7 +99,7 @@ export function FotoProducto({ producto }: { producto: Pick<Producto, 'id' | 'no
 export function MiniaturaProducto({ url, nombre }: { url: string | null; nombre: string }) {
   const [rota, setRota] = useState(false)
   return (
-    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-brand-border bg-white/[0.03]">
+    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-brand-border bg-tinte/[0.03]">
       {url && !rota ? (
         <img src={url} alt="" title={nombre} loading="lazy" className="h-full w-full object-cover" onError={() => setRota(true)} />
       ) : (

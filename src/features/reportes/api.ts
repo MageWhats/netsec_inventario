@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { traerTodo } from '@/lib/paginar'
+import { traerCostosLineas, traerCostosProductos } from '@/lib/costos'
 import type { TipoMovimiento } from '@/features/movimientos/tipos'
 
 export interface FiltrosLineas {
@@ -11,8 +12,8 @@ export interface FiltrosLineas {
 }
 
 const SELECT_LINEA = `
-  id, cantidad, costo_unitario, precio_unitario,
-  producto:productos(id, sku, nombre, precio_costo, es_serializado, categoria:categorias(nombre)),
+  id, cantidad, precio_unitario,
+  producto:productos(id, sku, nombre, es_serializado, categoria:categorias(nombre)),
   unidad:unidades(id, numero_serie),
   movimiento:movimientos!inner(
     id, numero, tipo, fecha, referencia, notas, motivo,
@@ -31,16 +32,28 @@ export function useLineasMovimiento(filtros: FiltrosLineas) {
     placeholderData: (anterior) => anterior,
     enabled: Boolean(filtros.desde && filtros.hasta),
     queryFn: async () => {
-      const { filas } = await traerTodo((desde, hasta) => {
-        let query = supabase
-          .from('movimiento_items')
-          .select(SELECT_LINEA)
-          .gte('movimiento.fecha', new Date(`${filtros.desde}T00:00:00`).toISOString())
-          .lte('movimiento.fecha', new Date(`${filtros.hasta}T23:59:59.999`).toISOString())
-          .order('id')
-        if (filtros.tipo) query = query.eq('movimiento.tipo', filtros.tipo)
-        return query.range(desde, hasta)
-      }, LIMITE_LINEAS)
+      const inicio = new Date(`${filtros.desde}T00:00:00`).toISOString()
+      const fin = new Date(`${filtros.hasta}T23:59:59.999`).toISOString()
+      const [{ filas: datos }, costosLineas, costosProductos] = await Promise.all([
+        traerTodo((desde, hasta) => {
+          let query = supabase
+            .from('movimiento_items')
+            .select(SELECT_LINEA)
+            .gte('movimiento.fecha', inicio)
+            .lte('movimiento.fecha', fin)
+            .order('id')
+          if (filtros.tipo) query = query.eq('movimiento.tipo', filtros.tipo)
+          return query.range(desde, hasta)
+        }, LIMITE_LINEAS),
+        traerCostosLineas({ desde: inicio, hasta: fin }),
+        traerCostosProductos(),
+      ])
+      // Los costos llegan aparte: solo para quien ve costos (migración 0015)
+      const filas = datos.map((l) => ({
+        ...l,
+        costo_unitario: costosLineas.get(l.id) ?? null,
+        producto: { ...l.producto, precio_costo: costosProductos.get(l.producto.id) ?? 0 },
+      }))
       return filas.sort(
         (a, b) => a.movimiento.fecha.localeCompare(b.movimiento.fecha) || a.movimiento.numero - b.movimiento.numero,
       )

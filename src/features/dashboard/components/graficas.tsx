@@ -9,11 +9,12 @@ import type { ResumenMes } from '../api'
 const COLOR_ENTRADAS = '#059669'
 const COLOR_SALIDAS = '#0772c7'
 const COLOR_VALOR = '#0891b2'
-const COLOR_GRILLA = '#1e293b'
-const COLOR_EJE = '#94a3b8'
+// Grilla, ejes y cursor cambian con el tema (claro u oscuro): se leen de las variables de index.css
+const COLOR_GRILLA = 'var(--color-brand-border)'
+const COLOR_EJE = 'var(--color-slate-400)'
 
 const tick = { fill: COLOR_EJE, fontSize: 12 }
-const cursor = { fill: 'rgb(255 255 255 / 0.04)' }
+const cursor = { fill: 'color-mix(in oklab, var(--color-tinte) 4%, transparent)' }
 
 interface Serie {
   clave: string

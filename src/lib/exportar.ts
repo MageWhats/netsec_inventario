@@ -71,7 +71,7 @@ export async function exportarDocumento(formato: FormatoExportacion, doc: Docume
   return descargar(`${archivo}.pdf`, await pdf(doc))
 }
 
-function descargar(nombre: string, blob: Blob) {
+export function descargar(nombre: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
   const enlace = document.createElement('a')
   enlace.href = url
@@ -151,7 +151,7 @@ function htmlWord(doc: DocumentoExportable) {
 // ---------------------------------------------------------------------
 
 /** Las fuentes estándar del PDF solo tienen Latin-1: se cambian los pocos caracteres que quedan fuera */
-const latin1 = (texto: string) =>
+export const latin1 = (texto: string) =>
   texto
     .replace(/[\u2212\u2013\u2014]/g, '-')
     .replace(/\u2026/g, '...')
@@ -162,7 +162,7 @@ const latin1 = (texto: string) =>
     .replace(/[^\u0000-\u00ff]/g, '?')
 
 /** El logo es SVG; jsPDF necesita PNG: se dibuja en un canvas */
-async function logoPng(): Promise<{ data: string; ancho: number; alto: number } | null> {
+export async function logoPng(): Promise<{ data: string; ancho: number; alto: number } | null> {
   // El SVG solo trae viewBox (1110 × 1450), sin ancho ni alto: se fija el tamaño a mano
   const ancho = 555
   const alto = 725

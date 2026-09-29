@@ -59,6 +59,21 @@ export function CategoriaFormModal({ open, onClose, categoria }: CategoriaFormMo
         >
           <input className="input w-32 font-mono uppercase" maxLength={5} placeholder="SW" {...register('prefijo')} />
         </FormField>
+        <FormField
+          label="Garantía (meses) *"
+          error={errors.garantia_meses?.message}
+          hint="Desde la fecha de venta. 0 si sus productos no tienen garantía"
+        >
+          <input
+            type="number"
+            min={0}
+            max={120}
+            step={1}
+            inputMode="numeric"
+            className="input w-32"
+            {...register('garantia_meses', { valueAsNumber: true })}
+          />
+        </FormField>
 
         {errorGuardar && (
           <p role="alert" className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-400">

@@ -183,7 +183,7 @@ function ConteoSerializado({ fila, tomaId, editable, abierta, onAlternar }: Cont
       <button
         type="button"
         onClick={onAlternar}
-        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm hover:bg-white/5"
+        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm hover:bg-tinte/5"
         aria-expanded={abierta}
       >
         <span className="tabular-nums">{fila.contado ?? '—'}</span>

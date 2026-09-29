@@ -76,7 +76,7 @@ export function BodegasTab() {
                         <div className="flex justify-end gap-1">
                           <button
                             onClick={() => abrirFormulario(b)}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                            className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-slate-200"
                             title="Editar"
                             aria-label={`Editar ${b.nombre}`}
                           >
@@ -87,7 +87,7 @@ export function BodegasTab() {
                             <button
                               onClick={() => setCambiandoActiva(b)}
                               disabled={unicaActiva}
-                              className={`rounded-lg p-2 text-slate-400 hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 ${
+                              className={`rounded-lg p-2 text-slate-400 hover:bg-tinte/5 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400 ${
                                 b.activa ? 'hover:text-red-400' : 'hover:text-emerald-400'
                               }`}
                               title={unicaActiva ? 'Es la única bodega activa' : b.activa ? 'Desactivar' : 'Reactivar'}
@@ -99,7 +99,7 @@ export function BodegasTab() {
                             <button
                               onClick={() => setEliminando(b)}
                               disabled={unicaActiva}
-                              className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                              className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-slate-400"
                               title={unicaActiva ? 'Es la única bodega activa' : 'Eliminar'}
                               aria-label={`Eliminar ${b.nombre}`}
                             >

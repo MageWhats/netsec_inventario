@@ -1,4 +1,4 @@
-import { ArrowLeft, Plus, Save } from 'lucide-react'
+import { ArrowLeft, PackageCheck, Plus, Save } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Combobox } from '@/components/ui/Combobox'
@@ -10,6 +10,7 @@ import { usePermisos } from '@/features/auth/permisos'
 import { ClienteFormModal } from '@/features/clientes/components/ClienteFormModal'
 import { useClientes, type Cliente } from '@/features/clientes/api'
 import { etiquetaDocumento } from '@/features/clientes/schema'
+import { formatearOrden, useOrden, useRecibirOrden } from '@/features/compras/api'
 import { useProductos, type Producto } from '@/features/productos/api'
 import { StockBadge } from '@/features/productos/components/badges'
 import { ProveedorFormModal } from '@/features/proveedores/components/ProveedorFormModal'
@@ -76,8 +77,19 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   const { data: clientes = [] } = useClientes()
   const { data: proveedores = [] } = useProveedores()
   const { data: bodegas = [] } = useBodegas()
-  const registrar = useRegistrarMovimiento()
+  const registrarMovimiento = useRegistrarMovimiento()
+  const recibirOrden = useRecibirOrden()
   const { esAdmin, verCostos } = usePermisos()
+
+  // Recepción de una orden de compra (?orden=): proveedor fijo y solo los productos pendientes de la orden
+  const ordenId = tipo === 'entrada' ? params.get('orden') : null
+  const { data: orden } = useOrden(ordenId ?? '')
+  const pendientesOrden = new Map(
+    (ordenId ? (orden?.items ?? []) : [])
+      .filter((i) => i.recibido < i.cantidad)
+      .map((i) => [i.producto_id, { pendiente: i.cantidad - i.recibido, costo: i.costo_unitario }]),
+  )
+  const registrar = ordenId ? recibirOrden : registrarMovimiento
 
   const [fecha, setFecha] = useState(ahoraLocal)
   const [bodegaId, setBodegaId] = useState('')
@@ -107,6 +119,21 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   const [confirmando, setConfirmando] = useState(false)
   const [modalTercero, setModalTercero] = useState(false)
 
+  // Orden de compra: se precargan el proveedor y lo pendiente, al costo pactado (una sola vez)
+  const [ordenPrecargada, setOrdenPrecargada] = useState(false)
+  if (ordenId && orden && productos.length > 0 && !ordenPrecargada) {
+    setOrdenPrecargada(true)
+    setProveedorId(orden.proveedor_id)
+    setLineas(
+      productos
+        .filter((p) => p.activo && pendientesOrden.has(p.id))
+        .map((p) => {
+          const { pendiente, costo } = pendientesOrden.get(p.id)!
+          return { ...nuevaLinea(p, tipo, verCostos), cantidad: pendiente, valorUnitario: costo }
+        }),
+    )
+  }
+
   // Producto precargado desde ?producto= (p. ej. desde el detalle de un producto)
   const [productoInicial, setProductoInicial] = useState(params.get('producto'))
   if (productoInicial && productos.length > 0) {
@@ -133,7 +160,11 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   const idsEnUso = new Set(lineas.map((l) => l.producto.id))
   // En una devolución solo se pueden agregar productos de la venta de origen
   const productosSeleccionables = productos.filter(
-    (p) => p.activo && !idsEnUso.has(p.id) && (!esDevolucion || productosVenta.has(p.id)),
+    (p) =>
+      p.activo &&
+      !idsEnUso.has(p.id) &&
+      (!esDevolucion || productosVenta.has(p.id)) &&
+      (!ordenId || pendientesOrden.has(p.id)),
   )
 
   function agregarProducto(p: Producto | null) {
@@ -162,6 +193,8 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
     if (!p.activo) return { ok: false, mensaje: `${p.nombre} está inactivo.` }
     if (idsEnUso.has(p.id)) return { ok: false, mensaje: `${p.nombre} ya está en la lista.` }
     if (esDevolucion && !productosVenta.has(p.id)) return { ok: false, mensaje: `${p.nombre} no salió en esa venta.` }
+    if (ordenId && !pendientesOrden.has(p.id))
+      return { ok: false, mensaje: `${p.nombre} no está pendiente en la orden.` }
     if (!info.esEntrada && p.stock <= 0) return { ok: false, mensaje: `${p.nombre} no tiene stock.` }
     agregarProducto(p)
     return { ok: true, mensaje: p.nombre }
@@ -175,6 +208,13 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
 
   // ---- Validación (se muestra después del primer intento de guardar)
   const erroresLineas = validarLineas(tipo, lineas)
+  // Una orden no se puede recibir por encima de lo pedido
+  for (const l of lineas) {
+    const pendiente = pendientesOrden.get(l.producto.id)?.pendiente
+    if (pendiente !== undefined && !erroresLineas.has(l.key) && unidadesLinea(l) > pendiente) {
+      erroresLineas.set(l.key, `De la orden faltan por recibir ${pendiente}: no se puede recibir más.`)
+    }
+  }
   const erroresCabecera: Record<string, string> = {}
   if (!fecha) erroresCabecera.fecha = 'La fecha es obligatoria.'
   else if (fechaFutura) erroresCabecera.fecha = 'La fecha no puede ser futura.'
@@ -200,7 +240,27 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   }
 
   function guardar() {
-    registrar.mutate(
+    const alGuardar = {
+      onSuccess: (id: string) => {
+        guardado.current = true
+        navigate(`/movimientos/${id}`, { replace: true, state: { creado: true } })
+      },
+    }
+    if (ordenId) {
+      recibirOrden.mutate(
+        {
+          p_orden_id: ordenId,
+          p_items: construirItems(tipo, lineas),
+          p_bodega_id: bodegaId || null,
+          p_referencia: referencia,
+          p_notas: notas,
+          p_fecha: new Date(fecha).toISOString(),
+        },
+        alGuardar,
+      )
+      return
+    }
+    registrarMovimiento.mutate(
       {
         p_tipo: tipo,
         p_items: construirItems(tipo, lineas),
@@ -215,12 +275,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
         p_movimiento_origen_id: esDevolucion ? origenId || null : undefined,
         p_fecha: new Date(fecha).toISOString(),
       },
-      {
-        onSuccess: (id) => {
-          guardado.current = true
-          navigate(`/movimientos/${id}`, { replace: true, state: { creado: true } })
-        },
-      },
+      alGuardar,
     )
   }
 
@@ -241,6 +296,23 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
         </div>
         <p className="mt-1 text-sm text-slate-400">{info.descripcion}</p>
       </div>
+
+      {ordenId && (
+        <div className="mb-6 flex items-center gap-2 rounded-lg bg-brand-accent/10 px-4 py-3 text-sm text-brand-cyan">
+          <PackageCheck className="size-4 shrink-0" />
+          {orden ? (
+            <span>
+              Recepción de la orden de compra{' '}
+              <Link to={`/compras/${orden.id}`} className="font-mono font-medium underline-offset-2 hover:underline">
+                {formatearOrden(orden)}
+              </Link>
+              : se precargó lo que falta por recibir, al costo pactado. Ajusta las cantidades a lo que llegó.
+            </span>
+          ) : (
+            'Cargando la orden de compra…'
+          )}
+        </div>
+      )}
 
       <form onSubmit={onSubmit} noValidate className="space-y-6">
         {/* ---------- Datos generales ---------- */}
@@ -311,7 +383,12 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
               </FormField>
             )}
 
-            {tipo === 'entrada' && (
+            {tipo === 'entrada' && ordenId && (
+              <FormField label="Proveedor" hint="El de la orden de compra">
+                <p className="input cursor-not-allowed opacity-80">{orden?.proveedor_nombre ?? '…'}</p>
+              </FormField>
+            )}
+            {tipo === 'entrada' && !ordenId && (
               <FormField label="Proveedor">
                 <div className="flex gap-2">
                   <div className="flex-1">

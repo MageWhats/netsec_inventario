@@ -1,9 +1,10 @@
-import { Pencil, Plus, Power, PowerOff, Search } from 'lucide-react'
+import { Pencil, Plus, Power, PowerOff, Search, SearchX, Truck } from 'lucide-react'
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { useCambiarActivoProveedor, useProveedores, type Proveedor } from './api'
@@ -88,26 +89,30 @@ export function ProveedoresPage() {
         ) : error ? (
           <p className="p-6 text-sm text-red-400">No se pudieron cargar los proveedores: {error.message}</p>
         ) : filtrados.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-500">
-            {proveedores.length === 0 ? (
-              <>
-                Aún no hay proveedores.
-                {esAdmin && (
-                  <>
-                    {' '}
-                    <button onClick={() => abrirFormulario(null)} className="text-brand-cyan hover:underline">
-                      Crea el primero
-                    </button>
-                  </>
-                )}
-              </>
-            ) : (
-              'Ningún proveedor coincide con los filtros.'
-            )}
-          </div>
+          proveedores.length === 0 ? (
+            <EstadoVacio
+              icono={Truck}
+              titulo="Aún no hay proveedores"
+              descripcion="Registra a tus proveedores para asociarles las entradas y las órdenes de compra."
+              accion={
+                esAdmin && (
+                  <button onClick={() => abrirFormulario(null)} className="btn btn-primary">
+                    <Plus className="size-4" />
+                    Crear el primero
+                  </button>
+                )
+              }
+            />
+          ) : (
+            <EstadoVacio
+              icono={SearchX}
+              titulo="Sin resultados"
+              descripcion="Ningún proveedor coincide con la búsqueda o los filtros."
+            />
+          )
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-tarjetas w-full text-sm">
               <thead className="border-b border-brand-border text-left text-xs tracking-wide text-slate-400 uppercase">
                 <tr>
                   <th className="px-4 py-3 font-medium">Proveedor</th>
@@ -124,9 +129,9 @@ export function ProveedoresPage() {
                   <tr
                     key={c.id}
                     onClick={() => navigate(`/proveedores/${c.id}`)}
-                    className={`cursor-pointer transition hover:bg-white/[0.03] ${c.activo ? '' : 'opacity-50'}`}
+                    className={`cursor-pointer transition hover:bg-tinte/[0.03] ${c.activo ? '' : 'opacity-50'}`}
                   >
-                    <td className="px-4 py-3">
+                    <td data-principal className="px-4 py-3">
                       <Link
                         to={`/proveedores/${c.id}`}
                         onClick={(e) => e.stopPropagation()}
@@ -139,15 +144,21 @@ export function ProveedoresPage() {
                         {!c.activo && <span className="text-amber-400"> · Inactivo</span>}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{c.contacto ?? '—'}</td>
-                    <td className="px-4 py-3 text-slate-300">{c.telefono ?? '—'}</td>
-                    <td className="px-4 py-3 text-slate-300">{c.email ?? '—'}</td>
-                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <td data-label="Contacto" className="px-4 py-3 text-slate-300">
+                      {c.contacto ?? '—'}
+                    </td>
+                    <td data-label="Teléfono" className="px-4 py-3 text-slate-300">
+                      {c.telefono ?? '—'}
+                    </td>
+                    <td data-label="Email" className="px-4 py-3 text-slate-300">
+                      {c.email ?? '—'}
+                    </td>
+                    <td data-acciones className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       {esAdmin && (
                         <div className="flex justify-end gap-1">
                           <button
                             onClick={() => abrirFormulario(c)}
-                            className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+                            className="rounded-lg p-2 text-slate-400 hover:bg-tinte/5 hover:text-slate-200"
                             title="Editar"
                             aria-label={`Editar ${c.nombre}`}
                           >
@@ -155,7 +166,7 @@ export function ProveedoresPage() {
                           </button>
                           <button
                             onClick={() => setCambiandoActivo(c)}
-                            className={`rounded-lg p-2 text-slate-400 hover:bg-white/5 ${
+                            className={`rounded-lg p-2 text-slate-400 hover:bg-tinte/5 ${
                               c.activo ? 'hover:text-red-400' : 'hover:text-emerald-400'
                             }`}
                             title={c.activo ? 'Desactivar' : 'Reactivar'}

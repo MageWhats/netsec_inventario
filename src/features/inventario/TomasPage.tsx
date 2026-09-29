@@ -5,6 +5,7 @@ import { FormField } from '@/components/ui/FormField'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { Modal } from '@/components/ui/Modal'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { formatearFecha } from '@/lib/format'
@@ -47,15 +48,14 @@ export function TomasPage() {
         ) : error ? (
           <p className="p-6 text-sm text-red-400">{mensajeError(error)}</p>
         ) : tomas.length === 0 ? (
-          <div className="p-10 text-center text-sm text-slate-400">
-            <p>Aún no has hecho ninguna toma de inventario.</p>
-            <p className="mt-1 text-slate-500">
-              Inicia una, cuenta los productos (a mano o escaneando) y al finalizar se generan los ajustes.
-            </p>
-          </div>
+          <EstadoVacio
+            icono={ClipboardCheck}
+            titulo="Aún no hay tomas de inventario"
+            descripcion="Inicia una, cuenta los productos (a mano o escaneando) y al finalizar se generan los ajustes."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="tabla-tarjetas w-full text-sm">
               <thead className="border-b border-brand-border text-left text-xs tracking-wide text-slate-400 uppercase">
                 <tr>
                   <th className="px-4 py-3 font-medium">Número</th>
@@ -71,9 +71,9 @@ export function TomasPage() {
                   <tr
                     key={t.id}
                     onClick={() => navigate(`/inventario/${t.id}`)}
-                    className="cursor-pointer transition hover:bg-white/[0.03]"
+                    className="cursor-pointer transition hover:bg-tinte/[0.03]"
                   >
-                    <td className="px-4 py-3">
+                    <td data-principal className="px-4 py-3">
                       <Link
                         to={`/inventario/${t.id}`}
                         onClick={(e) => e.stopPropagation()}
@@ -82,15 +82,19 @@ export function TomasPage() {
                         #{t.numero}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-300">{formatearFecha(t.created_at)}</td>
-                    <td className="px-4 py-3 text-slate-300">{t.categoria_nombre ?? 'Todo el inventario'}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Iniciada" className="px-4 py-3 whitespace-nowrap text-slate-300">
+                      {formatearFecha(t.created_at)}
+                    </td>
+                    <td data-label="Alcance" className="px-4 py-3 text-slate-300">
+                      {t.categoria_nombre ?? 'Todo el inventario'}
+                    </td>
+                    <td data-label="Estado" className="px-4 py-3">
                       <EstadoTomaBadge estado={t.estado} />
                     </td>
-                    <td className="px-4 py-3 text-right text-slate-300 tabular-nums">
+                    <td data-label="Contados" className="px-4 py-3 text-right text-slate-300 tabular-nums">
                       {t.contados} / {t.productos}
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-400">
+                    <td data-label="Cerrada" className="px-4 py-3 whitespace-nowrap text-slate-400">
                       {t.cerrada_at ? formatearFecha(t.cerrada_at) : '—'}
                     </td>
                   </tr>
@@ -148,7 +152,7 @@ function NuevaTomaModal({ open, onClose }: { open: boolean; onClose: () => void 
           />
         </FormField>
 
-        <ul className="list-disc space-y-1 rounded-lg bg-white/[0.03] py-3 pr-3 pl-7 text-xs text-slate-400">
+        <ul className="list-disc space-y-1 rounded-lg bg-tinte/[0.03] py-3 pr-3 pl-7 text-xs text-slate-400">
           <li>Se incluyen los productos activos del alcance elegido.</li>
           <li>Puedes contar en varias sesiones y desde varios teléfonos a la vez.</li>
           <li>

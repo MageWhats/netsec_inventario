@@ -1,16 +1,36 @@
-import { AlertTriangle, ArrowDownToLine, ArrowDownRight, ArrowUpFromLine, ArrowUpRight, ChevronRight } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowDownRight,
+  ArrowDownToLine,
+  ArrowLeftRight,
+  ArrowUpFromLine,
+  ArrowUpRight,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardCheck,
+  PackageCheck,
+  PackageX,
+  ShieldAlert,
+  ShoppingCart,
+  TrendingUp,
+  type LucideIcon,
+} from 'lucide-react'
 import { useMemo, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { PageHeader } from '@/components/ui/PageHeader'
-import { usePermisos } from '@/features/auth/permisos'
+import { usePerfil, usePermisos } from '@/features/auth/permisos'
+import { estaAtrasada, formatearOrden, useOrdenes } from '@/features/compras/api'
+import { useTomas } from '@/features/inventario/api'
+import { fechaIso } from '@/lib/exportar'
 import { mensajeError } from '@/lib/errores'
 import { formatearPrecio, formatearPrecioCompacto } from '@/lib/format'
 import { useMovimientos } from '@/features/movimientos/api'
 import { MovimientosTabla } from '@/features/movimientos/components/MovimientosTabla'
 import { useProductos, type Producto } from '@/features/productos/api'
 import { StockBadge } from '@/features/productos/components/badges'
-import { useResumenMensual } from './api'
+import { useMasVendidosDelMes, useResumenMensual, useUnidadesEnGarantia } from './api'
 import { MovimientosPorMesChart, ValorPorCategoriaChart, type ValorCategoria } from './components/graficas'
 
 /** Categorías que se muestran por separado; el resto se agrupa en "Otras" */
@@ -21,6 +41,11 @@ export function DashboardPage() {
   const resumen = useResumenMensual(6)
   const recientes = useMovimientos({ limite: 6 })
   const { puedeOperar, verCostos } = usePermisos()
+  const { data: perfil } = usePerfil()
+  const tomas = useTomas()
+  const ordenesAbiertas = useOrdenes('abierta', verCostos)
+  const enGarantia = useUnidadesEnGarantia()
+  const masVendidos = useMasVendidosDelMes()
 
   const activos = useMemo(() => (productos.data ?? []).filter((p) => p.activo), [productos.data])
   const porReponer = useMemo(
@@ -34,12 +59,68 @@ export function DashboardPage() {
   const meses = resumen.data ?? []
   const mesActual = meses.at(-1)
   const mesAnterior = meses.at(-2)
+  const hoy = new Date()
+  const inicioMes = fechaIso(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
+
+  // Lo que conviene atender hoy: cada aviso lleva a la lista donde se resuelve
+  const sinStock = porReponer.filter((p) => p.stock <= 0).length
+  const bajoMinimo = porReponer.length - sinStock
+  const tomaEnCurso = tomas.data?.find((t) => t.estado === 'en_curso')
+  const ordenes = ordenesAbiertas.data ?? []
+  const atrasadas = ordenes.filter(estaAtrasada)
+  const candidatos: (Aviso | false | undefined)[] = [
+    sinStock > 0 && {
+      icono: PackageX,
+      tono: 'rojo',
+      valor: sinStock,
+      texto: sinStock === 1 ? 'producto sin stock' : 'productos sin stock',
+      to: '/productos?stock=bajo',
+    },
+    bajoMinimo > 0 && {
+      icono: AlertTriangle,
+      tono: 'ambar',
+      valor: bajoMinimo,
+      texto: 'en o bajo el stock mínimo',
+      to: '/productos?stock=bajo',
+    },
+    tomaEnCurso && {
+      icono: ClipboardCheck,
+      tono: 'azul',
+      valor: `#${tomaEnCurso.numero}`,
+      texto: `toma en curso · ${tomaEnCurso.contados} de ${tomaEnCurso.productos} contados`,
+      to: `/inventario/${tomaEnCurso.id}`,
+    },
+    atrasadas.length > 0 && {
+      icono: ShoppingCart,
+      tono: 'rojo',
+      valor: atrasadas.length,
+      texto:
+        atrasadas.length === 1 ? `orden atrasada (${formatearOrden(atrasadas[0]!)})` : 'órdenes de compra atrasadas',
+      to: atrasadas.length === 1 ? `/compras/${atrasadas[0]!.id}` : '/compras',
+    },
+    ordenes.length > atrasadas.length && {
+      icono: PackageCheck,
+      tono: 'azul',
+      valor: ordenes.length - atrasadas.length,
+      texto: 'órdenes de compra por recibir',
+      to: '/compras',
+    },
+    (enGarantia.data ?? 0) > 0 && {
+      icono: ShieldAlert,
+      tono: 'ambar',
+      valor: enGarantia.data!,
+      texto: enGarantia.data === 1 ? 'unidad en garantía' : 'unidades en garantía',
+      to: '/seriales?estado=en_garantia',
+    },
+  ]
+  const avisos = candidatos.filter((a): a is Aviso => Boolean(a))
+  const cargandoAvisos = productos.isLoading || tomas.isLoading || enGarantia.isLoading
 
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        description="Resumen del inventario"
+        title={saludo(perfil?.nombre)}
+        description={new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).format(hoy)}
         actions={
           puedeOperar && (
             <div className="flex gap-2">
@@ -65,6 +146,7 @@ export function DashboardPage() {
             cargando={productos.isLoading}
             valor={formatearPrecioCompacto(valorInventario)}
             detalle={`${formatearPrecio(valorInventario)} a precio de costo`}
+            to="/reportes"
           />
         )}
         <StatTile
@@ -72,6 +154,7 @@ export function DashboardPage() {
           cargando={productos.isLoading}
           valor={unidadesEnStock.toLocaleString('es-CO')}
           detalle={`${activos.filter((p) => p.stock > 0).length} de ${activos.length} productos con existencias`}
+          to="/productos"
         />
         <StatTile
           label="Ventas del mes"
@@ -85,6 +168,7 @@ export function DashboardPage() {
               </>
             )
           }
+          to={`/movimientos?tipo=salida&desde=${inicioMes}`}
         />
         <StatTile
           label="Productos por reponer"
@@ -95,6 +179,24 @@ export function DashboardPage() {
           to={porReponer.length > 0 ? '/productos?stock=bajo' : undefined}
         />
       </div>
+
+      <section className="mb-6" aria-label="Requiere atención">
+        <h2 className="mb-3 text-sm font-medium text-slate-400">Requiere atención</h2>
+        {cargandoAvisos ? (
+          <div className="h-16 animate-pulse rounded-2xl bg-tinte/5" />
+        ) : avisos.length === 0 ? (
+          <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-400">
+            <CheckCircle2 className="size-5 shrink-0" />
+            Todo en orden: no hay productos por reponer, tomas abiertas ni pendientes.
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {avisos.map((a) => (
+              <AvisoCard key={a.texto} {...a} />
+            ))}
+          </div>
+        )}
+      </section>
 
       <div className="mb-6 grid gap-4 lg:grid-cols-5">
         {resumen.isLoading ? (
@@ -121,12 +223,20 @@ export function DashboardPage() {
           {productos.isLoading ? (
             <LoadingBlock />
           ) : porReponer.length === 0 ? (
-            <p className="px-5 pb-5 text-sm text-slate-500">Todos los productos activos están por encima de su stock mínimo.</p>
+            <EstadoVacio
+              compacto
+              icono={CheckCircle2}
+              titulo="Nada por reponer"
+              descripcion="Todos los productos activos están por encima de su stock mínimo."
+            />
           ) : (
             <ul className="divide-y divide-brand-border">
               {porReponer.slice(0, 6).map((p) => (
                 <li key={p.id}>
-                  <Link to={`/productos/${p.id}`} className="flex items-center gap-3 px-5 py-3 transition hover:bg-white/[0.03]">
+                  <Link
+                    to={`/productos/${p.id}`}
+                    className="flex items-center gap-3 px-5 py-3 transition hover:bg-tinte/[0.03]"
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{p.nombre}</p>
                       <p className="font-mono text-xs text-slate-500">{p.sku}</p>
@@ -148,11 +258,105 @@ export function DashboardPage() {
           ) : recientes.data?.movimientos.length ? (
             <MovimientosTabla movimientos={recientes.data.movimientos} />
           ) : (
-            <p className="px-5 pb-5 text-sm text-slate-500">Todavía no hay movimientos registrados.</p>
+            <EstadoVacio
+              compacto
+              icono={ArrowLeftRight}
+              titulo="Sin movimientos todavía"
+              descripcion="Las entradas, salidas y ajustes que registres aparecerán aquí."
+              accion={
+                puedeOperar && (
+                  <Link to="/movimientos/nuevo/entrada" className="btn btn-primary">
+                    <ArrowDownToLine className="size-4" />
+                    Registrar la primera entrada
+                  </Link>
+                )
+              }
+            />
           )}
         </Tarjeta>
       </div>
+
+      <Tarjeta className="mt-4" titulo="Más vendidos del mes" enlace={`/movimientos?tipo=salida&desde=${inicioMes}`}>
+        {masVendidos.isLoading ? (
+          <LoadingBlock />
+        ) : masVendidos.error ? (
+          <p className="px-5 pb-5 text-sm text-red-400">{mensajeError(masVendidos.error)}</p>
+        ) : !masVendidos.data?.length ? (
+          <EstadoVacio
+            compacto
+            icono={TrendingUp}
+            titulo="Aún no hay ventas este mes"
+            descripcion="Cuando registres salidas, aquí verás los productos que más se venden."
+          />
+        ) : (
+          <ol className="grid gap-x-8 px-5 pb-5 md:grid-cols-2">
+            {masVendidos.data.map((p, i, lista) => (
+              <li key={p.id}>
+                <Link to={`/productos/${p.id}`} className="group flex items-center gap-3 py-2.5">
+                  <span className="w-5 text-right font-display text-sm font-semibold text-slate-500">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="truncate text-sm font-medium group-hover:text-brand-cyan">{p.nombre}</p>
+                      <span className="text-xs whitespace-nowrap text-slate-400">
+                        {p.unidades} und. · {formatearPrecioCompacto(p.total)}
+                      </span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-tinte/5">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-brand-accent to-brand-cyan"
+                        style={{ width: `${(p.unidades / lista[0]!.unidades) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        )}
+      </Tarjeta>
     </>
+  )
+}
+
+/** "Buenos días, Johan" según la hora (sin nombre si el perfil solo tiene el correo) */
+function saludo(nombre: string | null | undefined) {
+  const hora = new Date().getHours()
+  const momento = hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
+  const primerNombre = nombre && !nombre.includes('@') ? nombre.trim().split(/\s+/)[0] : null
+  return primerNombre ? `${momento}, ${primerNombre}` : momento
+}
+
+type Tono = 'rojo' | 'ambar' | 'azul'
+
+interface Aviso {
+  icono: LucideIcon
+  tono: Tono
+  valor: ReactNode
+  texto: string
+  to: string
+}
+
+const TONOS: Record<Tono, { borde: string; icono: string }> = {
+  rojo: { borde: 'border-red-500/30', icono: 'bg-red-500/10 text-red-400' },
+  ambar: { borde: 'border-amber-500/30', icono: 'bg-amber-500/10 text-amber-400' },
+  azul: { borde: 'border-brand-accent/40', icono: 'bg-brand-accent/15 text-brand-cyan' },
+}
+
+function AvisoCard({ icono: Icono, tono, valor, texto, to }: Aviso) {
+  return (
+    <Link
+      to={to}
+      className={`group flex items-center gap-4 rounded-2xl border bg-brand-card px-4 py-3 transition hover:bg-tinte/[0.03] ${TONOS[tono].borde}`}
+    >
+      <span className={`flex size-10 shrink-0 items-center justify-center rounded-xl ${TONOS[tono].icono}`}>
+        <Icono className="size-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-display text-xl leading-tight font-semibold">{valor}</span>
+        <span className="block truncate text-sm text-slate-400">{texto}</span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5" />
+    </Link>
   )
 }
 
@@ -192,7 +396,7 @@ function StatTile({ label, valor, detalle, cargando, alerta, to }: StatTileProps
         {label}
       </p>
       {cargando ? (
-        <div className="mt-3 h-8 w-24 animate-pulse rounded-md bg-white/5" />
+        <div className="mt-3 h-8 w-24 animate-pulse rounded-md bg-tinte/5" />
       ) : (
         <p className="mt-2 font-display text-2xl font-semibold sm:text-3xl">{valor}</p>
       )}
@@ -202,7 +406,7 @@ function StatTile({ label, valor, detalle, cargando, alerta, to }: StatTileProps
 
   const clases = `rounded-2xl border bg-brand-card p-5 ${alerta ? 'border-amber-500/40' : 'border-brand-border'}`
   return to ? (
-    <Link to={to} className={`${clases} block transition hover:bg-white/[0.03]`}>
+    <Link to={to} className={`${clases} block transition hover:bg-tinte/[0.03]`}>
       {contenido}
     </Link>
   ) : (

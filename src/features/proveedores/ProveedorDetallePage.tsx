@@ -1,8 +1,9 @@
-import { ArrowDownToLine, ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowDownToLine, ArrowLeft, PackageOpen, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
+import { EstadoVacio } from '@/components/ui/EstadoVacio'
 import { usePermisos } from '@/features/auth/permisos'
 import { useMovimientos } from '@/features/movimientos/api'
 import { MovimientosTabla } from '@/features/movimientos/components/MovimientosTabla'
@@ -84,7 +85,7 @@ export function ProveedorDetallePage() {
         ) : entradas.error ? (
           <p className="p-6 text-sm text-red-400">No se pudo cargar el historial: {entradas.error.message}</p>
         ) : !entradas.data?.movimientos.length ? (
-          <p className="p-10 text-center text-sm text-slate-500">Todavía no hay entradas de este proveedor.</p>
+          <EstadoVacio compacto icono={PackageOpen} titulo="Todavía no hay entradas de este proveedor" />
         ) : (
           <MovimientosTabla movimientos={entradas.data.movimientos} />
         )}

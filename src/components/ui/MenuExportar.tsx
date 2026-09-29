@@ -76,7 +76,7 @@ export function MenuExportar({ documento, disabled, className = '' }: MenuExport
               type="button"
               role="menuitem"
               onClick={() => exportar(formato)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-200 hover:bg-white/5"
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-200 hover:bg-tinte/5"
             >
               <Icono className="size-4 text-slate-400" />
               {label}

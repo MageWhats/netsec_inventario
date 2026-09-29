@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FunctionsFetchError, FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import type { Enums, TablesInsert } from '@/types/database'
+import type { Enums, TablesInsert, TablesUpdate } from '@/types/database'
 
 // Prefijos compartidos con useCategorias() (productos) y useBodegas() (movimientos):
 // al invalidarlos se refrescan también los selectores del resto de la app.
@@ -20,9 +20,10 @@ export function useCategoriasConUso() {
   return useQuery({
     queryKey: categoriasKeys.conUso(),
     queryFn: async () => {
-      const { data, error } = await supabase.from('categorias').select('*, productos(count)').order('nombre')
+      // productos(count) lee la fila completa y choca con el permiso por columnas de 0015 (precio_costo)
+      const { data, error } = await supabase.from('categorias').select('*, productos(id)').order('nombre')
       if (error) throw error
-      return data.map(({ productos, ...categoria }) => ({ ...categoria, productos: productos[0]?.count ?? 0 }))
+      return data.map(({ productos, ...categoria }) => ({ ...categoria, productos: productos.length }))
     },
   })
 }
@@ -101,6 +102,34 @@ export function useEliminarBodega() {
       if (error) throw error
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: bodegasKeys.all }),
+  })
+}
+
+// ---------------------------------------------------------------------
+// Empresa: una sola fila con los datos que encabezan los documentos (migración 0016)
+// ---------------------------------------------------------------------
+const empresaKeys = { all: ['empresa'] as const }
+
+export function useEmpresa() {
+  return useQuery({
+    queryKey: empresaKeys.all,
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from('empresa').select('*').maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useGuardarEmpresa() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (valores: TablesUpdate<'empresa'>) => {
+      const { error } = await supabase.from('empresa').update(valores).eq('id', true)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: empresaKeys.all }),
   })
 }
 

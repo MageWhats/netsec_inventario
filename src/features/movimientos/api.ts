@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { traerTodo } from '@/lib/paginar'
+import { traerCostosLineas } from '@/lib/costos'
 import type { Database, Enums, Views } from '@/types/database'
-import { serieMovimiento, TIPOS_MOVIMIENTO, type TipoMovimiento } from './tipos'
+import { parsearNumeroMovimiento, type TipoMovimiento } from './tipos'
 
 export type MovimientoResumen = Views<'movimientos_resumen'>
 
@@ -50,12 +51,12 @@ export function useMovimientos(filtros: FiltrosMovimientos) {
           `notas.ilike.%${texto}%`,
         ]
         // Número de movimiento: "12" (cualquier serie) o con prefijo, "NetE-000012" / "e12", para una sola serie
-        const consecutivo = /^#?(?:net)?([esa])?-?(\d+)$/i.exec(texto)
-        const numero = Number(consecutivo?.[2])
-        if (consecutivo && numero > 0) {
-          const serie = consecutivo[1]?.toUpperCase()
-          const tipos = serie ? TIPOS_MOVIMIENTO.filter((t) => serieMovimiento(t) === serie) : []
-          condiciones.push(tipos.length ? `and(numero.eq.${numero},tipo.in.(${tipos.join(',')}))` : `numero.eq.${numero}`)
+        const consecutivo = parsearNumeroMovimiento(texto)
+        if (consecutivo) {
+          const { numero, tipos } = consecutivo
+          condiciones.push(
+            tipos.length ? `and(numero.eq.${numero},tipo.in.(${tipos.join(',')}))` : `numero.eq.${numero}`,
+          )
         }
         query = query.or(condiciones.join(','))
       }
@@ -73,8 +74,8 @@ const SELECT_DETALLE = `
   proveedor:proveedores(id, nombre, nit),
   cliente:clientes(id, nombre, tipo_documento, documento),
   items:movimiento_items(
-    id, cantidad, costo_unitario, precio_unitario,
-    producto:productos(id, sku, nombre, es_serializado),
+    id, cantidad, precio_unitario,
+    producto:productos(id, sku, nombre, es_serializado, categoria:categorias(garantia_meses)),
     unidad:unidades(id, numero_serie, mac, estado)
   )
 `
@@ -84,9 +85,14 @@ export function useMovimiento(id: string, enabled = true) {
     queryKey: movimientosKeys.detalle(id),
     enabled: enabled && Boolean(id),
     queryFn: async () => {
-      const { data, error } = await supabase.from('movimientos').select(SELECT_DETALLE).eq('id', id).maybeSingle()
+      const [{ data, error }, costos] = await Promise.all([
+        supabase.from('movimientos').select(SELECT_DETALLE).eq('id', id).maybeSingle(),
+        traerCostosLineas({ movimientoId: id }),
+      ])
       if (error) throw error
       if (!data) return null
+      // El costo de cada línea solo llega a quien ve costos (migración 0015); para el resto queda en null
+      const items = data.items.map((i) => ({ ...i, costo_unitario: costos.get(i.id) ?? null }))
 
       // usuario_id apunta a auth.users; el nombre visible está en perfiles
       let usuario: string | null = null
@@ -94,7 +100,7 @@ export function useMovimiento(id: string, enabled = true) {
         const { data: perfil } = await supabase.from('perfiles').select('nombre').eq('id', data.usuario_id).maybeSingle()
         usuario = perfil?.nombre ?? null
       }
-      return { ...data, usuario }
+      return { ...data, items, usuario }
     },
   })
 }

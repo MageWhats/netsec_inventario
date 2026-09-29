@@ -61,12 +61,91 @@ export type Database = {
         }
         Relationships: []
       }
+      empresa: {
+        Row: {
+          id: boolean
+          nombre: string
+          nit: string | null
+          direccion: string | null
+          ciudad: string | null
+          telefono: string | null
+          email: string | null
+          sitio_web: string | null
+          pie_documentos: string | null
+          updated_at: string
+        }
+        Insert: never
+        Update: {
+          nombre?: string
+          nit?: string | null
+          direccion?: string | null
+          ciudad?: string | null
+          telefono?: string | null
+          email?: string | null
+          sitio_web?: string | null
+          pie_documentos?: string | null
+        }
+        Relationships: []
+      }
+      ordenes_compra: {
+        Row: {
+          id: string
+          numero: number
+          proveedor_id: string
+          estado: Database['public']['Enums']['estado_orden_compra']
+          fecha_esperada: string | null
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          updated_at: string
+          cerrada_at: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'ordenes_compra_proveedor_id_fkey'
+            columns: ['proveedor_id']
+            isOneToOne: false
+            referencedRelation: 'proveedores'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      orden_compra_items: {
+        Row: {
+          id: string
+          orden_id: string
+          producto_id: string
+          cantidad: number
+          costo_unitario: number
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'orden_compra_items_orden_id_fkey'
+            columns: ['orden_id']
+            isOneToOne: false
+            referencedRelation: 'ordenes_compra'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'orden_compra_items_producto_id_fkey'
+            columns: ['producto_id']
+            isOneToOne: false
+            referencedRelation: 'productos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       categorias: {
         Row: {
           id: string
           nombre: string
           prefijo: string
           ultimo_sku: number
+          garantia_meses: number
           created_at: string
         }
         Insert: {
@@ -74,6 +153,7 @@ export type Database = {
           nombre: string
           prefijo: string
           ultimo_sku?: number
+          garantia_meses?: number
           created_at?: string
         }
         Update: {
@@ -81,6 +161,7 @@ export type Database = {
           nombre?: string
           prefijo?: string
           ultimo_sku?: number
+          garantia_meses?: number
           created_at?: string
         }
         Relationships: []
@@ -366,6 +447,7 @@ export type Database = {
           created_at: string
           motivo: Database['public']['Enums']['motivo_ajuste'] | null
           movimiento_origen_id: string | null
+          orden_compra_id: string | null
         }
         Insert: {
           id?: string
@@ -587,6 +669,44 @@ export type Database = {
       }
     }
     Views: {
+      ordenes_compra_resumen: {
+        Row: {
+          id: string
+          numero: number
+          proveedor_id: string
+          proveedor_nombre: string
+          estado: Database['public']['Enums']['estado_orden_compra']
+          fecha_esperada: string | null
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          cerrada_at: string | null
+          lineas: number
+          unidades: number
+          recibidas: number
+          total: number
+        }
+        Relationships: []
+      }
+      orden_compra_items_estado: {
+        Row: {
+          id: string
+          orden_id: string
+          producto_id: string
+          cantidad: number
+          costo_unitario: number
+          recibido: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'orden_compra_items_producto_id_fkey'
+            columns: ['producto_id']
+            isOneToOne: false
+            referencedRelation: 'productos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       tomas_resumen: {
         Row: {
           id: string
@@ -720,6 +840,47 @@ export type Database = {
         Args: { p_toma_id: string }
         Returns: undefined
       }
+      ver_costos: {
+        Args: never
+        Returns: boolean
+      }
+      costos_productos: {
+        Args: never
+        Returns: { producto_id: string; precio_costo: number }[]
+      }
+      guardar_orden_compra: {
+        Args: {
+          p_proveedor_id: string
+          p_items: Json
+          p_id?: string | null
+          p_fecha_esperada?: string | null
+          p_notas?: string | null
+        }
+        Returns: string
+      }
+      cancelar_orden_compra: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      recibir_orden_compra: {
+        Args: {
+          p_orden_id: string
+          p_items: Json
+          p_referencia?: string | null
+          p_notas?: string | null
+          p_fecha?: string | null
+          p_bodega_id?: string | null
+        }
+        Returns: string
+      }
+      importar_productos: {
+        Args: { p_productos: Json }
+        Returns: Json
+      }
+      costos_lineas: {
+        Args: { p_movimiento_id?: string | null; p_desde?: string | null; p_hasta?: string | null }
+        Returns: { id: string; costo_unitario: number | null }[]
+      }
     }
     Enums: {
       rol_usuario: 'admin' | 'bodega' | 'lectura'
@@ -727,6 +888,7 @@ export type Database = {
       estado_unidad: 'disponible' | 'vendida' | 'en_garantia' | 'danada' | 'baja'
       tipo_documento: 'CC' | 'NIT' | 'CE' | 'PAS' | 'TI' | 'OTRO'
       estado_toma: 'en_curso' | 'finalizada' | 'cancelada'
+      estado_orden_compra: 'abierta' | 'recibida' | 'cancelada'
       motivo_ajuste:
         | 'inventario_inicial'
         | 'sobrante_conteo'

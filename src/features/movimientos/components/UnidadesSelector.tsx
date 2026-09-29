@@ -98,7 +98,7 @@ export function UnidadesSelector({ productoId, estados, seleccionadas, onChange,
       <ul className="max-h-56 divide-y divide-brand-border overflow-y-auto rounded-lg border border-brand-border">
         {visibles.map((u) => (
           <li key={u.id}>
-            <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-white/[0.03]">
+            <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-tinte/[0.03]">
               <input
                 type="checkbox"
                 checked={marcadas.has(u.id)}
