@@ -26,7 +26,7 @@ interface OpcionesRemision {
  * del cliente o proveedor, productos con sus seriales, garantía, totales y espacio para las firmas.
  * No incluye datos internos como el costo de lo vendido o el margen.
  */
-export async function descargarRemision({ movimiento, grupos, empresa, mostrarValores }: OpcionesRemision) {
+export async function generarRemision({ movimiento, grupos, empresa, mostrarValores }: OpcionesRemision) {
   const [{ jsPDF }, { autoTable }, logo] = await Promise.all([import('jspdf'), import('jspdf-autotable'), logoPng()])
   const pdf = new jsPDF({ unit: 'pt', format: 'a4' })
   const ancho = pdf.internal.pageSize.getWidth()
@@ -241,5 +241,9 @@ export async function descargarRemision({ movimiento, grupos, empresa, mostrarVa
     pdf.text(`Página ${i} de ${paginas}`, ancho - margen, alto - 22, { align: 'right' })
   }
 
-  descargar(`${formatearNumero(movimiento)}.pdf`, pdf.output('blob'))
+  return pdf.output('blob')
+}
+
+export async function descargarRemision(opciones: OpcionesRemision) {
+  descargar(`${formatearNumero(opciones.movimiento)}.pdf`, await generarRemision(opciones))
 }

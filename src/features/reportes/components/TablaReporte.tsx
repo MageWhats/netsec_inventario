@@ -1,10 +1,10 @@
-import { Printer } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { Loader2, Printer } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
 import { MenuExportar } from '@/components/ui/MenuExportar'
 import { mensajeError } from '@/lib/errores'
-import type { Celda, DocumentoExportable } from '@/lib/exportar'
+import { imprimirDocumento, type Celda, type DocumentoExportable } from '@/lib/exportar'
 
 /** Una misma definición alimenta la tabla en pantalla, la impresión y la exportación (Excel, PDF, Word) */
 export interface Columna<T> {
@@ -104,18 +104,41 @@ export function Reporte({
   puedeExportar,
   children,
 }: ReporteProps) {
+  const [imprimiendo, setImprimiendo] = useState(false)
+  const [errorImpresion, setErrorImpresion] = useState<string | null>(null)
+  const documento = () => ({ titulo, subtitulo, ...exportar() })
+
+  /** Imprime el mismo PDF que se exporta: lo impreso y el archivo son idénticos */
+  async function imprimir() {
+    setImprimiendo(true)
+    setErrorImpresion(null)
+    try {
+      await imprimirDocumento(documento())
+    } catch (e) {
+      setErrorImpresion(`No se pudo imprimir: ${mensajeError(e)}`)
+    } finally {
+      setImprimiendo(false)
+    }
+  }
+
   return (
     <div className="reporte-impreso">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 print:hidden">
         <div className="flex flex-wrap items-end gap-3">{filtros}</div>
         <div className="flex gap-2">
-          <MenuExportar documento={() => ({ titulo, subtitulo, ...exportar() })} disabled={!puedeExportar} />
-          <button onClick={() => window.print()} disabled={!puedeExportar} className="btn btn-secondary">
-            <Printer className="size-4" />
+          <MenuExportar documento={documento} disabled={!puedeExportar} />
+          <button onClick={imprimir} disabled={!puedeExportar || imprimiendo} className="btn btn-secondary">
+            {imprimiendo ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
             Imprimir
           </button>
         </div>
       </div>
+
+      {errorImpresion && (
+        <p role="alert" className="mb-4 rounded-lg bg-red-500/10 px-4 py-3 text-sm text-red-400 print:hidden">
+          {errorImpresion}
+        </p>
+      )}
 
       <div className="mb-4 hidden print:block">
         <LogoImpresion className="mb-3" />

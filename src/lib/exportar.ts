@@ -71,6 +71,56 @@ export async function exportarDocumento(formato: FormatoExportacion, doc: Docume
   return descargar(`${archivo}.pdf`, await pdf(doc))
 }
 
+/** Imprime el mismo PDF que se exporta, para que papel y archivo sean idénticos */
+export const imprimirDocumento = (doc: DocumentoExportable) => imprimirPdf(() => pdf(doc))
+
+// En celulares el visor de PDF no se puede imprimir desde un iframe: se abre en otra pestaña
+const esMovil = () =>
+  /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) // iPadOS se presenta como Mac
+
+/**
+ * Genera un PDF y abre el diálogo de impresión con él. Hay que llamarla directo desde el clic:
+ * en celulares la pestaña se abre antes de generar el PDF, o el navegador la bloquea como ventana emergente.
+ */
+export async function imprimirPdf(generar: () => Promise<Blob>) {
+  const pestana = esMovil() ? window.open('', '_blank') : null
+  let blob: Blob
+  try {
+    blob = await generar()
+  } catch (e) {
+    pestana?.close()
+    throw e
+  }
+  const url = URL.createObjectURL(blob)
+
+  if (pestana) {
+    pestana.location.href = url
+    return
+  }
+
+  const marco = document.createElement('iframe')
+  // Sin display:none: el visor de PDF no carga en un iframe oculto así
+  Object.assign(marco.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' })
+  marco.src = url
+  document.body.appendChild(marco)
+  await new Promise<void>((resuelto) => {
+    marco.onload = () => {
+      // El visor necesita un momento después de cargar para poder imprimir
+      setTimeout(() => {
+        marco.contentWindow?.focus()
+        marco.contentWindow?.print()
+        resuelto()
+      }, 100)
+    }
+  })
+  // El diálogo de impresión no avisa al cerrarse: se limpia después, con margen de sobra
+  setTimeout(() => {
+    marco.remove()
+    URL.revokeObjectURL(url)
+  }, 60_000)
+}
+
 export function descargar(nombre: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
   const enlace = document.createElement('a')

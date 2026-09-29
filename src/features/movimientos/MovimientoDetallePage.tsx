@@ -10,6 +10,7 @@ import { useTrazabilidadMovimiento } from '@/features/productos/api'
 import { Trazabilidad } from '@/features/productos/components/Trazabilidad'
 import { useEmpresa } from '@/features/configuracion/api'
 import { mensajeError } from '@/lib/errores'
+import { imprimirPdf } from '@/lib/exportar'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useMovimiento, useMovimientosEnlazados } from './api'
 import { TipoMovimientoBadge } from './components/MovimientosTabla'
@@ -26,7 +27,7 @@ export function MovimientoDetallePage() {
   const grupos = useMemo(() => (movimiento ? agruparPorProducto(movimiento) : []), [movimiento])
   const { esAdmin, verCostos } = usePermisos()
   const { data: empresa } = useEmpresa()
-  const [generandoPdf, setGenerandoPdf] = useState(false)
+  const [generandoPdf, setGenerandoPdf] = useState<'descargar' | 'imprimir' | null>(null)
   const [errorPdf, setErrorPdf] = useState<string | null>(null)
 
   if (isLoading) return <LoadingBlock />
@@ -55,18 +56,21 @@ export function MovimientoDetallePage() {
       ? movimiento.items.reduce((s, i) => s + i.cantidad * (i.costo_unitario ?? 0), 0)
       : null
 
-  async function descargarPdf() {
+  /** Imprimir y descargar usan el mismo PDF: lo impreso y el archivo son idénticos */
+  async function usarPdf(accion: 'descargar' | 'imprimir') {
     if (!movimiento) return
-    setGenerandoPdf(true)
+    setGenerandoPdf(accion)
     setErrorPdf(null)
+    const opciones = { movimiento, grupos, empresa, mostrarValores }
     try {
       // El generador (jsPDF) se descarga solo al pedir el primer PDF
-      const { descargarRemision } = await import('./remisionPdf')
-      await descargarRemision({ movimiento, grupos, empresa, mostrarValores })
+      const remision = import('./remisionPdf')
+      if (accion === 'imprimir') await imprimirPdf(async () => (await remision).generarRemision(opciones))
+      else await (await remision).descargarRemision(opciones)
     } catch (e) {
-      setErrorPdf(`No se pudo generar el PDF: ${mensajeError(e)}`)
+      setErrorPdf(`No se pudo ${accion === 'imprimir' ? 'imprimir' : 'generar'} el PDF: ${mensajeError(e)}`)
     } finally {
-      setGenerandoPdf(false)
+      setGenerandoPdf(null)
     }
   }
 
@@ -111,12 +115,12 @@ export function MovimientoDetallePage() {
               Registrar devolución
             </Link>
           )}
-          <button onClick={() => window.print()} className="btn btn-secondary">
-            <Printer className="size-4" />
+          <button onClick={() => usarPdf('imprimir')} disabled={generandoPdf !== null} className="btn btn-secondary">
+            {generandoPdf === 'imprimir' ? <Loader2 className="size-4 animate-spin" /> : <Printer className="size-4" />}
             Imprimir
           </button>
-          <button onClick={descargarPdf} disabled={generandoPdf} className="btn btn-primary">
-            {generandoPdf ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+          <button onClick={() => usarPdf('descargar')} disabled={generandoPdf !== null} className="btn btn-primary">
+            {generandoPdf === 'descargar' ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
             {movimiento.tipo === 'salida' ? 'Remisión PDF' : 'Comprobante PDF'}
           </button>
         </div>
