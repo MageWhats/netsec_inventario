@@ -1,6 +1,6 @@
 import { ShieldOff } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { Link, Navigate, Outlet } from 'react-router-dom'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 import { useAuth } from './auth-context'
 import { usePerfil, usePermisos, type Permisos } from './permisos'
@@ -8,10 +8,9 @@ import { usePerfil, usePermisos, type Permisos } from './permisos'
 export function ProtectedRoute() {
   const { session, loading, signOut } = useAuth()
   const { data: perfil, isLoading: cargandoPerfil, error } = usePerfil()
-  const location = useLocation()
 
   if (loading) return <FullScreenLoader />
-  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (!session) return <Navigate to="/login" replace />
   if (cargandoPerfil) return <FullScreenLoader />
 
   if (error || !perfil?.activo) {

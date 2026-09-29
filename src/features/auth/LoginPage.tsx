@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Clock, Loader2, Lock, Mail } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { FullScreenLoader } from '@/components/ui/FullScreenLoader'
 import { LogoCompleto } from '@/components/ui/Logo'
@@ -38,7 +38,6 @@ type LoginForm = z.infer<typeof loginSchema>
 export function LoginPage() {
   const { session, loading, signIn } = useAuth()
   const navigate = useNavigate()
-  const location = useLocation()
   const [serverError, setServerError] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [reinicioCaptcha, setReinicioCaptcha] = useState(0)
@@ -55,10 +54,9 @@ export function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) })
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/'
-
+  // Al iniciar sesión siempre se entra al dashboard, no a la última página visitada
   if (loading) return <FullScreenLoader />
-  if (session) return <Navigate to={from} replace />
+  if (session) return <Navigate to="/" replace />
 
   async function onSubmit(values: LoginForm) {
     setServerError(null)
@@ -66,7 +64,7 @@ export function LoginPage() {
       await signIn(values.email, values.password, captchaToken ?? undefined)
       // La animación del logo cubre la carga del dashboard
       mostrarSplash()
-      navigate(from, { replace: true })
+      navigate('/', { replace: true })
     } catch (error) {
       setServerError(mensajeLogin(error))
       // Cada token de verificación sirve para un solo intento
