@@ -3,7 +3,16 @@ import { Link } from 'react-router-dom'
 import { formatearPrecio } from '@/lib/format'
 import { useCategorias, useProductos, type Producto } from '@/features/productos/api'
 import { tablaDesdeColumnas } from '@/lib/exportar'
-import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
+import { agotado, bajoMinimo, type FiltroExistencias } from '../cifras'
+import { ResumenInventario } from './ResumenInventario'
+import { Reporte, TablaReporte, type Columna } from './TablaReporte'
+
+const FILTROS_EXISTENCIAS: Record<FiltroExistencias, { label: string; incluye: (p: Producto) => boolean; subtitulo: string }> = {
+  con: { label: 'Con existencias', incluye: (p) => p.stock > 0, subtitulo: ' · solo productos con existencias' },
+  todas: { label: 'Todos', incluye: () => true, subtitulo: '' },
+  bajo: { label: 'Bajo mínimo', incluye: bajoMinimo, subtitulo: ' · productos bajo el mínimo' },
+  agotado: { label: 'Agotados', incluye: agotado, subtitulo: ' · productos agotados' },
+}
 
 const columnas: Columna<Producto>[] = [
   { titulo: 'SKU', valor: (p) => p.sku, className: 'font-mono text-xs text-slate-400' },
@@ -42,23 +51,19 @@ export function ReporteInventario() {
   const productos = useProductos()
   const { data: categorias = [] } = useCategorias()
   const [categoriaId, setCategoriaId] = useState('')
-  const [soloConStock, setSoloConStock] = useState(true)
+  const [existencias, setExistencias] = useState<FiltroExistencias>('con')
 
-  const filas = useMemo(
-    () =>
-      (productos.data ?? []).filter(
-        (p) => p.activo && (!categoriaId || p.categoria_id === categoriaId) && (!soloConStock || p.stock > 0),
-      ),
-    [productos.data, categoriaId, soloConStock],
+  const base = useMemo(
+    () => (productos.data ?? []).filter((p) => p.activo && (!categoriaId || p.categoria_id === categoriaId)),
+    [productos.data, categoriaId],
   )
-
-  const sumar = (f: (p: Producto) => number) => filas.reduce((total, p) => total + f(p), 0)
+  const filas = useMemo(() => base.filter(FILTROS_EXISTENCIAS[existencias].incluye), [base, existencias])
   const categoria = categorias.find((c) => c.id === categoriaId)?.nombre
 
   return (
     <Reporte
       titulo="Inventario valorizado"
-      subtitulo={`${categoria ?? 'Todas las categorías'}${soloConStock ? ' · solo productos con existencias' : ''}`}
+      subtitulo={`${categoria ?? 'Todas las categorías'}${FILTROS_EXISTENCIAS[existencias].subtitulo}`}
       cargando={productos.isLoading}
       error={productos.error}
       puedeExportar={filas.length > 0}
@@ -76,19 +81,30 @@ export function ReporteInventario() {
               ))}
             </select>
           </label>
-          <label className="flex h-10.5 items-center gap-2 text-sm text-slate-300">
-            <input type="checkbox" checked={soloConStock} onChange={(e) => setSoloConStock(e.target.checked)} />
-            Solo con existencias
+          <label className="text-xs text-slate-400">
+            Existencias
+            <select
+              value={existencias}
+              onChange={(e) => setExistencias(e.target.value as FiltroExistencias)}
+              className="input mt-1 w-44"
+            >
+              {Object.entries(FILTROS_EXISTENCIAS).map(([id, { label }]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
           </label>
         </>
       }
       resumen={
-        <>
-          <Cifra label="Productos" valor={filas.length} />
-          <Cifra label="Unidades" valor={sumar((p) => Math.max(p.stock, 0)).toLocaleString('es-CO')} />
-          <Cifra label="Valor a costo" valor={formatearPrecio(sumar((p) => Math.max(p.stock, 0) * p.precio_costo))} />
-          <Cifra label="Valor a precio venta" valor={formatearPrecio(sumar((p) => Math.max(p.stock, 0) * p.precio_venta))} />
-        </>
+        <ResumenInventario
+          filas={filas}
+          base={base}
+          porProducto={Boolean(categoriaId)}
+          filtro={existencias}
+          onFiltro={setExistencias}
+        />
       }
     >
       <TablaReporte columnas={columnas} filas={filas} clave={(p) => p.id} vacio="No hay productos con esos filtros." />

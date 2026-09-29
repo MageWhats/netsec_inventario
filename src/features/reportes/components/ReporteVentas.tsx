@@ -5,10 +5,11 @@ import { formatearNumero } from '@/features/movimientos/tipos'
 import { LIMITE_LINEAS, useLineasMovimiento, type LineaMovimiento } from '../api'
 import { useOrigenLineas, type Origen } from '../origen'
 import { columnasOrigen } from './columnasOrigen'
-import { describirRango, rangoEsteMes, type Rango } from '../rangos'
+import { describirRango, rangoAnterior, rangoEsteMes, type Rango } from '../rangos'
 import { RangoFechas } from './RangoFechas'
 import { tablaDesdeColumnas } from '@/lib/exportar'
-import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
+import { ResumenVentas } from './ResumenVentas'
+import { Reporte, TablaReporte, type Columna } from './TablaReporte'
 
 type Agrupacion = 'producto' | 'cliente' | 'detalle'
 
@@ -129,6 +130,9 @@ export function ReporteVentas() {
   const [rango, setRango] = useState<Rango>(rangoEsteMes)
   const [agrupacion, setAgrupacion] = useState<Agrupacion>('producto')
   const lineas = useLineasMovimiento({ ...rango, tipo: 'salida' })
+  // Mismas ventas en el período anterior, para las comparaciones del resumen
+  const previo = useMemo(() => rangoAnterior(rango), [rango])
+  const previas = useLineasMovimiento({ ...previo, tipo: 'salida' })
 
   const datos = useMemo(() => lineas.data ?? [], [lineas.data])
   const esDetalle = agrupacion === 'detalle'
@@ -142,9 +146,6 @@ export function ReporteVentas() {
     [datos, origen.data],
   )
 
-  const total = filas.reduce((s, f) => s + f.total, 0)
-  const costo = filas.reduce((s, f) => s + f.costo, 0)
-  const numeroVentas = new Set(datos.map((l) => l.movimiento.id)).size
   // Solo antes de la migración 0004 (que completa las antiguas) puede haber líneas sin costo
   const sinCosto = datos.filter((l) => l.costo_unitario === null).length
 
@@ -184,12 +185,12 @@ export function ReporteVentas() {
         </>
       }
       resumen={
-        <>
-          <Cifra label="Total vendido" valor={formatearPrecio(total)} />
-          <Cifra label="Ventas (salidas)" valor={numeroVentas} />
-          <Cifra label="Unidades vendidas" valor={filas.reduce((s, f) => s + f.unidades, 0).toLocaleString('es-CO')} />
-          <Cifra label="Margen" valor={`${formatearPrecio(total - costo)} · ${porcentaje(total - costo, total)}`} />
-        </>
+        <ResumenVentas
+          lineas={datos}
+          anteriores={previas.isPlaceholderData ? undefined : previas.data}
+          rango={rango}
+          rangoPrevio={previo}
+        />
       }
     >
       {esDetalle ? (

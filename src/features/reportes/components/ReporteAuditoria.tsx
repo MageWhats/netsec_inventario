@@ -1,11 +1,12 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { formatearFecha } from '@/lib/format'
 import type { Json } from '@/types/database'
 import { LIMITE_LINEAS, useAuditoria, type RegistroAuditoria } from '../api'
 import { tablaDesdeColumnas } from '@/lib/exportar'
-import { describirRango, rangoEsteMes, type Rango } from '../rangos'
+import { describirRango, rangoAnterior, rangoEsteMes, type Rango } from '../rangos'
 import { RangoFechas } from './RangoFechas'
-import { Cifra, Reporte, TablaReporte, type Columna } from './TablaReporte'
+import { ResumenAuditoria } from './ResumenAuditoria'
+import { Reporte, TablaReporte, type Columna } from './TablaReporte'
 
 const TABLAS: Record<string, string> = {
   productos: 'Productos',
@@ -75,8 +76,10 @@ export function ReporteAuditoria() {
   const [rango, setRango] = useState<Rango>(rangoEsteMes)
   const [tabla, setTabla] = useState('')
   const auditoria = useAuditoria({ ...rango, tabla })
-  const filas = auditoria.data ?? []
-  const usuarios = new Set(filas.map((r) => r.usuario_email ?? 'Sistema')).size
+  // Misma sección en el período anterior, para las comparaciones del resumen
+  const previo = useMemo(() => rangoAnterior(rango), [rango])
+  const previos = useAuditoria({ ...previo, tabla })
+  const filas = useMemo(() => auditoria.data ?? [], [auditoria.data])
 
   return (
     <Reporte
@@ -107,12 +110,16 @@ export function ReporteAuditoria() {
         </>
       }
       resumen={
-        <>
-          <Cifra label="Cambios" valor={filas.length.toLocaleString('es-CO')} />
-          <Cifra label="Creados" valor={filas.filter((r) => r.accion === 'crear').length} />
-          <Cifra label="Modificados" valor={filas.filter((r) => r.accion === 'modificar').length} />
-          <Cifra label="Usuarios" valor={usuarios} />
-        </>
+        <ResumenAuditoria
+          registros={filas}
+          anteriores={previos.isPlaceholderData ? undefined : previos.data}
+          rango={rango}
+          rangoPrevio={previo}
+          secciones={TABLAS}
+          nombreCampo={nombreCampo}
+          tabla={tabla}
+          onTabla={setTabla}
+        />
       }
     >
       <TablaReporte
