@@ -85,15 +85,12 @@ export function SplashScreen() {
           className="tema-oscuro fixed inset-0 z-[100] cursor-pointer overflow-hidden bg-brand-bg print:hidden"
           // Salida en dos pasos: primero se va el logo (abajo) y luego el fondo, para que el logo y su
           // resplandor nunca queden superpuestos a medias sobre la pantalla que aparece debajo
-          exit={{ opacity: 0, transition: { duration: 0.4, delay: reducido ? 0 : 0.25, ease: 'easeInOut' } }}
+          exit={{ opacity: 0, transition: { duration: 0.5, delay: reducido ? 0 : 0.3, ease: 'easeInOut' } }}
         >
+          {/* Desvanecido puro, sin escala: el logo se funde en su sitio */}
           <motion.div
             className="absolute inset-0 flex flex-col items-center justify-center"
-            exit={{
-              opacity: 0,
-              transform: reducido ? 'none' : 'scale(0.96)',
-              transition: { duration: 0.3, ease: 'easeIn' },
-            }}
+            exit={{ opacity: 0, transition: { duration: 0.5, ease: 'easeInOut' } }}
           >
             <Animacion modo={modo} reducido={reducido ?? false} />
           </motion.div>
