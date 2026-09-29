@@ -1,9 +1,10 @@
-import { ArrowLeft, ArrowUpFromLine, Pencil } from 'lucide-react'
+import { ArrowLeft, ArrowUpFromLine, FileText, Pencil } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { usePermisos } from '@/features/auth/permisos'
+import { SaldoCliente } from '@/features/cartera/components/SaldoCliente'
 import { formatearFecha } from '@/lib/format'
 import { EstadoUnidadBadge } from '@/features/productos/components/badges'
 import { useMovimientos } from '@/features/movimientos/api'
@@ -17,7 +18,7 @@ export function ClienteDetallePage() {
   const { id = '' } = useParams()
   const { data: cliente, isLoading, error } = useCliente(id)
   const [editando, setEditando] = useState(false)
-  const { esAdmin, puedeOperar } = usePermisos()
+  const { esAdmin, puedeOperar, verCostos } = usePermisos()
 
   if (isLoading) return <LoadingBlock />
 
@@ -51,6 +52,12 @@ export function ClienteDetallePage() {
         </div>
         <div className="flex gap-2">
           {cliente.activo && puedeOperar && (
+            <Link to={`/cotizaciones/nueva?cliente=${cliente.id}`} className="btn btn-secondary">
+              <FileText className="size-4" />
+              Nueva cotización
+            </Link>
+          )}
+          {cliente.activo && puedeOperar && (
             <Link to={`/movimientos/nuevo/salida?cliente=${cliente.id}`} className="btn btn-secondary">
               <ArrowUpFromLine className="size-4" />
               Nueva salida
@@ -78,6 +85,7 @@ export function ClienteDetallePage() {
         </dl>
       </section>
 
+      {verCostos && <SaldoCliente clienteId={cliente.id} />}
       <HistorialSalidas clienteId={cliente.id} />
       <SerialesVendidos clienteId={cliente.id} />
 

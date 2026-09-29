@@ -77,6 +77,11 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
     las gestiona; *admin* y *lectura* las ven.
 18. `0018_importar_productos.sql`: importación de productos desde Excel o CSV, con su stock inicial (ajuste +
     «Inventario inicial»). Todo o nada: si una fila falla, no se crea ninguno.
+19. `0019_cotizaciones_y_cartera.sql`: cotizaciones (COT-000001) con fecha de validez, que no mueven inventario y se
+    convierten en venta con un clic; y cartera: cada venta es de contado o a crédito (con fecha límite de pago), las de
+    crédito reciben abonos hasta quedar saldadas y lo devuelto descuenta del saldo. Los abonos no se borran: se anulan
+    con un motivo. Desde aquí las salidas se registran con `registrar_venta()`, así que **esta migración debe
+    ejecutarse antes de subir el código**.
 
 Reglas clave:
 
@@ -142,6 +147,9 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 | Costo promedio, márgenes, valor del inventario y reportes | ✅ | ❌ | ✅ |
 | Ver órdenes de compra | ✅ | ❌ | ✅ |
 | Crear, recibir y cancelar órdenes de compra; importar productos | ✅ | ❌ | ❌ |
+| Crear, editar y convertir cotizaciones en venta | ✅ | ✅ | ❌ |
+| Ver la cartera (saldos y abonos) | ✅ | ❌ | ✅ |
+| Registrar y anular abonos; cambiar la forma de pago de una venta | ✅ | ❌ | ❌ |
 | Consultar seriales y garantías; remisiones en PDF | ✅ | ✅ | ✅ |
 | Configuración (categorías, bodegas, usuarios, empresa) | ✅ | ❌ | ❌ |
 

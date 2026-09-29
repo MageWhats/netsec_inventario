@@ -1,4 +1,4 @@
-import { ArrowLeft, PackageCheck, Plus, Save } from 'lucide-react'
+import { ArrowLeft, FileText, PackageCheck, Plus, Save } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Link, Navigate, useBlocker, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Combobox } from '@/components/ui/Combobox'
@@ -10,17 +10,22 @@ import { usePermisos } from '@/features/auth/permisos'
 import { ClienteFormModal } from '@/features/clientes/components/ClienteFormModal'
 import { useClientes, type Cliente } from '@/features/clientes/api'
 import { etiquetaDocumento } from '@/features/clientes/schema'
+import { PLAZOS } from '@/features/cartera/api'
 import { formatearOrden, useOrden, useRecibirOrden } from '@/features/compras/api'
+import { formatearCotizacion, useCotizacion } from '@/features/cotizaciones/api'
 import { useProductos, type Producto } from '@/features/productos/api'
 import { StockBadge } from '@/features/productos/components/badges'
 import { ProveedorFormModal } from '@/features/proveedores/components/ProveedorFormModal'
 import { useProveedores, type Proveedor } from '@/features/proveedores/api'
 import { mensajeError } from '@/lib/errores'
+import { fechaIso } from '@/lib/exportar'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
+import { formatearFechaCorta } from '@/lib/garantia'
 import {
   useBodegas,
   useMovimiento,
   useRegistrarMovimiento,
+  useRegistrarVenta,
   useSalidasParaDevolucion,
   type SalidaDevolucion,
 } from './api'
@@ -89,9 +94,17 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
       .filter((i) => i.recibido < i.cantidad)
       .map((i) => [i.producto_id, { pendiente: i.cantidad - i.recibido, costo: i.costo_unitario }]),
   )
-  const registrar = ordenId ? recibirOrden : registrarMovimiento
+  const registrarVenta = useRegistrarVenta()
+  const registrar = ordenId ? recibirOrden : tipo === 'salida' ? registrarVenta : registrarMovimiento
+
+  // Venta desde una cotización (?cotizacion=): se precargan el cliente, los productos y los precios cotizados
+  const cotizacionId = tipo === 'salida' ? params.get('cotizacion') : null
+  const { data: cotizacion } = useCotizacion(cotizacionId ?? '')
 
   const [fecha, setFecha] = useState(ahoraLocal)
+  // Salidas: forma de pago. A crédito, la fecha límite es la de la venta más el plazo
+  const [credito, setCredito] = useState(false)
+  const [plazo, setPlazo] = useState(30)
   const [bodegaId, setBodegaId] = useState('')
   const [clienteId, setClienteId] = useState(params.get('cliente') ?? '')
   const [proveedorId, setProveedorId] = useState(params.get('proveedor') ?? '')
@@ -133,6 +146,22 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
         }),
     )
   }
+
+  const [cotizacionPrecargada, setCotizacionPrecargada] = useState(false)
+  if (cotizacionId && cotizacion && productos.length > 0 && !cotizacionPrecargada) {
+    setCotizacionPrecargada(true)
+    if (cotizacion.cliente_id) setClienteId(cotizacion.cliente_id)
+    const cotizados = new Map(cotizacion.items.map((i) => [i.producto_id, i]))
+    setLineas(
+      productos
+        .filter((p) => p.activo && cotizados.has(p.id))
+        .map((p) => {
+          const i = cotizados.get(p.id)!
+          return { ...nuevaLinea(p, tipo, verCostos), cantidad: i.cantidad, valorUnitario: i.precio_unitario }
+        }),
+    )
+  }
+  const cotizadoDe = new Map(cotizacion?.items.map((i) => [i.producto_id, i.cantidad]))
 
   // Producto precargado desde ?producto= (p. ej. desde el detalle de un producto)
   const [productoInicial, setProductoInicial] = useState(params.get('producto'))
@@ -224,12 +253,21 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   if (tipo === 'salida' && conFactura && !referencia.trim()) {
     erroresCabecera.referencia = 'Escribe el número de la factura electrónica o desmarca la casilla.'
   }
+  if (tipo === 'salida' && credito && !clienteId) {
+    erroresCabecera.credito = 'Una venta a crédito requiere el cliente: elígelo arriba o paga de contado.'
+  }
   if (lineas.length === 0) erroresCabecera.lineas = 'Agrega al menos un producto.'
   const esValido = erroresLineas.size === 0 && Object.keys(erroresCabecera).length === 0
   const mostrarErrores = intentoGuardar
 
   const totalUnidades = lineas.reduce((s, l) => s + unidadesLinea(l), 0)
   const totalValor = lineas.reduce((s, l) => s + subtotalLinea(l), 0)
+
+  const vence = (() => {
+    const d = fecha ? new Date(fecha) : new Date()
+    d.setDate(d.getDate() + plazo)
+    return fechaIso(d)
+  })()
 
   function onSubmit(e: FormEvent) {
     e.preventDefault()
@@ -260,15 +298,31 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
       )
       return
     }
+    if (tipo === 'salida') {
+      registrarVenta.mutate(
+        {
+          p_items: construirItems(tipo, lineas),
+          p_bodega_id: bodegaId || null,
+          p_cliente_id: clienteId || null,
+          p_referencia: conFactura ? referencia : null,
+          p_notas: notas,
+          p_fecha: new Date(fecha).toISOString(),
+          p_credito: credito,
+          p_vence: credito ? vence : null,
+          p_cotizacion_id: cotizacionId,
+        },
+        alGuardar,
+      )
+      return
+    }
     registrarMovimiento.mutate(
       {
         p_tipo: tipo,
         p_items: construirItems(tipo, lineas),
         p_bodega_id: bodegaId || null,
         p_proveedor_id: tipo === 'entrada' ? proveedorId || null : null,
-        p_cliente_id: tipo === 'salida' ? clienteId || null : null,
         // Devolución: la base de datos toma la factura electrónica de la venta de origen
-        p_referencia: esDevolucion || (tipo === 'salida' && !conFactura) ? null : referencia,
+        p_referencia: esDevolucion ? null : referencia,
         p_notas: notas,
         // Solo se envían cuando aplican (undefined no viaja): entradas y salidas no dependen de la migración 0010
         p_motivo: esAjuste(tipo) ? motivo || null : undefined,
@@ -310,6 +364,47 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
             </span>
           ) : (
             'Cargando la orden de compra…'
+          )}
+        </div>
+      )}
+
+      {cotizacionId && (
+        <div className="mb-6 flex items-start gap-2 rounded-lg bg-brand-accent/10 px-4 py-3 text-sm text-brand-cyan">
+          <FileText className="mt-0.5 size-4 shrink-0" />
+          {cotizacion ? (
+            <div>
+              <p>
+                Venta de la cotización{' '}
+                <Link
+                  to={`/cotizaciones/${cotizacion.id}`}
+                  className="font-mono font-medium underline-offset-2 hover:underline"
+                >
+                  {formatearCotizacion(cotizacion)}
+                </Link>
+                : se precargaron los productos y los precios cotizados. Al registrarla, la cotización queda aceptada.
+              </p>
+              {!cotizacion.cliente_id && (
+                <p className="mt-1">
+                  Es para <strong>{cotizacion.cliente_nombre}</strong>, que no está registrado: elige o crea el cliente
+                  (o déjalo vacío si es consumidor final).
+                </p>
+              )}
+              {lineas.some((l) => l.producto.es_serializado && unidadesLinea(l) !== cotizadoDe.get(l.producto.id)) && (
+                <p className="mt-1">
+                  En los productos con serial, selecciona las unidades que se entregan (se cotizaron{' '}
+                  {lineas
+                    .filter((l) => l.producto.es_serializado)
+                    .map((l) => `${cotizadoDe.get(l.producto.id) ?? 0} de ${l.producto.nombre}`)
+                    .join(', ')}
+                  ).
+                </p>
+              )}
+              {cotizacion.estado !== 'abierta' && (
+                <p className="mt-1 text-amber-400">Esta cotización ya está cerrada: no se puede convertir en venta.</p>
+              )}
+            </div>
+          ) : (
+            'Cargando la cotización…'
           )}
         </div>
       )}
@@ -485,6 +580,57 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
               )
             )}
 
+            {tipo === 'salida' && (
+              // No es un FormField (<label>): tiene botones y un clic en el título los activaría
+              <div>
+                <span className="mb-1 block text-sm text-slate-300">Forma de pago</span>
+                <div className="flex gap-2">
+                  <div className="flex rounded-lg border border-brand-border p-0.5" role="radiogroup">
+                    {[
+                      { valor: false, label: 'Contado' },
+                      { valor: true, label: 'Crédito' },
+                    ].map((o) => (
+                      <button
+                        key={o.label}
+                        type="button"
+                        role="radio"
+                        aria-checked={credito === o.valor}
+                        onClick={() => setCredito(o.valor)}
+                        className={`rounded-md px-3 py-1.5 text-sm transition ${
+                          credito === o.valor ? 'bg-brand-accent text-white' : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                  {credito && (
+                    <select
+                      value={plazo}
+                      onChange={(e) => setPlazo(Number(e.target.value))}
+                      className="input flex-1"
+                      aria-label="Plazo de pago"
+                    >
+                      {PLAZOS.map((d) => (
+                        <option key={d} value={d}>
+                          {d} días
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                {mostrarErrores && erroresCabecera.credito ? (
+                  <span className="mt-1 block text-xs text-red-400">{erroresCabecera.credito}</span>
+                ) : (
+                  <span className="mt-1 block text-xs text-slate-500">
+                    {credito
+                      ? `Fecha límite de pago: ${formatearFechaCorta(`${vence}T12:00:00`)}. La venta queda en la cartera hasta que se pague.`
+                      : 'El cliente paga al recibir la mercancía'}
+                  </span>
+                )}
+              </div>
+            )}
+
             {bodegas.length > 1 && (
               <FormField label="Bodega">
                 <select
@@ -629,6 +775,15 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
           Se registrarán <strong>{totalUnidades}</strong> unidad(es) de <strong>{lineas.length}</strong> producto(s) por{' '}
           <strong>{formatearPrecio(totalValor)}</strong>.
         </p>
+        {tipo === 'salida' && (
+          <p className="mt-3">
+            Forma de pago:{' '}
+            <strong>
+              {credito ? `crédito a ${plazo} días (hasta el ${formatearFechaCorta(`${vence}T12:00:00`)})` : 'contado'}
+            </strong>
+            .
+          </p>
+        )}
         <p className="mt-3 text-slate-400">
           Los movimientos no se pueden editar ni eliminar. Si te equivocas, deberás corregirlo con un ajuste.
         </p>

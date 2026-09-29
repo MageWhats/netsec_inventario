@@ -1,6 +1,7 @@
 import {
   ArrowLeftRight,
   ClipboardCheck,
+  FileText,
   FileBarChart,
   LayoutDashboard,
   LogOut,
@@ -12,6 +13,7 @@ import {
   ShoppingCart,
   Truck,
   Users,
+  Wallet,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -37,6 +39,8 @@ const navItems: NavItem[] = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/productos', label: 'Productos', icon: Package, end: false },
   { to: '/movimientos', label: 'Movimientos', icon: ArrowLeftRight, end: false },
+  { to: '/cotizaciones', label: 'Cotizaciones', icon: FileText, end: false },
+  { to: '/cartera', label: 'Cartera', icon: Wallet, end: false, permiso: 'verCostos' },
   { to: '/seriales', label: 'Seriales y garantías', icon: ShieldCheck, end: false },
   { to: '/compras', label: 'Órdenes de compra', icon: ShoppingCart, end: false, permiso: 'verCostos' },
   { to: '/clientes', label: 'Clientes', icon: Users, end: false },

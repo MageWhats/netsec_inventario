@@ -5,12 +5,14 @@ import {
   ArrowUpFromLine,
   Barcode,
   CornerDownLeft,
+  FileText,
   Loader2,
   Package,
   Search,
   ShoppingCart,
   Truck,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react'
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
@@ -93,6 +95,8 @@ function Paleta({ onClose }: { onClose: () => void }) {
       const accesos: [string, LucideIcon, string, boolean][] = [
         ['Nueva salida', ArrowUpFromLine, '/movimientos/nuevo/salida', puedeOperar],
         ['Nueva entrada', ArrowDownToLine, '/movimientos/nuevo/entrada', puedeOperar],
+        ['Nueva cotización', FileText, '/cotizaciones/nueva', puedeOperar],
+        ['Cartera: lo que deben los clientes', Wallet, '/cartera', verCostos],
         ['Consultar un serial o garantía', Barcode, '/seriales', true],
         ['Productos', Package, '/productos', true],
         ['Movimientos', ArrowLeftRight, '/movimientos', true],

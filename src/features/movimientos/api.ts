@@ -199,3 +199,25 @@ export function useRegistrarMovimiento() {
       ]),
   })
 }
+
+export type ArgsRegistrarVenta = Database['public']['Functions']['registrar_venta']['Args']
+
+/** Salidas: registrar_movimiento() más la forma de pago y la cotización de origen (migración 0019) */
+export function useRegistrarVenta() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (args: ArgsRegistrarVenta) => {
+      const { data, error } = await supabase.rpc('registrar_venta', args)
+      if (error) throw error
+      return data
+    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: movimientosKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['productos'] }),
+        queryClient.invalidateQueries({ queryKey: ['clientes'] }),
+        queryClient.invalidateQueries({ queryKey: ['cotizaciones'] }),
+        queryClient.invalidateQueries({ queryKey: ['cartera'] }),
+      ]),
+  })
+}

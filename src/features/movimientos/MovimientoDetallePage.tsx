@@ -5,6 +5,7 @@ import { Dato } from '@/components/ui/Dato'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
 import { LogoImpresion } from '@/components/ui/Logo'
 import { usePermisos } from '@/features/auth/permisos'
+import { PagosVenta } from '@/features/cartera/components/PagosVenta'
 import { etiquetaDocumento } from '@/features/clientes/schema'
 import { useTrazabilidadMovimiento } from '@/features/productos/api'
 import { Trazabilidad } from '@/features/productos/components/Trazabilidad'
@@ -169,6 +170,13 @@ export function MovimientoDetallePage() {
               </Link>
             </Dato>
           )}
+          {movimiento.cotizacion_id && (
+            <Dato label="Cotización">
+              <Link to={`/cotizaciones/${movimiento.cotizacion_id}`} className="hover:text-brand-cyan">
+                Ver cotización
+              </Link>
+            </Dato>
+          )}
           <Dato label="Registrado por">{movimiento.usuario}</Dato>
           {enlazados?.origen && (
             <Dato label="Devolución de la venta">
@@ -198,6 +206,9 @@ export function MovimientoDetallePage() {
           </Dato>
         </dl>
       </section>
+
+      {/* Cobro: dato interno (admin y lectura), no sale en el comprobante impreso */}
+      {movimiento.tipo === 'salida' && verCostos && <PagosVenta venta={movimiento} />}
 
       <section className="overflow-hidden rounded-2xl border border-brand-border bg-brand-card print:border-slate-300 print:bg-white">
         <div className="overflow-x-auto">

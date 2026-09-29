@@ -106,6 +106,53 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            path: 'cotizaciones',
+            children: [
+              {
+                index: true,
+                lazy: () =>
+                  import('@/features/cotizaciones/CotizacionesPage').then((m) => ({ Component: m.CotizacionesPage })),
+              },
+              {
+                path: ':id',
+                lazy: () =>
+                  import('@/features/cotizaciones/CotizacionDetallePage').then((m) => ({
+                    Component: m.CotizacionDetallePage,
+                  })),
+              },
+              {
+                // Crear y editar: admin y bodega
+                element: <RequierePermiso permiso="puedeOperar" />,
+                children: [
+                  {
+                    path: 'nueva',
+                    lazy: () =>
+                      import('@/features/cotizaciones/CotizacionFormPage').then((m) => ({
+                        Component: m.CotizacionFormPage,
+                      })),
+                  },
+                  {
+                    path: ':id/editar',
+                    lazy: () =>
+                      import('@/features/cotizaciones/CotizacionFormPage').then((m) => ({
+                        Component: m.CotizacionFormPage,
+                      })),
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            path: 'cartera',
+            element: <RequierePermiso permiso="verCostos" />,
+            children: [
+              {
+                index: true,
+                lazy: () => import('@/features/cartera/CarteraPage').then((m) => ({ Component: m.CarteraPage })),
+              },
+            ],
+          },
+          {
             path: 'clientes',
             lazy: () => import('@/features/clientes/ClientesPage').then((m) => ({ Component: m.ClientesPage })),
           },

@@ -87,6 +87,86 @@ export type Database = {
         }
         Relationships: []
       }
+      cotizaciones: {
+        Row: {
+          id: string
+          numero: number
+          cliente_id: string | null
+          cliente_nombre: string | null
+          estado: Database['public']['Enums']['estado_cotizacion']
+          valida_hasta: string
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          updated_at: string
+          cerrada_at: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'cotizaciones_cliente_id_fkey'
+            columns: ['cliente_id']
+            isOneToOne: false
+            referencedRelation: 'clientes'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      cotizacion_items: {
+        Row: {
+          id: string
+          cotizacion_id: string
+          producto_id: string
+          cantidad: number
+          precio_unitario: number
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'cotizacion_items_cotizacion_id_fkey'
+            columns: ['cotizacion_id']
+            isOneToOne: false
+            referencedRelation: 'cotizaciones'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'cotizacion_items_producto_id_fkey'
+            columns: ['producto_id']
+            isOneToOne: false
+            referencedRelation: 'productos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      pagos: {
+        Row: {
+          id: string
+          movimiento_id: string
+          fecha: string
+          valor: number
+          metodo: Database['public']['Enums']['metodo_pago']
+          referencia: string | null
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'pagos_movimiento_id_fkey'
+            columns: ['movimiento_id']
+            isOneToOne: false
+            referencedRelation: 'movimientos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       ordenes_compra: {
         Row: {
           id: string
@@ -448,6 +528,9 @@ export type Database = {
           motivo: Database['public']['Enums']['motivo_ajuste'] | null
           movimiento_origen_id: string | null
           orden_compra_id: string | null
+          credito: boolean
+          vence: string | null
+          cotizacion_id: string | null
         }
         Insert: {
           id?: string
@@ -669,6 +752,43 @@ export type Database = {
       }
     }
     Views: {
+      cotizaciones_resumen: {
+        Row: {
+          id: string
+          numero: number
+          cliente_id: string | null
+          cliente_nombre: string
+          estado: Database['public']['Enums']['estado_cotizacion']
+          valida_hasta: string
+          vencida: boolean
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          cerrada_at: string | null
+          venta_id: string | null
+          lineas: number
+          unidades: number
+          total: number
+        }
+        Relationships: []
+      }
+      cartera: {
+        Row: {
+          id: string
+          numero: number
+          fecha: string
+          vence: string
+          cliente_id: string
+          cliente_nombre: string
+          referencia: string | null
+          total: number
+          devuelto: number
+          pagado: number
+          saldo: number
+          dias_vencida: number
+        }
+        Relationships: []
+      }
       ordenes_compra_resumen: {
         Row: {
           id: string
@@ -848,6 +968,54 @@ export type Database = {
         Args: never
         Returns: { producto_id: string; precio_costo: number }[]
       }
+      guardar_cotizacion: {
+        Args: {
+          p_items: Json
+          p_valida_hasta: string
+          p_id?: string | null
+          p_cliente_id?: string | null
+          p_cliente_nombre?: string | null
+          p_notas?: string | null
+        }
+        Returns: string
+      }
+      rechazar_cotizacion: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      registrar_venta: {
+        Args: {
+          p_items: Json
+          p_cliente_id?: string | null
+          p_referencia?: string | null
+          p_notas?: string | null
+          p_fecha?: string | null
+          p_bodega_id?: string | null
+          p_credito?: boolean
+          p_vence?: string | null
+          p_cotizacion_id?: string | null
+        }
+        Returns: string
+      }
+      cambiar_forma_pago: {
+        Args: { p_movimiento_id: string; p_credito: boolean; p_vence?: string | null }
+        Returns: undefined
+      }
+      registrar_pago: {
+        Args: {
+          p_movimiento_id: string
+          p_valor: number
+          p_metodo: Database['public']['Enums']['metodo_pago']
+          p_fecha?: string | null
+          p_referencia?: string | null
+          p_notas?: string | null
+        }
+        Returns: string
+      }
+      anular_pago: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
       guardar_orden_compra: {
         Args: {
           p_proveedor_id: string
@@ -889,6 +1057,8 @@ export type Database = {
       tipo_documento: 'CC' | 'NIT' | 'CE' | 'PAS' | 'TI' | 'OTRO'
       estado_toma: 'en_curso' | 'finalizada' | 'cancelada'
       estado_orden_compra: 'abierta' | 'recibida' | 'cancelada'
+      estado_cotizacion: 'abierta' | 'aceptada' | 'rechazada'
+      metodo_pago: 'efectivo' | 'transferencia' | 'tarjeta' | 'cheque' | 'otro'
       motivo_ajuste:
         | 'inventario_inicial'
         | 'sobrante_conteo'
