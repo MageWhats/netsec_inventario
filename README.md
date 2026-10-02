@@ -111,6 +111,29 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
     en ventas y entradas. Clientes y proveedores ganan plazo de pago, agente de retención y responsable de IVA.
     Contabilidad → Por cobrar y por pagar muestra el saldo de cada tercero. Al crear la primera subcuenta de una
     cuenta de los parámetros (p. ej. un auxiliar por banco bajo 111005), los parámetros pasan a la subcuenta.
+25. `0025_tesoreria.sql`: contabilidad, fase 4. **Cajas y bancos** (`cuentas_tesoreria`) con su saldo; al crear un banco
+    se crea su auxiliar bajo 111005 (o se usa una cuenta del grupo 11 que ya exista). En los abonos se elige a qué caja
+    o banco entra el dinero. **Comprobantes de egreso** (CE-): pago a proveedor (no más de lo que se le debe) u otro
+    pago contra la cuenta que se elija. **Traslados** (TR-) entre cajas y bancos. **Anticipos de clientes** (RA-, cuenta
+    2805) que se aplican a sus ventas a crédito como abonos. **Edades** de clientes y proveedores (al día, 1–30, 31–60,
+    61–90, más de 90 días) desde la contabilidad. Todo exige la fecha de arranque y se anula con el comprobante
+    inverso. En el menú: Tesorería.
+26. `0026_gastos_activos_y_estados.sql`: contabilidad, fase 5. **Gastos** por categoría (GA-): pagados de una caja o banco,
+    o por pagar (2335) y pagados después con un egreso; las categorías llevan su cuenta del PUC. **Gastos recurrentes**
+    (arriendo, internet…) que cada mes se confirman con un clic. **Activos fijos** con depreciación en línea recta
+    (comprobante DP: D 5260 / C 1592). **Estado de resultados** (con el período anterior) y **situación financiera**.
+    **Cierre del ejercicio** (CI): las clases 4, 5 y 6 a la 3605. El cierre mensual revisa una **lista de chequeo**
+    (cuadre, pendientes por contabilizar, inventario, depreciación, recurrentes); si algo falla, solo cierra forzándolo.
+    El inicio muestra el tablero financiero: disponible, cartera vencida, por pagar y utilidad del mes.
+27. `0027_impuestos_conciliacion_y_flujo.sql`: contabilidad, fase 6. **Impuestos**: base del ICA por bimestre (ingresos
+    operacionales menos devoluciones) con la tarifa por mil de la configuración, y las retenciones que practicaron los
+    clientes. **Conciliación bancaria**: se importa el extracto del banco (Excel o CSV; débitos y créditos o una columna
+    de valor), se cruza solo con los asientos del mismo valor (±3 días), el resto se concilia a mano y el mes se cierra
+    cuando cuadra; el cierre contable exige la conciliación de cada banco con movimientos. **Flujo de efectivo** del
+    período por concepto y **flujo de caja proyectado** por semanas (cartera, proveedores, gastos por pagar y
+    recurrentes).
+
+Las migraciones **0025, 0026 y 0027** se ejecutan en orden, después de la 0024.
 
 Reglas clave:
 
@@ -182,6 +205,7 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 | Ver la cartera (saldos y abonos) | ✅ | ❌ | ✅ | ✅ |
 | Registrar y anular abonos; cambiar la forma de pago de una venta | ✅ | ❌ | ❌ | ❌ |
 | Notas crédito y débito de una venta a crédito | ✅ | ❌ | ❌ | ✅ |
+| Tesorería: cajas y bancos, egresos, traslados y anticipos | ✅ | ❌ | 👁️ (consulta) | ✅ |
 | Registrar el CUFE de una venta o entrada (corregirlo: solo admin) | ✅ | ✅ | ❌ | ❌ |
 | Anular entradas y ventas (con la clave de anulación) | ✅ | ❌ | ❌ | ❌ |
 | Consultar seriales y garantías; remisiones en PDF | ✅ | ✅ | ✅ | ✅ |

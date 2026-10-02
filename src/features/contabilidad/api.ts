@@ -30,6 +30,12 @@ export const TIPOS_COMPROBANTE: Record<string, string> = {
   NC: 'Nota crédito',
   ND: 'Nota débito',
   CF: 'Cambio de forma de pago',
+  CE: 'Comprobante de egreso',
+  TR: 'Traslado de fondos',
+  RA: 'Recibo de anticipo',
+  GA: 'Gasto',
+  DP: 'Depreciación',
+  CI: 'Cierre del ejercicio',
 }
 
 export const NIVELES: Record<number, string> = {
@@ -319,7 +325,7 @@ export function usePeriodos() {
 export function useCerrarPeriodo() {
   const invalidar = useInvalidar()
   return useMutation({
-    mutationFn: async (args: { p_anio: number; p_mes: number }) => {
+    mutationFn: async (args: { p_anio: number; p_mes: number; p_forzar?: boolean }) => {
       const { error } = await supabase.rpc('cerrar_periodo', args)
       if (error) throw error
     },
@@ -494,6 +500,146 @@ export function useSaldosPorTercero(cuenta: string, hasta: string) {
         supabase.rpc('saldos_por_tercero', { p_cuenta: cuenta, p_hasta: hasta }).range(d, h),
       )
       return filas
+    },
+  })
+}
+
+// ---------------------------------------------------------------------
+// Fase 5: estados financieros, activos fijos y cierres (migración 0026)
+// ---------------------------------------------------------------------
+export type FilaEstado = Database['public']['Functions']['estado_resultados']['Returns'][number]
+export type ActivoFijo = Tables<'activos_fijos'>
+export type ItemChecklist = Database['public']['Functions']['checklist_cierre']['Returns'][number]
+
+export function useEstadoResultados(desde: string, hasta: string) {
+  return useQuery({
+    queryKey: [...contabilidadKeys.all, 'resultados', desde, hasta],
+    placeholderData: (previo) => previo,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('estado_resultados', { p_desde: desde, p_hasta: hasta })
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useSituacionFinanciera(hasta: string) {
+  return useQuery({
+    queryKey: [...contabilidadKeys.all, 'situacion', hasta],
+    placeholderData: (previo) => previo,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('situacion_financiera', { p_hasta: hasta })
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+/** Activos fijos con lo depreciado (antes del arranque + en la aplicación) */
+export function useActivosFijos() {
+  return useQuery({
+    queryKey: [...contabilidadKeys.all, 'activos'],
+    queryFn: async () => {
+      const [activos, deps] = await Promise.all([
+        supabase.from('activos_fijos').select('*').order('fecha_compra'),
+        supabase.from('depreciaciones').select('activo_id, valor'),
+      ])
+      if (activos.error) throw activos.error
+      if (deps.error) throw deps.error
+      const depreciado = new Map<string, number>()
+      for (const d of deps.data) depreciado.set(d.activo_id, (depreciado.get(d.activo_id) ?? 0) + d.valor)
+      return activos.data.map((a) => ({ ...a, depreciado: a.depreciacion_inicial + (depreciado.get(a.id) ?? 0) }))
+    },
+  })
+}
+
+export type ActivoConDepreciacion = NonNullable<ReturnType<typeof useActivosFijos>['data']>[number]
+
+export function useGuardarActivo() {
+  const invalidar = useInvalidar()
+  return useMutation({
+    mutationFn: async ({ id, ...datos }: TablesInsert<'activos_fijos'>) => {
+      const { error } = id
+        ? await supabase.from('activos_fijos').update(datos).eq('id', id)
+        : await supabase.from('activos_fijos').insert(datos)
+      if (error) throw error
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useDepreciarMes() {
+  const invalidar = useInvalidar()
+  return useMutation({
+    mutationFn: async (args: { p_anio: number; p_mes: number }) => {
+      const { data, error } = await supabase.rpc('depreciar_mes', args)
+      if (error) throw error
+      return data
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useChecklistCierre(anio: number, mes: number, enabled = true) {
+  return useQuery({
+    queryKey: [...contabilidadKeys.all, 'checklist', anio, mes],
+    enabled,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('checklist_cierre', { p_anio: anio, p_mes: mes })
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useCierreAnual() {
+  const invalidar = useInvalidar()
+  return useMutation({
+    mutationFn: async (args: { p_anio: number }) => {
+      const { data, error } = await supabase.rpc('cierre_anual', args)
+      if (error) throw error
+      return data
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useAnularCierreAnual() {
+  const invalidar = useInvalidar()
+  return useMutation({
+    mutationFn: async (args: { p_anio: number; p_motivo: string }) => {
+      const { error } = await supabase.rpc('anular_cierre_anual', args)
+      if (error) throw error
+    },
+    onSuccess: invalidar,
+  })
+}
+
+// ---------------------------------------------------------------------
+// Fase 6: auxiliares de impuestos (migración 0027)
+// ---------------------------------------------------------------------
+export type BimestreIca = Database['public']['Functions']['base_ica']['Returns'][number]
+export type RetencionAFavor = Database['public']['Functions']['retenciones_a_favor']['Returns'][number]
+
+export function useBaseIca(anio: number) {
+  return useQuery({
+    queryKey: [...contabilidadKeys.all, 'ica', anio],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('base_ica', { p_anio: anio })
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+export function useRetencionesAFavor(desde: string, hasta: string) {
+  return useQuery({
+    queryKey: [...contabilidadKeys.all, 'retenciones', desde, hasta],
+    placeholderData: (previo) => previo,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('retenciones_a_favor', { p_desde: desde, p_hasta: hasta })
+      if (error) throw error
+      return data
     },
   })
 }

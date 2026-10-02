@@ -30,6 +30,8 @@ import { useMovimientos } from '@/features/movimientos/api'
 import { MovimientosTabla } from '@/features/movimientos/components/MovimientosTabla'
 import { useProductos, type Producto } from '@/features/productos/api'
 import { StockBadge } from '@/features/productos/components/badges'
+import { formatearValor, useConfiguracionContable, useEstadoResultados } from '@/features/contabilidad/api'
+import { useCuentasTesoreria, useEdades } from '@/features/tesoreria/api'
 import { useMasVendidosDelMes, useResumenMensual, useUnidadesEnGarantia } from './api'
 import { MovimientosPorMesChart, ValorPorCategoriaChart, type ValorCategoria } from './components/graficas'
 
@@ -40,7 +42,7 @@ export function DashboardPage() {
   const productos = useProductos()
   const resumen = useResumenMensual(6)
   const recientes = useMovimientos({ limite: 6 })
-  const { puedeOperar, verCostos } = usePermisos()
+  const { puedeOperar, verCostos, verContabilidad } = usePermisos()
   const { data: perfil } = usePerfil()
   const tomas = useTomas()
   const ordenesAbiertas = useOrdenes('abierta', verCostos)
@@ -197,6 +199,8 @@ export function DashboardPage() {
           </div>
         )}
       </section>
+
+      {verContabilidad && <TableroFinanciero />}
 
       <div className="mb-6 grid gap-4 lg:grid-cols-5">
         {resumen.isLoading ? (
@@ -378,6 +382,55 @@ function agruparPorCategoria(productos: Producto[]): ValorCategoria[] {
 // ---------------------------------------------------------------------
 // Piezas de la página
 // ---------------------------------------------------------------------
+// Tablero financiero (desde la contabilidad): solo cuando ya arrancó
+// ---------------------------------------------------------------------
+function TableroFinanciero() {
+  const config = useConfiguracionContable()
+  const arranco = Boolean(config.data?.fecha_inicio)
+  const hoy = new Date()
+  const inicioMes = fechaIso(new Date(hoy.getFullYear(), hoy.getMonth(), 1))
+  const cuentas = useCuentasTesoreria()
+  const clientes = useEdades('1305')
+  const proveedores = useEdades('2205')
+  const resultados = useEstadoResultados(inicioMes, fechaIso(hoy))
+  if (!arranco) return null
+
+  const disponible = (cuentas.data ?? []).filter((c) => c.activa).reduce((s, c) => s + Number(c.saldo), 0)
+  const suma = (filas: typeof clientes.data, campo: 'total' | 'al_dia') =>
+    (filas ?? []).reduce((s, f) => s + Number(f[campo] ?? 0), 0)
+  const vencida = suma(clientes.data, 'total') - suma(clientes.data, 'al_dia')
+  const porPagar = suma(proveedores.data, 'total')
+  const valor = (codigo: string) => Number(resultados.data?.find((f) => f.codigo === codigo)?.valor ?? 0)
+  const utilidad = valor('4') - valor('5') - valor('6')
+
+  return (
+    <section className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4" aria-label="Finanzas">
+      <StatTile label="Dinero disponible" valor={formatearValor(disponible)} detalle="Cajas y bancos" cargando={cuentas.isLoading} to="/tesoreria" />
+      <StatTile
+        label="Cartera vencida"
+        valor={formatearValor(vencida)}
+        detalle={`De ${formatearValor(suma(clientes.data, 'total'))} por cobrar`}
+        alerta={vencida > 0}
+        cargando={clientes.isLoading}
+        to="/tesoreria?t=edades"
+      />
+      <StatTile
+        label="Por pagar a proveedores"
+        valor={formatearValor(porPagar)}
+        detalle={`${formatearValor(porPagar - suma(proveedores.data, 'al_dia'))} vencido`}
+        cargando={proveedores.isLoading}
+        to="/tesoreria?t=edades"
+      />
+      <StatTile
+        label="Utilidad del mes"
+        valor={<span className={utilidad < 0 ? 'text-red-400' : ''}>{formatearValor(utilidad)}</span>}
+        detalle={`Ingresos ${formatearValor(valor('4'))}`}
+        cargando={resultados.isLoading}
+        to="/contabilidad?t=estados"
+      />
+    </section>
+  )
+}
 
 interface StatTileProps {
   label: string

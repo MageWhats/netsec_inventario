@@ -6,6 +6,7 @@ import { ahoraLocal } from '@/features/movimientos/lineas'
 import { formatearNumero } from '@/features/movimientos/tipos'
 import { mensajeError } from '@/lib/errores'
 import { formatearPrecio } from '@/lib/format'
+import { SelectorCaja } from '@/features/tesoreria/components/Comunes'
 import { metodosPago, useRegistrarPago, type MetodoPago, type VentaCredito } from '../api'
 
 interface PagoModalProps {
@@ -33,6 +34,8 @@ function Formulario({ venta, onClose }: { venta: NonNullable<PagoModalProps['ven
   const [notas, setNotas] = useState('')
   // Retención en la fuente que practica el cliente (agentes de retención): reduce lo que paga
   const [retencion, setRetencion] = useState(Number.NaN)
+  // Caja o banco al que entra (vacío: la caja general si es efectivo, el banco por defecto si no)
+  const [cuentaTesoreria, setCuentaTesoreria] = useState('')
   const [intento, setIntento] = useState(false)
   const valorRetencion = Number.isFinite(retencion) ? retencion : 0
 
@@ -59,6 +62,7 @@ function Formulario({ venta, onClose }: { venta: NonNullable<PagoModalProps['ven
         p_referencia: referencia,
         p_notas: notas,
         p_retencion: valorRetencion,
+        p_cuenta_tesoreria_id: cuentaTesoreria || null,
       },
       { onSuccess: onClose },
     )
@@ -133,6 +137,9 @@ function Formulario({ venta, onClose }: { venta: NonNullable<PagoModalProps['ven
             }}
             className="input"
           />
+        </FormField>
+        <FormField label="Entra a" hint="Vacío: caja general si es efectivo; si no, el banco por defecto">
+          <SelectorCaja value={cuentaTesoreria} onChange={setCuentaTesoreria} vacio="Según la forma de pago" />
         </FormField>
         <FormField label="Referencia" hint="N.º de transferencia, recibo o cheque">
           <input value={referencia} onChange={(e) => setReferencia(e.target.value)} maxLength={100} className="input" />

@@ -4,6 +4,7 @@ import {
   ClipboardCheck,
   FileText,
   FileBarChart,
+  Landmark,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -48,6 +49,7 @@ const navItems: NavItem[] = [
   { to: '/proveedores', label: 'Proveedores', icon: Truck, end: false },
   { to: '/inventario', label: 'Toma de inventario', icon: ClipboardCheck, end: false },
   { to: '/reportes', label: 'Reportes', icon: FileBarChart, end: false, permiso: 'verCostos' },
+  { to: '/tesoreria', label: 'Tesorería', icon: Landmark, end: false, permiso: 'verContabilidad' },
   { to: '/contabilidad', label: 'Contabilidad', icon: BookOpen, end: false, permiso: 'verContabilidad' },
   { to: '/configuracion', label: 'Configuración', icon: Settings, end: false, permiso: 'esAdmin' },
 ]

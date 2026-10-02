@@ -188,6 +188,16 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            path: 'tesoreria',
+            element: <RequierePermiso permiso="verContabilidad" />,
+            children: [
+              {
+                index: true,
+                lazy: () => import('@/features/tesoreria/TesoreriaPage').then((m) => ({ Component: m.TesoreriaPage })),
+              },
+            ],
+          },
+          {
             path: 'contabilidad',
             element: <RequierePermiso permiso="verContabilidad" />,
             children: [

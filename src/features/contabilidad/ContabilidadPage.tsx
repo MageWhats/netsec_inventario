@@ -1,13 +1,16 @@
-import { BookOpen, CalendarCheck, HandCoins, ListTree, Scale, Settings2, UserRound, Wallet, type LucideIcon } from 'lucide-react'
+import { BookOpen, CalendarCheck, ChartColumn, HandCoins, Landmark, Laptop, ListTree, Scale, Settings2, UserRound, Wallet, type LucideIcon } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { usePermisos } from '@/features/auth/permisos'
 import { useConfiguracionContable } from './api'
+import { TabActivos } from './components/TabActivos'
 import { TabAuxiliar } from './components/TabAuxiliar'
 import { TabBalance } from './components/TabBalance'
 import { TabConfiguracion } from './components/TabConfiguracion'
 import { TabCuentas } from './components/TabCuentas'
 import { TabDiario } from './components/TabDiario'
+import { TabEstados } from './components/TabEstados'
+import { TabImpuestos } from './components/TabImpuestos'
 import { TabPeriodos } from './components/TabPeriodos'
 import { TabSaldosTerceros } from './components/TabSaldosTerceros'
 import { TabTerceros } from './components/TabTerceros'
@@ -31,6 +34,12 @@ const tabs = {
     descripcion: 'Saldo anterior, movimientos y saldo final de cada cuenta en el período',
     icono: Scale,
     componente: TabBalance,
+  },
+  estados: {
+    label: 'Estados financieros',
+    descripcion: 'Estado de resultados del período y estado de situación financiera a una fecha',
+    icono: ChartColumn,
+    componente: TabEstados,
   },
   auxiliar: {
     label: 'Auxiliar',
@@ -56,9 +65,21 @@ const tabs = {
     icono: UserRound,
     componente: TabTerceros,
   },
+  impuestos: {
+    label: 'Impuestos',
+    descripcion: 'Base del ICA por bimestre y retenciones que practicaron los clientes',
+    icono: Landmark,
+    componente: TabImpuestos,
+  },
+  activos: {
+    label: 'Activos fijos',
+    descripcion: 'Computadores, muebles y equipos con su depreciación mensual',
+    icono: Laptop,
+    componente: TabActivos,
+  },
   periodos: {
     label: 'Periodos',
-    descripcion: 'Cierre mensual de la contabilidad',
+    descripcion: 'Cierre mensual con su lista de chequeo, y cierre del ejercicio',
     icono: CalendarCheck,
     componente: TabPeriodos,
   },

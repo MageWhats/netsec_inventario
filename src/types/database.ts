@@ -155,6 +155,8 @@ export type Database = {
           anulado_por: string | null
           motivo_anulacion: string | null
           retencion: number
+          cuenta_tesoreria_id: string | null
+          anticipo_id: string | null
         }
         Insert: never
         Update: never
@@ -768,6 +770,377 @@ export type Database = {
           },
         ]
       }
+      extractos: {
+        Row: {
+          id: string
+          cuenta_tesoreria_id: string
+          anio: number
+          mes: number
+          saldo_inicial: number
+          saldo_final: number
+          cerrado: boolean
+          cerrado_por: string | null
+          cerrado_at: string | null
+          usuario_id: string | null
+          created_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      extracto_lineas: {
+        Row: {
+          id: string
+          extracto_id: string
+          orden: number
+          fecha: string
+          descripcion: string
+          referencia: string | null
+          valor: number
+          asiento_id: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'extracto_lineas_extracto_id_fkey'
+            columns: ['extracto_id']
+            isOneToOne: false
+            referencedRelation: 'extractos'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'extracto_lineas_asiento_id_fkey'
+            columns: ['asiento_id']
+            isOneToOne: true
+            referencedRelation: 'asientos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      categorias_gasto: {
+        Row: { id: string; nombre: string; cuenta: string; activa: boolean; created_at: string; updated_at: string }
+        Insert: { id?: string; nombre: string; cuenta: string; activa?: boolean }
+        Update: { nombre?: string; cuenta?: string; activa?: boolean }
+        Relationships: []
+      }
+      gastos_recurrentes: {
+        Row: {
+          id: string
+          nombre: string
+          categoria_id: string
+          proveedor_id: string | null
+          tercero_id: string | null
+          valor: number
+          dia: number
+          cuenta_tesoreria_id: string | null
+          activo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          categoria_id: string
+          proveedor_id?: string | null
+          tercero_id?: string | null
+          valor: number
+          dia?: number
+          cuenta_tesoreria_id?: string | null
+          activo?: boolean
+        }
+        Update: {
+          nombre?: string
+          categoria_id?: string
+          proveedor_id?: string | null
+          tercero_id?: string | null
+          valor?: number
+          dia?: number
+          cuenta_tesoreria_id?: string | null
+          activo?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'gastos_recurrentes_categoria_id_fkey'
+            columns: ['categoria_id']
+            isOneToOne: false
+            referencedRelation: 'categorias_gasto'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_recurrentes_proveedor_id_fkey'
+            columns: ['proveedor_id']
+            isOneToOne: false
+            referencedRelation: 'proveedores'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_recurrentes_tercero_id_fkey'
+            columns: ['tercero_id']
+            isOneToOne: false
+            referencedRelation: 'terceros'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_recurrentes_cuenta_tesoreria_id_fkey'
+            columns: ['cuenta_tesoreria_id']
+            isOneToOne: false
+            referencedRelation: 'cuentas_tesoreria'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      gastos: {
+        Row: {
+          id: string
+          numero: number
+          fecha: string
+          categoria_id: string
+          cuenta: string
+          proveedor_id: string | null
+          tercero_id: string | null
+          descripcion: string
+          valor: number
+          cuenta_tesoreria_id: string | null
+          egreso_id: string | null
+          recurrente_id: string | null
+          mes_recurrente: string | null
+          referencia: string | null
+          usuario_id: string | null
+          created_at: string
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'gastos_categoria_id_fkey'
+            columns: ['categoria_id']
+            isOneToOne: false
+            referencedRelation: 'categorias_gasto'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_proveedor_id_fkey'
+            columns: ['proveedor_id']
+            isOneToOne: false
+            referencedRelation: 'proveedores'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_tercero_id_fkey'
+            columns: ['tercero_id']
+            isOneToOne: false
+            referencedRelation: 'terceros'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_cuenta_tesoreria_id_fkey'
+            columns: ['cuenta_tesoreria_id']
+            isOneToOne: false
+            referencedRelation: 'cuentas_tesoreria'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'gastos_egreso_id_fkey'
+            columns: ['egreso_id']
+            isOneToOne: true
+            referencedRelation: 'egresos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      activos_fijos: {
+        Row: {
+          id: string
+          nombre: string
+          cuenta: string
+          fecha_compra: string
+          costo: number
+          valor_residual: number
+          vida_util_meses: number
+          depreciacion_inicial: number
+          serial: string | null
+          notas: string | null
+          fecha_baja: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          cuenta: string
+          fecha_compra: string
+          costo: number
+          valor_residual?: number
+          vida_util_meses: number
+          depreciacion_inicial?: number
+          serial?: string | null
+          notas?: string | null
+          fecha_baja?: string | null
+        }
+        Update: {
+          nombre?: string
+          cuenta?: string
+          fecha_compra?: string
+          costo?: number
+          valor_residual?: number
+          vida_util_meses?: number
+          depreciacion_inicial?: number
+          serial?: string | null
+          notas?: string | null
+          fecha_baja?: string | null
+        }
+        Relationships: []
+      }
+      depreciaciones: {
+        Row: { id: string; activo_id: string; anio: number; mes: number; valor: number; comprobante_id: string }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      cuentas_tesoreria: {
+        Row: {
+          id: string
+          nombre: string
+          tipo: 'caja' | 'banco'
+          cuenta: string
+          banco: string | null
+          numero_cuenta: string | null
+          activa: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: never
+        Update: { nombre?: string; banco?: string | null; numero_cuenta?: string | null; activa?: boolean }
+        Relationships: []
+      }
+      egresos: {
+        Row: {
+          id: string
+          numero: number
+          fecha: string
+          clase: 'proveedor' | 'otro'
+          cuenta_tesoreria_id: string
+          cuenta_contrapartida: string | null
+          proveedor_id: string | null
+          cliente_id: string | null
+          tercero_id: string | null
+          valor: number
+          metodo: Database['public']['Enums']['metodo_pago']
+          concepto: string
+          referencia: string | null
+          usuario_id: string | null
+          created_at: string
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'egresos_cuenta_tesoreria_id_fkey'
+            columns: ['cuenta_tesoreria_id']
+            isOneToOne: false
+            referencedRelation: 'cuentas_tesoreria'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'egresos_proveedor_id_fkey'
+            columns: ['proveedor_id']
+            isOneToOne: false
+            referencedRelation: 'proveedores'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'egresos_cliente_id_fkey'
+            columns: ['cliente_id']
+            isOneToOne: false
+            referencedRelation: 'clientes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'egresos_tercero_id_fkey'
+            columns: ['tercero_id']
+            isOneToOne: false
+            referencedRelation: 'terceros'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      traslados: {
+        Row: {
+          id: string
+          numero: number
+          fecha: string
+          origen_id: string
+          destino_id: string
+          valor: number
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'traslados_origen_id_fkey'
+            columns: ['origen_id']
+            isOneToOne: false
+            referencedRelation: 'cuentas_tesoreria'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'traslados_destino_id_fkey'
+            columns: ['destino_id']
+            isOneToOne: false
+            referencedRelation: 'cuentas_tesoreria'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      anticipos: {
+        Row: {
+          id: string
+          numero: number
+          fecha: string
+          cliente_id: string
+          cuenta_tesoreria_id: string
+          valor: number
+          metodo: Database['public']['Enums']['metodo_pago']
+          referencia: string | null
+          notas: string | null
+          usuario_id: string | null
+          created_at: string
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'anticipos_cliente_id_fkey'
+            columns: ['cliente_id']
+            isOneToOne: false
+            referencedRelation: 'clientes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'anticipos_cuenta_tesoreria_id_fkey'
+            columns: ['cuenta_tesoreria_id']
+            isOneToOne: false
+            referencedRelation: 'cuentas_tesoreria'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       notas_venta: {
         Row: {
           id: string
@@ -929,6 +1302,10 @@ export type Database = {
           movimiento_id: string | null
           pago_id: string | null
           nota_id: string | null
+          egreso_id: string | null
+          traslado_id: string | null
+          anticipo_id: string | null
+          gasto_id: string | null
           created_at: string
         }
         Insert: never
@@ -1280,8 +1657,87 @@ export type Database = {
           p_referencia?: string | null
           p_notas?: string | null
           p_retencion?: number | null
+          p_cuenta_tesoreria_id?: string | null
         }
         Returns: string
+      }
+      crear_cuenta_tesoreria: {
+        Args: {
+          p_nombre: string
+          p_tipo: 'caja' | 'banco'
+          p_banco?: string | null
+          p_numero_cuenta?: string | null
+          p_cuenta?: string | null
+        }
+        Returns: string
+      }
+      saldos_tesoreria: {
+        Args: { p_hasta?: string | null }
+        Returns: {
+          id: string
+          nombre: string
+          tipo: 'caja' | 'banco'
+          cuenta: string
+          banco: string | null
+          numero_cuenta: string | null
+          activa: boolean
+          saldo: number
+        }[]
+      }
+      registrar_egreso: {
+        Args: {
+          p_fecha: string
+          p_clase: 'proveedor' | 'otro'
+          p_cuenta_tesoreria_id: string
+          p_valor: number
+          p_metodo: Database['public']['Enums']['metodo_pago']
+          p_concepto: string
+          p_proveedor_id?: string | null
+          p_cuenta?: string | null
+          p_cliente_id?: string | null
+          p_tercero_id?: string | null
+          p_referencia?: string | null
+        }
+        Returns: string
+      }
+      registrar_traslado: {
+        Args: { p_fecha: string; p_origen_id: string; p_destino_id: string; p_valor: number; p_notas?: string | null }
+        Returns: string
+      }
+      registrar_anticipo: {
+        Args: {
+          p_fecha: string
+          p_cliente_id: string
+          p_cuenta_tesoreria_id: string
+          p_valor: number
+          p_metodo: Database['public']['Enums']['metodo_pago']
+          p_referencia?: string | null
+          p_notas?: string | null
+        }
+        Returns: string
+      }
+      aplicar_anticipo: {
+        Args: { p_anticipo_id: string; p_movimiento_id: string; p_valor: number }
+        Returns: string
+      }
+      anular_tesoreria: {
+        Args: { p_tabla: 'egresos' | 'traslados' | 'anticipos'; p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      edades_por_tercero: {
+        Args: { p_cuenta: string; p_hasta?: string | null }
+        Returns: {
+          clase: string
+          tercero_id: string
+          nombre: string
+          documento: string | null
+          al_dia: number | null
+          d1_30: number | null
+          d31_60: number | null
+          d61_90: number | null
+          mas_90: number | null
+          total: number
+        }[]
       }
       registrar_nota_venta: {
         Args: {
@@ -1368,8 +1824,159 @@ export type Database = {
         Returns: string
       }
       cerrar_periodo: {
-        Args: { p_anio: number; p_mes: number }
+        Args: { p_anio: number; p_mes: number; p_forzar?: boolean }
         Returns: undefined
+      }
+      registrar_gasto: {
+        Args: {
+          p_fecha: string
+          p_categoria_id: string
+          p_valor: number
+          p_descripcion: string
+          p_cuenta_tesoreria_id?: string | null
+          p_proveedor_id?: string | null
+          p_tercero_id?: string | null
+          p_referencia?: string | null
+          p_recurrente_id?: string | null
+        }
+        Returns: string
+      }
+      pagar_gasto: {
+        Args: {
+          p_gasto_id: string
+          p_cuenta_tesoreria_id: string
+          p_fecha: string
+          p_metodo: Database['public']['Enums']['metodo_pago']
+          p_referencia?: string | null
+        }
+        Returns: string
+      }
+      anular_gasto: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      recurrentes_pendientes: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: { id: string; nombre: string; categoria: string; valor: number; dia: number; fecha: string }[]
+      }
+      confirmar_recurrente: {
+        Args: { p_id: string; p_anio: number; p_mes: number; p_valor?: number | null }
+        Returns: string
+      }
+      depreciar_mes: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: number
+      }
+      estado_resultados: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          codigo: string
+          nombre: string
+          nivel: number
+          naturaleza: Database['public']['Enums']['naturaleza_cuenta']
+          valor: number
+        }[]
+      }
+      situacion_financiera: {
+        Args: { p_hasta: string }
+        Returns: {
+          codigo: string
+          nombre: string
+          nivel: number
+          naturaleza: Database['public']['Enums']['naturaleza_cuenta']
+          valor: number
+        }[]
+      }
+      cierre_anual: {
+        Args: { p_anio: number }
+        Returns: string
+      }
+      anular_cierre_anual: {
+        Args: { p_anio: number; p_motivo: string }
+        Returns: undefined
+      }
+      base_ica: {
+        Args: { p_anio: number }
+        Returns: {
+          bimestre: number
+          desde: string
+          hasta: string
+          ingresos: number
+          devoluciones: number
+          base: number
+          tarifa: number | null
+          impuesto: number | null
+        }[]
+      }
+      retenciones_a_favor: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          cliente_id: string
+          nombre: string
+          documento: string
+          base: number
+          retencion: number
+          abonos: number
+        }[]
+      }
+      importar_extracto: {
+        Args: {
+          p_cuenta_tesoreria_id: string
+          p_anio: number
+          p_mes: number
+          p_saldo_inicial: number
+          p_saldo_final: number
+          p_lineas: Json
+        }
+        Returns: string
+      }
+      conciliar_automatico: {
+        Args: { p_extracto_id: string }
+        Returns: number
+      }
+      conciliar_linea: {
+        Args: { p_linea_id: string; p_asiento_id: string | null }
+        Returns: undefined
+      }
+      estado_conciliacion: {
+        Args: { p_extracto_id: string }
+        Returns: {
+          saldo_libros: number
+          saldo_extracto: number
+          banco_no_libros: number
+          libros_no_banco: number
+          diferencia: number
+          lineas_pendientes: number
+          asientos_pendientes: number
+        }[]
+      }
+      asientos_sin_conciliar: {
+        Args: { p_extracto_id: string }
+        Returns: {
+          asiento_id: string
+          comprobante_id: string
+          tipo: string
+          numero: number
+          fecha: string
+          descripcion: string
+          valor: number
+        }[]
+      }
+      cerrar_conciliacion: {
+        Args: { p_extracto_id: string; p_cerrar?: boolean }
+        Returns: undefined
+      }
+      flujo_efectivo: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: { concepto: string; entradas: number; salidas: number }[]
+      }
+      flujo_proyectado: {
+        Args: { p_semanas?: number }
+        Returns: { semana: number; desde: string; hasta: string; cobros: number; pagos: number }[]
+      }
+      checklist_cierre: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: { item: string; titulo: string; ok: boolean; detalle: string | null }[]
       }
       reabrir_periodo: {
         Args: { p_anio: number; p_mes: number; p_motivo: string }

@@ -263,7 +263,8 @@ describe('periodos', () => {
       /mes anterior/,
     )
     expect(await error(como(db, 'lectura', 'select public.cerrar_periodo($1, $2)', [anio, mes]))).toMatch(/contadora/)
-    await como(db, 'contador', 'select public.cerrar_periodo($1, $2)', [anio, mes])
+    // Forzado: los saldos iniciales de prueba traen inventario sin existencias (la lista de chequeo lo detecta, 0026)
+    await como(db, 'contador', 'select public.cerrar_periodo($1, $2, true)', [anio, mes])
 
     expect(
       await error(
