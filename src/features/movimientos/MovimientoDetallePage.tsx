@@ -7,7 +7,7 @@ import { LogoImpresion } from '@/components/ui/Logo'
 import { usePermisos } from '@/features/auth/permisos'
 import { PagosVenta } from '@/features/cartera/components/PagosVenta'
 import { etiquetaDocumento } from '@/features/clientes/schema'
-import { etiquetaComprobante, useComprobanteDeMovimiento } from '@/features/contabilidad/api'
+import { etiquetaComprobante, useComprobantesDeMovimiento } from '@/features/contabilidad/api'
 import { useTrazabilidadMovimiento } from '@/features/productos/api'
 import { Trazabilidad } from '@/features/productos/components/Trazabilidad'
 import { useEmpresa } from '@/features/configuracion/api'
@@ -16,6 +16,7 @@ import { imprimirPdf } from '@/lib/exportar'
 import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { useMovimiento, useMovimientosEnlazados } from './api'
 import { AnularMovimientoModal } from './components/AnularMovimientoModal'
+import { CufeMovimiento } from './components/CufeMovimiento'
 import { TipoMovimientoBadge } from './components/MovimientosTabla'
 import { agruparPorProducto, tituloDocumento } from './detalle'
 import { describirMotivo, esAjuste, formatearNumero, tiposMovimiento } from './tipos'
@@ -29,7 +30,7 @@ export function MovimientoDetallePage() {
   const { data: trazabilidad } = useTrazabilidadMovimiento(movimiento)
   const grupos = useMemo(() => (movimiento ? agruparPorProducto(movimiento) : []), [movimiento])
   const { esAdmin, verCostos, verContabilidad } = usePermisos()
-  const { data: comprobante } = useComprobanteDeMovimiento(id, verContabilidad)
+  const { data: comprobantes = [] } = useComprobantesDeMovimiento(id, verContabilidad)
   const { data: empresa } = useEmpresa()
   const [generandoPdf, setGenerandoPdf] = useState<'descargar' | 'imprimir' | null>(null)
   const [errorPdf, setErrorPdf] = useState<string | null>(null)
@@ -210,6 +211,9 @@ export function MovimientoDetallePage() {
           <Dato label={movimiento.tipo === 'salida' ? 'Factura electrónica' : 'Referencia'}>
             {movimiento.tipo === 'salida' ? (movimiento.referencia ?? 'Sin factura') : movimiento.referencia}
           </Dato>
+          {(movimiento.tipo === 'salida' || movimiento.tipo === 'entrada') && !anulado && (
+            <CufeMovimiento movimiento={movimiento} />
+          )}
           <Dato label="Bodega">{movimiento.bodega?.nombre}</Dato>
           {movimiento.orden_compra_id && verCostos && (
             <Dato label="Orden de compra">
@@ -226,11 +230,19 @@ export function MovimientoDetallePage() {
             </Dato>
           )}
           <Dato label="Registrado por">{movimiento.usuario}</Dato>
-          {comprobante && (
-            <Dato label="Comprobante contable">
-              <Link to={`/contabilidad/comprobantes/${comprobante.id}`} className="font-mono hover:text-brand-cyan">
-                {etiquetaComprobante(comprobante)}
-              </Link>
+          {comprobantes.length > 0 && (
+            <Dato label={comprobantes.length === 1 ? 'Comprobante contable' : 'Comprobantes contables'}>
+              <span className="flex flex-wrap gap-x-3">
+                {comprobantes.map((c) => (
+                  <Link
+                    key={c.id}
+                    to={`/contabilidad/comprobantes/${c.id}`}
+                    className={`font-mono hover:text-brand-cyan ${c.anulado_at ? 'line-through opacity-60' : ''}`}
+                  >
+                    {etiquetaComprobante(c)}
+                  </Link>
+                ))}
+              </span>
             </Dato>
           )}
           {enlazados?.origen && (

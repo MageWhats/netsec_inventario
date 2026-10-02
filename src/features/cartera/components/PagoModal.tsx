@@ -31,14 +31,19 @@ function Formulario({ venta, onClose }: { venta: NonNullable<PagoModalProps['ven
   const [fecha, setFecha] = useState(ahoraLocal)
   const [referencia, setReferencia] = useState('')
   const [notas, setNotas] = useState('')
+  // Retención en la fuente que practica el cliente (agentes de retención): reduce lo que paga
+  const [retencion, setRetencion] = useState(Number.NaN)
   const [intento, setIntento] = useState(false)
+  const valorRetencion = Number.isFinite(retencion) ? retencion : 0
 
   const errorValor =
     !Number.isFinite(valor) || valor <= 0
       ? 'Escribe un valor mayor que cero.'
-      : valor > venta.saldo
-        ? `No puede superar el saldo (${formatearPrecio(venta.saldo)}).`
-        : undefined
+      : valorRetencion < 0
+        ? 'La retención no puede ser negativa.'
+        : valor + valorRetencion > venta.saldo
+          ? `Con la retención no puede superar el saldo (${formatearPrecio(venta.saldo)}).`
+          : undefined
   const errorFecha = !fecha ? 'La fecha es obligatoria.' : undefined
 
   function onSubmit(e: FormEvent) {
@@ -53,12 +58,13 @@ function Formulario({ venta, onClose }: { venta: NonNullable<PagoModalProps['ven
         p_fecha: new Date(fecha).toISOString(),
         p_referencia: referencia,
         p_notas: notas,
+        p_retencion: valorRetencion,
       },
       { onSuccess: onClose },
     )
   }
 
-  const restante = Number.isFinite(valor) ? venta.saldo - valor : venta.saldo
+  const restante = (Number.isFinite(valor) ? venta.saldo - valor : venta.saldo) - valorRetencion
 
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
@@ -108,6 +114,25 @@ function Formulario({ venta, onClose }: { venta: NonNullable<PagoModalProps['ven
         </FormField>
         <FormField label="Fecha *" error={intento ? errorFecha : undefined}>
           <input type="datetime-local" value={fecha} onChange={(e) => setFecha(e.target.value)} className="input" />
+        </FormField>
+        <FormField
+          label="Retención que practicó el cliente"
+          hint="Solo si es agente de retención: lo que descontó del pago (va a la 135515)"
+        >
+          <input
+            type="number"
+            min={0}
+            step="any"
+            inputMode="decimal"
+            value={Number.isFinite(retencion) ? retencion : ''}
+            onChange={(e) => {
+              const r = e.target.valueAsNumber
+              setRetencion(r)
+              // Si el valor cubría todo el saldo, el efectivo recibido baja en lo retenido
+              if (valor === venta.saldo && Number.isFinite(r)) setValor(Math.max(venta.saldo - r, 0))
+            }}
+            className="input"
+          />
         </FormField>
         <FormField label="Referencia" hint="N.º de transferencia, recibo o cheque">
           <input value={referencia} onChange={(e) => setReferencia(e.target.value)} maxLength={100} className="input" />

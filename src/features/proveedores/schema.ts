@@ -20,6 +20,14 @@ export const proveedorSchema = z.object({
   email: z.union([z.literal(''), z.email('Email inválido')]),
   direccion: textoOpcional,
   notas: z.string().trim().max(1000, 'Máximo 1000 caracteres'),
+  // Plazo de pago habitual (días); vacío = sin plazo definido
+  dias_credito: z
+    .string()
+    .trim()
+    .regex(/^\d{0,3}$/, 'Escribe los días (0 a 365)')
+    .refine((v) => v === '' || Number(v) <= 365, 'Máximo 365 días'),
+  // Responsable de IVA: sus facturas traen IVA, que Net&Sec suma al costo (no lo descuenta)
+  responsable_iva: z.boolean(),
 })
 
 export type ProveedorForm = z.infer<typeof proveedorSchema>
@@ -32,6 +40,8 @@ export const proveedorVacio: ProveedorForm = {
   email: '',
   direccion: '',
   notas: '',
+  dias_credito: '',
+  responsable_iva: false,
 }
 
 export function proveedorAFormulario(p: Proveedor): ProveedorForm {
@@ -43,6 +53,8 @@ export function proveedorAFormulario(p: Proveedor): ProveedorForm {
     email: p.email ?? '',
     direccion: p.direccion ?? '',
     notas: p.notas ?? '',
+    dias_credito: p.dias_credito === null ? '' : String(p.dias_credito),
+    responsable_iva: p.responsable_iva,
   }
 }
 
@@ -56,5 +68,7 @@ export function formularioAProveedor(f: ProveedorForm): TablesInsert<'proveedore
     email: nulo(f.email.toLowerCase()),
     direccion: nulo(f.direccion),
     notas: nulo(f.notas),
+    dias_credito: f.dias_credito === '' ? null : Number(f.dias_credito),
+    responsable_iva: f.responsable_iva,
   }
 }

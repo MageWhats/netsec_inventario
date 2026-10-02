@@ -296,3 +296,15 @@ export function useDefinirClaveAnulacion() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['seguridad'] }),
   })
 }
+
+/** CUFE de la factura electrónica (venta) o CUDE del proveedor (entrada), migración 0024 */
+export function useDefinirCufe() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (args: { p_movimiento_id: string; p_cufe: string | null }) => {
+      const { error } = await supabase.rpc('definir_cufe', args)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: movimientosKeys.all }),
+  })
+}

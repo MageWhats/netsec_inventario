@@ -103,6 +103,14 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
     de arranque, cada movimiento genera su comprobante **MI** (entrada: inventario contra el proveedor; venta: costo de
     ventas; ajustes: la subcuenta de su motivo). Por eso las entradas exigen el proveedor y no se registran
     movimientos con fecha de un mes cerrado. Contabilidad → Configuración muestra la conciliación del inventario.
+24. `0024_ventas_y_cartera_contable.sql`: contabilidad, fase 3. Como Net&Sec no es responsable de IVA, **la venta es
+    la factura**: su comprobante suma el ingreso (crédito: cliente 130505; contado: caja) al costo. Los abonos generan
+    su recibo de caja (efectivo a caja, lo demás a bancos) y pueden llevar la **retención** que practique el cliente
+    (135515), que la cartera descuenta del saldo. Devoluciones y anulaciones reversan el ingreso; cambiar la forma de
+    pago reclasifica entre caja y cliente. **Notas crédito y débito** por valor (NC-/ND-) en ventas a crédito. **CUFE**
+    en ventas y entradas. Clientes y proveedores ganan plazo de pago, agente de retención y responsable de IVA.
+    Contabilidad → Por cobrar y por pagar muestra el saldo de cada tercero. Al crear la primera subcuenta de una
+    cuenta de los parámetros (p. ej. un auxiliar por banco bajo 111005), los parámetros pasan a la subcuenta.
 
 Reglas clave:
 
@@ -173,6 +181,8 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 | Crear, editar y convertir cotizaciones en venta | ✅ | ✅ | ❌ | ❌ |
 | Ver la cartera (saldos y abonos) | ✅ | ❌ | ✅ | ✅ |
 | Registrar y anular abonos; cambiar la forma de pago de una venta | ✅ | ❌ | ❌ | ❌ |
+| Notas crédito y débito de una venta a crédito | ✅ | ❌ | ❌ | ✅ |
+| Registrar el CUFE de una venta o entrada (corregirlo: solo admin) | ✅ | ✅ | ❌ | ❌ |
 | Anular entradas y ventas (con la clave de anulación) | ✅ | ❌ | ❌ | ❌ |
 | Consultar seriales y garantías; remisiones en PDF | ✅ | ✅ | ✅ | ✅ |
 | Ver la contabilidad (libro diario, balance, auxiliares, plan de cuentas) | ✅ | ❌ | ✅ | ✅ |

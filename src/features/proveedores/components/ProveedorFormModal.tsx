@@ -73,6 +73,16 @@ export function ProveedorFormModal({ open, onClose, proveedor, onSaved }: Provee
           </FormField>
         </div>
 
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField label="Plazo de pago (días)" error={errors.dias_credito?.message}>
+            <input className="input" inputMode="numeric" placeholder="30" {...register('dias_credito')} />
+          </FormField>
+          <label className="flex items-center gap-2 self-center text-sm text-slate-300">
+            <input type="checkbox" {...register('responsable_iva')} />
+            Responsable de IVA (sus facturas traen IVA)
+          </label>
+        </div>
+
         <FormField label="Notas" error={errors.notas?.message}>
           <textarea className="input min-h-20" rows={3} {...register('notas')} />
         </FormField>

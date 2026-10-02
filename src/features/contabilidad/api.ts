@@ -14,6 +14,7 @@ export type ConfiguracionContable = Tables<'configuracion_contable'>
 export type Naturaleza = Enums<'naturaleza_cuenta'>
 export type FilaBalance = Database['public']['Functions']['balance_prueba']['Returns'][number]
 export type FilaAuxiliar = Database['public']['Functions']['auxiliar_cuenta']['Returns'][number]
+export type SaldoTercero = Database['public']['Functions']['saldos_por_tercero']['Returns'][number]
 
 export const TIPOS_MANUALES = {
   CC: 'Comprobante contable',
@@ -25,6 +26,10 @@ export type TipoManual = keyof typeof TIPOS_MANUALES
 export const TIPOS_COMPROBANTE: Record<string, string> = {
   ...TIPOS_MANUALES,
   MI: 'Movimiento de inventario',
+  RC: 'Recibo de caja',
+  NC: 'Nota crédito',
+  ND: 'Nota débito',
+  CF: 'Cambio de forma de pago',
 }
 
 export const NIVELES: Record<number, string> = {
@@ -93,17 +98,17 @@ function useInvalidar() {
 // Inventario contable (fase 2): comprobante de cada movimiento y conciliación
 // ---------------------------------------------------------------------
 
-/** El comprobante MI que generó un movimiento de inventario (null si no tiene) */
-export function useComprobanteDeMovimiento(movimientoId: string, enabled = true) {
+/** Comprobantes ligados a un movimiento: el suyo (MI) y los de sus abonos, notas y cambios de forma de pago */
+export function useComprobantesDeMovimiento(movimientoId: string, enabled = true) {
   return useQuery({
     queryKey: contabilidadKeys.deMovimiento(movimientoId),
     enabled: enabled && Boolean(movimientoId),
     queryFn: async () => {
       const { data, error } = await supabase
         .from('comprobantes')
-        .select('id, tipo, numero')
+        .select('id, tipo, numero, anulado_at, anula_id')
         .eq('movimiento_id', movimientoId)
-        .maybeSingle()
+        .order('created_at')
       if (error) throw error
       return data
     },
@@ -474,6 +479,21 @@ export function useAuxiliar(cuenta: string, desde: string, hasta: string) {
         10_000,
       )
       return { filas, truncado }
+    },
+  })
+}
+
+/** Saldo de cada tercero en una cuenta (y sus subcuentas) a una fecha: cuentas por cobrar, por pagar... */
+export function useSaldosPorTercero(cuenta: string, hasta: string) {
+  return useQuery({
+    queryKey: [...contabilidadKeys.all, 'saldos-tercero', cuenta, hasta],
+    enabled: Boolean(cuenta && hasta),
+    placeholderData: (previo) => previo,
+    queryFn: async () => {
+      const { filas } = await traerTodo((d, h) =>
+        supabase.rpc('saldos_por_tercero', { p_cuenta: cuenta, p_hasta: hasta }).range(d, h),
+      )
+      return filas
     },
   })
 }

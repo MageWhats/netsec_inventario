@@ -1,4 +1,4 @@
-import { BookOpen, CalendarCheck, ListTree, Scale, Settings2, UserRound, Wallet, type LucideIcon } from 'lucide-react'
+import { BookOpen, CalendarCheck, HandCoins, ListTree, Scale, Settings2, UserRound, Wallet, type LucideIcon } from 'lucide-react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { usePermisos } from '@/features/auth/permisos'
@@ -9,6 +9,7 @@ import { TabConfiguracion } from './components/TabConfiguracion'
 import { TabCuentas } from './components/TabCuentas'
 import { TabDiario } from './components/TabDiario'
 import { TabPeriodos } from './components/TabPeriodos'
+import { TabSaldosTerceros } from './components/TabSaldosTerceros'
 import { TabTerceros } from './components/TabTerceros'
 
 interface InfoTab {
@@ -36,6 +37,12 @@ const tabs = {
     descripcion: 'El detalle de una cuenta con el saldo línea a línea',
     icono: Wallet,
     componente: TabAuxiliar,
+  },
+  saldos: {
+    label: 'Por cobrar y por pagar',
+    descripcion: 'Lo que debe cada cliente y lo que se le debe a cada proveedor, según la contabilidad',
+    icono: HandCoins,
+    componente: TabSaldosTerceros,
   },
   cuentas: {
     label: 'Plan de cuentas',

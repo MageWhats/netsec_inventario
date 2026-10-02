@@ -110,12 +110,15 @@ describe('plan de cuentas', () => {
     ).toMatch(/row-level security/)
   })
 
-  it('una cuenta usada por los asientos automáticos no recibe subcuentas', async () => {
+  it('la primera subcuenta de una cuenta de los parámetros la reemplaza en ellos (0024)', async () => {
+    await como(
+      db,
+      'contador',
+      `insert into public.cuentas (codigo, nombre, naturaleza) values ('51954001', 'Garantías de equipos', 'debito')`,
+    )
     expect(
-      await error(
-        como(db, 'contador', `insert into public.cuentas (codigo, nombre, naturaleza) values ('143501', 'Mercancía', 'debito')`),
-      ),
-    ).toMatch(/asientos automáticos/)
+      await como(db, 'contador', "select cuenta from public.parametros_contables where clave = 'garantias_clientes'"),
+    ).toEqual([{ cuenta: '51954001' }])
   })
 })
 

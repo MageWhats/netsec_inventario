@@ -154,6 +154,7 @@ export type Database = {
           anulado_at: string | null
           anulado_por: string | null
           motivo_anulacion: string | null
+          retencion: number
         }
         Insert: never
         Update: never
@@ -258,6 +259,8 @@ export type Database = {
           ciudad: string | null
           notas: string | null
           activo: boolean
+          dias_credito: number | null
+          agente_retencion: boolean
           created_at: string
           updated_at: string
         }
@@ -272,6 +275,8 @@ export type Database = {
           ciudad?: string | null
           notas?: string | null
           activo?: boolean
+          dias_credito?: number | null
+          agente_retencion?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -286,6 +291,8 @@ export type Database = {
           ciudad?: string | null
           notas?: string | null
           activo?: boolean
+          dias_credito?: number | null
+          agente_retencion?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -302,6 +309,8 @@ export type Database = {
           direccion: string | null
           notas: string | null
           activo: boolean
+          dias_credito: number | null
+          responsable_iva: boolean
           created_at: string
           updated_at: string
         }
@@ -315,6 +324,8 @@ export type Database = {
           direccion?: string | null
           notas?: string | null
           activo?: boolean
+          dias_credito?: number | null
+          responsable_iva?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -328,6 +339,8 @@ export type Database = {
           direccion?: string | null
           notas?: string | null
           activo?: boolean
+          dias_credito?: number | null
+          responsable_iva?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -535,6 +548,7 @@ export type Database = {
           anulado_por: string | null
           motivo_anulacion: string | null
           anula_id: string | null
+          cufe: string | null
         }
         Insert: {
           id?: string
@@ -754,6 +768,34 @@ export type Database = {
           },
         ]
       }
+      notas_venta: {
+        Row: {
+          id: string
+          tipo: 'credito' | 'debito'
+          numero: number
+          movimiento_id: string
+          fecha: string
+          valor: number
+          motivo: string
+          cufe: string | null
+          usuario_id: string | null
+          created_at: string
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'notas_venta_movimiento_id_fkey'
+            columns: ['movimiento_id']
+            isOneToOne: false
+            referencedRelation: 'movimientos'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       configuracion_contable: {
         Row: {
           id: boolean
@@ -885,6 +927,8 @@ export type Database = {
           motivo_anulacion: string | null
           usuario_id: string | null
           movimiento_id: string | null
+          pago_id: string | null
+          nota_id: string | null
           created_at: string
         }
         Insert: never
@@ -893,7 +937,7 @@ export type Database = {
           {
             foreignKeyName: 'comprobantes_movimiento_id_fkey'
             columns: ['movimiento_id']
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: 'movimientos'
             referencedColumns: ['id']
           },
@@ -995,6 +1039,9 @@ export type Database = {
           pagado: number
           saldo: number
           dias_vencida: number
+          retenido: number
+          notas_credito: number
+          notas_debito: number
         }
         Relationships: []
       }
@@ -1232,8 +1279,40 @@ export type Database = {
           p_fecha?: string | null
           p_referencia?: string | null
           p_notas?: string | null
+          p_retencion?: number | null
         }
         Returns: string
+      }
+      registrar_nota_venta: {
+        Args: {
+          p_movimiento_id: string
+          p_tipo: 'credito' | 'debito'
+          p_valor: number
+          p_motivo: string
+          p_fecha?: string | null
+          p_cufe?: string | null
+        }
+        Returns: string
+      }
+      anular_nota_venta: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      definir_cufe: {
+        Args: { p_movimiento_id: string; p_cufe: string | null }
+        Returns: undefined
+      }
+      saldos_por_tercero: {
+        Args: { p_cuenta: string; p_hasta: string }
+        Returns: {
+          clase: string
+          tercero_id: string | null
+          nombre: string
+          documento: string | null
+          debitos: number
+          creditos: number
+          saldo: number
+        }[]
       }
       anular_pago: {
         Args: { p_id: string; p_motivo: string }

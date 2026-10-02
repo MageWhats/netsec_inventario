@@ -31,6 +31,14 @@ export const clienteSchema = z.object({
   direccion: textoOpcional,
   ciudad: textoOpcional,
   notas: z.string().trim().max(1000, 'Máximo 1000 caracteres'),
+  // Plazo de pago habitual (días); vacío = sin plazo definido
+  dias_credito: z
+    .string()
+    .trim()
+    .regex(/^\d{0,3}$/, 'Escribe los días (0 a 365)')
+    .refine((v) => v === '' || Number(v) <= 365, 'Máximo 365 días'),
+  // Agente de retención: al pagar descuenta la retención en la fuente (se registra en el abono)
+  agente_retencion: z.boolean(),
 })
 
 export type ClienteForm = z.infer<typeof clienteSchema>
@@ -44,6 +52,8 @@ export const clienteVacio: ClienteForm = {
   direccion: '',
   ciudad: '',
   notas: '',
+  dias_credito: '',
+  agente_retencion: false,
 }
 
 export function clienteAFormulario(c: Cliente): ClienteForm {
@@ -56,6 +66,8 @@ export function clienteAFormulario(c: Cliente): ClienteForm {
     direccion: c.direccion ?? '',
     ciudad: c.ciudad ?? '',
     notas: c.notas ?? '',
+    dias_credito: c.dias_credito === null ? '' : String(c.dias_credito),
+    agente_retencion: c.agente_retencion,
   }
 }
 
@@ -70,6 +82,8 @@ export function formularioACliente(f: ClienteForm): TablesInsert<'clientes'> {
     direccion: nulo(f.direccion),
     ciudad: nulo(f.ciudad),
     notas: nulo(f.notas),
+    dias_credito: f.dias_credito === '' ? null : Number(f.dias_credito),
+    agente_retencion: f.agente_retencion,
   }
 }
 

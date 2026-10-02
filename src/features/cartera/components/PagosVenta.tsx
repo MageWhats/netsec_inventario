@@ -9,6 +9,7 @@ import { formatearFecha, formatearPrecio } from '@/lib/format'
 import { formatearFechaCorta } from '@/lib/garantia'
 import { estadoCobro, metodosPago, useAnularPago, useCambiarFormaPago, usePagosVenta, type Pago } from '../api'
 import { EstadoCobroBadge } from './EstadoCobroBadge'
+import { NotasVenta } from './NotasVenta'
 import { PagoModal } from './PagoModal'
 
 interface PagosVentaProps {
@@ -49,9 +50,12 @@ export function PagosVenta({ venta }: PagosVentaProps) {
 
   const cartera = data?.venta
   const pagos = data?.pagos ?? []
+  const notas = data?.notas ?? []
   const activos = pagos.filter((p) => !p.anulado_at)
   const pct =
-    cartera && cartera.total > 0 ? Math.min(((cartera.pagado + cartera.devuelto) / cartera.total) * 100, 100) : 0
+    cartera && cartera.total > 0
+      ? Math.max(Math.min(((cartera.total - cartera.saldo) / (cartera.total + cartera.notas_debito)) * 100, 100), 0)
+      : 0
 
   return (
     <section className="mb-6 rounded-2xl border border-brand-border bg-brand-card p-6 print:hidden">
@@ -74,7 +78,7 @@ export function PagosVenta({ venta }: PagosVentaProps) {
         </div>
         {esAdmin && (
           <div className="flex flex-wrap gap-2">
-            {activos.length === 0 && (
+            {activos.length === 0 && notas.every((n) => n.anulado_at) && (
               <button onClick={() => setCambiando(true)} className="btn btn-secondary">
                 <CalendarClock className="size-4" />
                 Cambiar forma de pago
@@ -100,7 +104,7 @@ export function PagosVenta({ venta }: PagosVentaProps) {
             <dl className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               <Cifra label="Total" valor={cartera.total} />
               <Cifra label="Devuelto" valor={cartera.devuelto} />
-              <Cifra label="Abonado" valor={cartera.pagado} />
+              <Cifra label="Abonado" valor={cartera.pagado + cartera.retenido} />
               <Cifra
                 label="Saldo"
                 valor={cartera.saldo}
@@ -113,6 +117,17 @@ export function PagosVenta({ venta }: PagosVentaProps) {
                 }
               />
             </dl>
+            {(cartera.retenido > 0 || cartera.notas_credito > 0 || cartera.notas_debito > 0) && (
+              <p className="mt-2 text-xs text-slate-400">
+                {[
+                  cartera.retenido > 0 && `Incluye ${formatearPrecio(cartera.retenido)} de retenciones del cliente`,
+                  cartera.notas_credito > 0 && `notas crédito −${formatearPrecio(cartera.notas_credito)}`,
+                  cartera.notas_debito > 0 && `notas débito +${formatearPrecio(cartera.notas_debito)}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
             <div
               className="mt-3 h-1.5 overflow-hidden rounded-full bg-slate-500/20"
               title={`${pct.toFixed(0)} % cubierto`}
@@ -131,6 +146,9 @@ export function PagosVenta({ venta }: PagosVentaProps) {
                     <span>{metodosPago[p.metodo]}</span>
                     {p.referencia && <span className="text-slate-500">Ref. {p.referencia}</span>}
                     {p.notas && <span className="text-slate-500">{p.notas}</span>}
+                    {p.retencion > 0 && (
+                      <span className="text-slate-500">+ retención {formatearPrecio(p.retencion)}</span>
+                    )}
                     <span className={`ml-auto font-medium tabular-nums ${p.anulado_at ? 'line-through' : ''}`}>
                       {formatearPrecio(p.valor)}
                     </span>
@@ -154,6 +172,8 @@ export function PagosVenta({ venta }: PagosVentaProps) {
                 ))}
               </ul>
             )}
+
+            <NotasVenta ventaId={venta.id} notas={notas} saldo={cartera.saldo} />
           </>
         )
       )}

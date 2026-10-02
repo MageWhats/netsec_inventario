@@ -68,18 +68,25 @@ export function usePagosVenta(movimientoId: string, enabled = true) {
     queryKey: carteraKeys.pagos(movimientoId),
     enabled: enabled && Boolean(movimientoId),
     queryFn: async () => {
-      const [venta, pagos] = await Promise.all([
+      const [venta, pagos, notas] = await Promise.all([
         supabase.from('cartera').select('*').eq('id', movimientoId).maybeSingle(),
         supabase.from('pagos').select('*').eq('movimiento_id', movimientoId).order('fecha').order('created_at'),
+        supabase.from('notas_venta').select('*').eq('movimiento_id', movimientoId).order('created_at'),
       ])
       if (venta.error) throw venta.error
       if (pagos.error) throw pagos.error
-      return { venta: venta.data, pagos: pagos.data }
+      if (notas.error) throw notas.error
+      return { venta: venta.data, pagos: pagos.data, notas: notas.data }
     },
   })
 }
 
 export type Pago = NonNullable<ReturnType<typeof usePagosVenta>['data']>['pagos'][number]
+export type NotaVenta = NonNullable<ReturnType<typeof usePagosVenta>['data']>['notas'][number]
+
+/** NC-000001 / ND-000001 */
+export const etiquetaNota = (n: Pick<NotaVenta, 'tipo' | 'numero'>) =>
+  `${n.tipo === 'credito' ? 'NC' : 'ND'}-${String(n.numero).padStart(6, '0')}`
 
 function useInvalidarCartera() {
   const queryClient = useQueryClient()
@@ -87,6 +94,7 @@ function useInvalidarCartera() {
     Promise.all([
       queryClient.invalidateQueries({ queryKey: carteraKeys.all }),
       queryClient.invalidateQueries({ queryKey: ['movimientos'] }),
+      queryClient.invalidateQueries({ queryKey: ['contabilidad'] }),
     ])
 }
 
@@ -143,5 +151,33 @@ export function useRecaudo(desde: string, enabled = true) {
       )
       return { total: filas.reduce((s, p) => s + p.valor, 0), abonos: filas.length }
     },
+  })
+}
+
+// ---------------------------------------------------------------------
+// Notas crédito y débito por valor (migración 0024): admin y contador
+// ---------------------------------------------------------------------
+export type ArgsRegistrarNota = Database['public']['Functions']['registrar_nota_venta']['Args']
+
+export function useRegistrarNota() {
+  const invalidar = useInvalidarCartera()
+  return useMutation({
+    mutationFn: async (args: ArgsRegistrarNota) => {
+      const { data, error } = await supabase.rpc('registrar_nota_venta', args)
+      if (error) throw error
+      return data
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useAnularNota() {
+  const invalidar = useInvalidarCartera()
+  return useMutation({
+    mutationFn: async (args: { p_id: string; p_motivo: string }) => {
+      const { error } = await supabase.rpc('anular_nota_venta', args)
+      if (error) throw error
+    },
+    onSuccess: invalidar,
   })
 }

@@ -209,12 +209,14 @@ describe('asientos automáticos', () => {
     ).toMatch(/fecha anterior/)
   })
 
-  it('venta: costo de ventas a costo PEPS', async () => {
+  it('venta: costo de ventas a costo PEPS (y el ingreso, desde la 0024)', async () => {
     // 10 a 1000 (antes del arranque) y 2 a 2000
     const venta = await vender([{ producto_id: p, cantidad: 12, precio_unitario: 3000 }])
     expect(await asiento(venta)).toEqual([
       ['6135', 14_000, 0],
       ['1435', 0, 14_000],
+      ['110505', 36_000, 0],
+      ['4135', 0, 36_000],
     ])
   })
 
@@ -235,12 +237,14 @@ describe('asientos automáticos', () => {
     ])
   })
 
-  it('anular una venta revierte su costo', async () => {
+  it('anular una venta revierte su costo y su ingreso', async () => {
     const venta = await vender([{ producto_id: p, cantidad: 1, precio_unitario: 3000 }])
     const anulacion = await anular(venta)
     expect(await asiento(anulacion)).toEqual([
       ['1435', 2000, 0],
       ['6135', 0, 2000],
+      ['4135', 3000, 0],
+      ['110505', 0, 3000],
     ])
   })
 

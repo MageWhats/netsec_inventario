@@ -68,11 +68,18 @@ export function ComprobanteDetallePage() {
       )}
       {comprobante.movimiento && (
         <p className="mb-4 rounded-lg bg-blue-500/10 px-4 py-3 text-sm text-blue-400">
-          Lo generó el movimiento de inventario{' '}
+          Lo generó{' '}
+          {comprobante.tipo === 'RC'
+            ? 'un abono a la venta'
+            : comprobante.tipo === 'NC' || comprobante.tipo === 'ND'
+              ? 'una nota de la venta'
+              : comprobante.tipo === 'CF'
+                ? 'el cambio de forma de pago de la venta'
+                : 'el movimiento de inventario'}{' '}
           <Link to={`/movimientos/${comprobante.movimiento.id}`} className="underline">
             {formatearNumero(comprobante.movimiento)}
           </Link>
-          . No se anula aquí: si el movimiento estaba errado, se anula el movimiento.
+          . No se anula aquí: se anula su documento (el movimiento, el abono o la nota).
         </p>
       )}
       {comprobante.original && (

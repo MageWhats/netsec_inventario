@@ -535,7 +535,11 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                         </>
                       )}
                       value={clientesActivos.find((c) => c.id === clienteId) ?? null}
-                      onChange={(c) => setClienteId(c?.id ?? '')}
+                      onChange={(c) => {
+                        setClienteId(c?.id ?? '')
+                        // El plazo habitual del cliente se propone para la venta a crédito
+                        if (c?.dias_credito) setPlazo(c.dias_credito)
+                      }}
                       placeholder="Buscar por nombre o documento…"
                       emptyText="No hay clientes que coincidan"
                     />
@@ -617,7 +621,7 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
                       className="input flex-1"
                       aria-label="Plazo de pago"
                     >
-                      {PLAZOS.map((d) => (
+                      {[...new Set([...PLAZOS, plazo])].sort((x, y) => x - y).map((d) => (
                         <option key={d} value={d}>
                           {d} días
                         </option>
