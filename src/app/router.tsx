@@ -188,6 +188,37 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            path: 'contabilidad',
+            element: <RequierePermiso permiso="verContabilidad" />,
+            children: [
+              {
+                index: true,
+                lazy: () =>
+                  import('@/features/contabilidad/ContabilidadPage').then((m) => ({ Component: m.ContabilidadPage })),
+              },
+              {
+                path: 'comprobantes/nuevo',
+                element: <RequierePermiso permiso="llevaContabilidad" />,
+                children: [
+                  {
+                    index: true,
+                    lazy: () =>
+                      import('@/features/contabilidad/ComprobanteFormPage').then((m) => ({
+                        Component: m.ComprobanteFormPage,
+                      })),
+                  },
+                ],
+              },
+              {
+                path: 'comprobantes/:id',
+                lazy: () =>
+                  import('@/features/contabilidad/ComprobanteDetallePage').then((m) => ({
+                    Component: m.ComprobanteDetallePage,
+                  })),
+              },
+            ],
+          },
+          {
             path: 'configuracion',
             element: <RequierePermiso permiso="esAdmin" />,
             children: [

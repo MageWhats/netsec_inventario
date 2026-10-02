@@ -754,6 +754,203 @@ export type Database = {
           },
         ]
       }
+      configuracion_contable: {
+        Row: {
+          id: boolean
+          fecha_inicio: string | null
+          marco: string
+          regimen: string
+          responsable_iva: boolean
+          agente_retencion: boolean
+          tarifa_iva: number
+          municipio_ica: string | null
+          periodicidad_ica: string | null
+          actividad_ciiu: string | null
+          tarifa_ica: number | null
+          updated_at: string
+        }
+        Insert: never
+        Update: {
+          fecha_inicio?: string | null
+          marco?: string
+          regimen?: string
+          responsable_iva?: boolean
+          agente_retencion?: boolean
+          tarifa_iva?: number
+          municipio_ica?: string | null
+          periodicidad_ica?: string | null
+          actividad_ciiu?: string | null
+          tarifa_ica?: number | null
+        }
+        Relationships: []
+      }
+      cuentas: {
+        Row: {
+          id: string
+          codigo: string
+          nombre: string
+          naturaleza: Database['public']['Enums']['naturaleza_cuenta']
+          nivel: number
+          padre: string | null
+          exige_tercero: boolean
+          activa: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          nombre: string
+          naturaleza: Database['public']['Enums']['naturaleza_cuenta']
+          exige_tercero?: boolean
+          activa?: boolean
+        }
+        Update: {
+          nombre?: string
+          naturaleza?: Database['public']['Enums']['naturaleza_cuenta']
+          exige_tercero?: boolean
+          activa?: boolean
+        }
+        Relationships: []
+      }
+      terceros: {
+        Row: {
+          id: string
+          tipo_documento: Database['public']['Enums']['tipo_documento']
+          documento: string
+          nombre: string
+          notas: string | null
+          activo: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tipo_documento?: Database['public']['Enums']['tipo_documento']
+          documento: string
+          nombre: string
+          notas?: string | null
+          activo?: boolean
+        }
+        Update: {
+          tipo_documento?: Database['public']['Enums']['tipo_documento']
+          documento?: string
+          nombre?: string
+          notas?: string | null
+          activo?: boolean
+        }
+        Relationships: []
+      }
+      parametros_contables: {
+        Row: {
+          id: string
+          clave: string
+          nombre: string
+          cuenta: string
+          updated_at: string
+        }
+        Insert: never
+        Update: { cuenta?: string }
+        Relationships: []
+      }
+      periodos: {
+        Row: {
+          id: string
+          anio: number
+          mes: number
+          cerrado: boolean
+          cerrado_por: string | null
+          cerrado_at: string | null
+          motivo_reapertura: string | null
+        }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      tipos_comprobante: {
+        Row: { codigo: string; nombre: string; manual: boolean }
+        Insert: never
+        Update: never
+        Relationships: []
+      }
+      comprobantes: {
+        Row: {
+          id: string
+          tipo: string
+          numero: number
+          fecha: string
+          descripcion: string
+          anula_id: string | null
+          anulado_at: string | null
+          anulado_por: string | null
+          motivo_anulacion: string | null
+          usuario_id: string | null
+          created_at: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'comprobantes_usuario_id_fkey'
+            columns: ['usuario_id']
+            isOneToOne: false
+            referencedRelation: 'perfiles'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      asientos: {
+        Row: {
+          id: string
+          comprobante_id: string
+          linea: number
+          cuenta: string
+          cliente_id: string | null
+          proveedor_id: string | null
+          tercero_id: string | null
+          descripcion: string | null
+          debito: number
+          credito: number
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          {
+            foreignKeyName: 'asientos_comprobante_id_fkey'
+            columns: ['comprobante_id']
+            isOneToOne: false
+            referencedRelation: 'comprobantes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'asientos_cuenta_fkey'
+            columns: ['cuenta']
+            isOneToOne: false
+            referencedRelation: 'cuentas'
+            referencedColumns: ['codigo']
+          },
+          {
+            foreignKeyName: 'asientos_cliente_id_fkey'
+            columns: ['cliente_id']
+            isOneToOne: false
+            referencedRelation: 'clientes'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'asientos_proveedor_id_fkey'
+            columns: ['proveedor_id']
+            isOneToOne: false
+            referencedRelation: 'proveedores'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'asientos_tercero_id_fkey'
+            columns: ['tercero_id']
+            isOneToOne: false
+            referencedRelation: 'terceros'
+            referencedColumns: ['id']
+          },
+        ]
+      }
     }
     Views: {
       cotizaciones_resumen: {
@@ -1067,9 +1264,63 @@ export type Database = {
         Args: { p_movimiento_id?: string | null; p_desde?: string | null; p_hasta?: string | null }
         Returns: { id: string; costo_unitario: number | null }[]
       }
+      ver_contabilidad: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      lleva_contabilidad: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      registrar_comprobante: {
+        Args: { p_tipo: string; p_fecha: string; p_descripcion: string; p_lineas: Json }
+        Returns: string
+      }
+      anular_comprobante: {
+        Args: { p_id: string; p_motivo: string }
+        Returns: string
+      }
+      cerrar_periodo: {
+        Args: { p_anio: number; p_mes: number }
+        Returns: undefined
+      }
+      reabrir_periodo: {
+        Args: { p_anio: number; p_mes: number; p_motivo: string }
+        Returns: undefined
+      }
+      balance_prueba: {
+        Args: { p_desde: string; p_hasta: string }
+        Returns: {
+          codigo: string
+          nombre: string
+          nivel: number
+          naturaleza: Database['public']['Enums']['naturaleza_cuenta']
+          saldo_inicial: number
+          debitos: number
+          creditos: number
+          saldo_final: number
+        }[]
+      }
+      auxiliar_cuenta: {
+        Args: { p_cuenta: string; p_desde: string; p_hasta: string }
+        Returns: {
+          comprobante_id: string | null
+          fecha: string
+          tipo: string | null
+          numero: number | null
+          linea: number | null
+          cuenta: string | null
+          descripcion: string
+          tercero: string | null
+          debito: number | null
+          credito: number | null
+          saldo: number
+        }[]
+      }
     }
     Enums: {
-      rol_usuario: 'admin' | 'bodega' | 'lectura'
+      rol_usuario: 'admin' | 'bodega' | 'lectura' | 'contador'
+      naturaleza_cuenta: 'debito' | 'credito'
       tipo_movimiento: 'entrada' | 'salida' | 'ajuste_entrada' | 'ajuste_salida'
       estado_unidad: 'disponible' | 'vendida' | 'en_garantia' | 'danada' | 'baja'
       tipo_documento: 'CC' | 'NIT' | 'CE' | 'PAS' | 'TI' | 'OTRO'

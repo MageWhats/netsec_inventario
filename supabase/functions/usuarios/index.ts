@@ -13,7 +13,7 @@
 // =====================================================================
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
-const ROLES = ['admin', 'bodega', 'lectura']
+const ROLES = ['admin', 'bodega', 'lectura', 'contador']
 const BLOQUEO_INDEFINIDO = '876000h' // ~100 años
 
 const cors = {

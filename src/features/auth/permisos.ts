@@ -12,6 +12,10 @@ export const ROLES: Record<Rol, { label: string; descripcion: string }> = {
     descripcion: 'Registra entradas, salidas y conteos. No ve costos promedio, márgenes ni reportes',
   },
   lectura: { label: 'Solo lectura', descripcion: 'Ve todo, incluidos costos y reportes, pero no modifica nada' },
+  contador: {
+    label: 'Contador',
+    descripcion: 'Lleva la contabilidad: comprobantes, plan de cuentas y cierres. Ve el inventario sin modificarlo',
+  },
 }
 
 /** Perfil del usuario con sesión iniciada (null si no tiene) */
@@ -41,6 +45,12 @@ export interface Permisos {
   puedeOperar: boolean
   /** Costo promedio, márgenes, valor del inventario y reportes */
   verCostos: boolean
+  /** Consultar la contabilidad: comprobantes, libros y balance */
+  verContabilidad: boolean
+  /** Registrar comprobantes, configurar cuentas y cerrar periodos */
+  llevaContabilidad: boolean
+  /** Reabrir un periodo cerrado: solo el contador */
+  esContador: boolean
 }
 
 export function permisosDe(rol: Rol | null | undefined): Permisos {
@@ -48,7 +58,10 @@ export function permisosDe(rol: Rol | null | undefined): Permisos {
     rol: rol ?? null,
     esAdmin: rol === 'admin',
     puedeOperar: rol === 'admin' || rol === 'bodega',
-    verCostos: rol === 'admin' || rol === 'lectura',
+    verCostos: rol === 'admin' || rol === 'lectura' || rol === 'contador',
+    verContabilidad: rol === 'admin' || rol === 'lectura' || rol === 'contador',
+    llevaContabilidad: rol === 'admin' || rol === 'contador',
+    esContador: rol === 'contador',
   }
 }
 

@@ -87,6 +87,15 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
     anulado deja de contar en reportes, dashboard, cartera y órdenes de compra. Solo *admin*, y con la **clave de
     anulación** (Configuración → Seguridad), que se guarda cifrada; 5 intentos fallidos bloquean 15 minutos. Si se
     olvida: `update public.seguridad set clave_anulacion = null;` en el SQL Editor y se define otra.
+21. `0021_rol_contador.sql`: rol *contador*. Va sola: Postgres no deja usar un valor nuevo de un enum en la misma
+    transacción que lo crea. **Ejecútala y luego la 0022.**
+22. `0022_contabilidad_base.sql`: contabilidad, fase 1. Plan de cuentas (PUC con las subcuentas aprobadas por la
+    contadora), terceros, configuración contable (fecha de arranque, régimen, IVA, ICA), periodos mensuales,
+    comprobantes manuales (CC) y de saldos iniciales (SI), balance de prueba y auxiliar por cuenta. Los comprobantes
+    solo se crean con `registrar_comprobante()`: deben cuadrar, usan cuentas de último nivel y llevan tercero donde la
+    cuenta lo exige. No se editan ni se borran: se anulan con el comprobante inverso. Un mes cerrado no recibe nada;
+    solo el contador lo reabre, con motivo. Después de ejecutarla, en Configuración → Usuarios se le asigna el rol
+    *Contador* a la contadora, y ella define la fecha de arranque en Contabilidad → Configuración.
 
 Reglas clave:
 
@@ -144,22 +153,25 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 
 ## Usuarios y roles
 
-| | Admin | Bodega | Lectura |
-|---|---|---|---|
-| Ver productos, stock, movimientos, clientes y proveedores | ✅ | ✅ | ✅ |
-| Registrar entradas y salidas | ✅ | ✅ | ❌ |
-| Contar en tomas de inventario | ✅ | ✅ | ❌ |
-| Finalizar o cancelar tomas (generan ajustes) y ajustes manuales | ✅ | ❌ | ❌ |
-| Crear o editar productos, clientes y proveedores | ✅ | ❌ | ❌ |
-| Costo promedio, márgenes, valor del inventario y reportes | ✅ | ❌ | ✅ |
-| Ver órdenes de compra | ✅ | ❌ | ✅ |
-| Crear, recibir y cancelar órdenes de compra; importar productos | ✅ | ❌ | ❌ |
-| Crear, editar y convertir cotizaciones en venta | ✅ | ✅ | ❌ |
-| Ver la cartera (saldos y abonos) | ✅ | ❌ | ✅ |
-| Registrar y anular abonos; cambiar la forma de pago de una venta | ✅ | ❌ | ❌ |
-| Anular entradas y ventas (con la clave de anulación) | ✅ | ❌ | ❌ |
-| Consultar seriales y garantías; remisiones en PDF | ✅ | ✅ | ✅ |
-| Configuración (categorías, bodegas, usuarios, empresa) | ✅ | ❌ | ❌ |
+| | Admin | Bodega | Lectura | Contador |
+|---|---|---|---|---|
+| Ver productos, stock, movimientos, clientes y proveedores | ✅ | ✅ | ✅ | ✅ |
+| Registrar entradas y salidas | ✅ | ✅ | ❌ | ❌ |
+| Contar en tomas de inventario | ✅ | ✅ | ❌ | ❌ |
+| Finalizar o cancelar tomas (generan ajustes) y ajustes manuales | ✅ | ❌ | ❌ | ❌ |
+| Crear o editar productos, clientes y proveedores | ✅ | ❌ | ❌ | ❌ |
+| Costo promedio, márgenes, valor del inventario y reportes | ✅ | ❌ | ✅ | ✅ |
+| Ver órdenes de compra | ✅ | ❌ | ✅ | ✅ |
+| Crear, recibir y cancelar órdenes de compra; importar productos | ✅ | ❌ | ❌ | ❌ |
+| Crear, editar y convertir cotizaciones en venta | ✅ | ✅ | ❌ | ❌ |
+| Ver la cartera (saldos y abonos) | ✅ | ❌ | ✅ | ✅ |
+| Registrar y anular abonos; cambiar la forma de pago de una venta | ✅ | ❌ | ❌ | ❌ |
+| Anular entradas y ventas (con la clave de anulación) | ✅ | ❌ | ❌ | ❌ |
+| Consultar seriales y garantías; remisiones en PDF | ✅ | ✅ | ✅ | ✅ |
+| Ver la contabilidad (libro diario, balance, auxiliares, plan de cuentas) | ✅ | ❌ | ✅ | ✅ |
+| Registrar y anular comprobantes; plan de cuentas, terceros y configuración contable; cerrar meses | ✅ | ❌ | ❌ | ✅ |
+| Reabrir un mes cerrado | ❌ | ❌ | ❌ | ✅ |
+| Configuración (categorías, bodegas, usuarios, empresa) | ✅ | ❌ | ❌ | ❌ |
 
 Bodega digita el costo de la factura al registrar una entrada, pero no ve el costo promedio ni los márgenes. Esto
 también lo aplica la base de datos (migración 0015): las columnas de costo no se pueden leer de las tablas y solo las

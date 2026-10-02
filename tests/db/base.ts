@@ -51,6 +51,7 @@ export const USUARIOS = {
   admin: '00000000-0000-0000-0000-00000000000a',
   bodega: '00000000-0000-0000-0000-00000000000b',
   lectura: '00000000-0000-0000-0000-00000000000c',
+  contador: '00000000-0000-0000-0000-00000000000d',
 } as const
 
 export type Usuario = keyof typeof USUARIOS
@@ -72,9 +73,11 @@ export async function crearBase(): Promise<PGlite> {
     insert into auth.users (id, email) values
       ('${USUARIOS.admin}', 'admin@netsec.test'),
       ('${USUARIOS.bodega}', 'bodega@netsec.test'),
-      ('${USUARIOS.lectura}', 'lectura@netsec.test');
+      ('${USUARIOS.lectura}', 'lectura@netsec.test'),
+      ('${USUARIOS.contador}', 'contador@netsec.test');
     update public.perfiles set rol = 'admin' where id = '${USUARIOS.admin}';
     update public.perfiles set rol = 'bodega' where id = '${USUARIOS.bodega}';
+    update public.perfiles set rol = 'contador' where id = '${USUARIOS.contador}';
   `)
   return db
 }

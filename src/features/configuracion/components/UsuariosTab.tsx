@@ -15,6 +15,7 @@ const COLOR_ROL = {
   admin: 'bg-brand-accent/15 text-brand-accent',
   bodega: 'bg-amber-500/15 text-amber-400',
   lectura: 'bg-slate-500/15 text-slate-300',
+  contador: 'bg-emerald-500/15 text-emerald-400',
 } as const
 
 export function UsuariosTab() {

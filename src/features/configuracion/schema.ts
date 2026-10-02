@@ -94,7 +94,7 @@ export function formularioAEmpresa(f: EmpresaForm): TablesUpdate<'empresa'> {
 export const usuarioSchema = z.object({
   nombre,
   email: z.email('Email inválido'),
-  rol: z.enum(['admin', 'bodega', 'lectura']),
+  rol: z.enum(['admin', 'bodega', 'lectura', 'contador']),
 })
 
 export type UsuarioForm = z.infer<typeof usuarioSchema>
