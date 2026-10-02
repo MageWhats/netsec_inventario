@@ -8,7 +8,7 @@ import { Reporte } from '@/features/reportes/components/TablaReporte'
 import { describirRango, rangoEsteMes, type Rango } from '@/features/reportes/rangos'
 import { tablaDesdeColumnas, type ColumnaExportable } from '@/lib/exportar'
 import {
-  TIPOS_MANUALES,
+  TIPOS_COMPROBANTE,
   etiquetaComprobante,
   formatearDia,
   formatearValor,
@@ -47,7 +47,7 @@ export function TabDiario() {
   return (
     <Reporte
       titulo="Libro diario"
-      subtitulo={`${describirRango(rango)}${tipo ? ` · ${TIPOS_MANUALES[tipo as keyof typeof TIPOS_MANUALES]}` : ''}`}
+      subtitulo={`${describirRango(rango)}${tipo ? ` · ${TIPOS_COMPROBANTE[tipo]}` : ''}`}
       cargando={isLoading}
       error={error}
       puedeExportar={filas.length > 0}
@@ -63,7 +63,7 @@ export function TabDiario() {
             Tipo
             <select value={tipo} onChange={(e) => setTipo(e.target.value)} className="input mt-1 w-48">
               <option value="">Todos</option>
-              {Object.entries(TIPOS_MANUALES).map(([id, label]) => (
+              {Object.entries(TIPOS_COMPROBANTE).map(([id, label]) => (
                 <option key={id} value={id}>
                   {label}
                 </option>
@@ -83,7 +83,7 @@ export function TabDiario() {
         <EstadoVacio
           icono={BookOpen}
           titulo="No hay comprobantes en este período"
-          descripcion="Los comprobantes manuales los registra la contadora. Desde la fase 2, las entradas, ventas y ajustes de inventario generarán los suyos solos."
+          descripcion="Los comprobantes manuales los registra la contadora. Las entradas, ventas y ajustes de inventario generan los suyos solos desde la fecha de arranque."
           compacto
         />
       ) : (

@@ -884,11 +884,19 @@ export type Database = {
           anulado_por: string | null
           motivo_anulacion: string | null
           usuario_id: string | null
+          movimiento_id: string | null
           created_at: string
         }
         Insert: never
         Update: never
         Relationships: [
+          {
+            foreignKeyName: 'comprobantes_movimiento_id_fkey'
+            columns: ['movimiento_id']
+            isOneToOne: true
+            referencedRelation: 'movimientos'
+            referencedColumns: ['id']
+          },
           {
             foreignKeyName: 'comprobantes_usuario_id_fkey'
             columns: ['usuario_id']
@@ -1299,6 +1307,19 @@ export type Database = {
           debitos: number
           creditos: number
           saldo_final: number
+        }[]
+      }
+      contabilizar_movimientos_pendientes: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      conciliacion_inventario: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          saldo_contable: number
+          valor_inventario: number
+          diferencia: number
+          movimientos_pendientes: number
         }[]
       }
       auxiliar_cuenta: {

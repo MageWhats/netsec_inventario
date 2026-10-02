@@ -56,19 +56,39 @@ export const USUARIOS = {
 
 export type Usuario = keyof typeof USUARIOS
 
-/** Base nueva con todas las migraciones y un usuario de cada rol */
-export async function crearBase(): Promise<PGlite> {
-  const db = new PGlite({ extensions: { pgcrypto } })
-  await db.exec(SUPABASE_SIMULADO)
-  for (const archivo of readdirSync(MIGRACIONES)
+const migraciones = () =>
+  readdirSync(MIGRACIONES)
     .filter((f) => f.endsWith('.sql'))
-    .sort()) {
+    .sort()
+
+async function aplicar(db: PGlite, archivos: string[]) {
+  for (const archivo of archivos) {
     try {
       await db.exec(readFileSync(MIGRACIONES + archivo, 'utf8'))
     } catch (e) {
       throw new Error(`${archivo}: ${(e as Error).message}`, { cause: e })
     }
   }
+}
+
+/** Aplica las migraciones posteriores a `despues` (p. ej. '0022'): para probar una migración sobre datos existentes */
+export const aplicarMigracionesDesde = (db: PGlite, despues: string) =>
+  aplicar(
+    db,
+    migraciones().filter((f) => f.slice(0, 4) > despues),
+  )
+
+/**
+ * Base nueva con las migraciones (todas, o hasta `hasta` inclusive) y un usuario de cada rol.
+ * Los usuarios se crean al final, así que `hasta` debe incluir la migración del rol contador (0021).
+ */
+export async function crearBase(opciones: { hasta?: string } = {}): Promise<PGlite> {
+  const db = new PGlite({ extensions: { pgcrypto } })
+  await db.exec(SUPABASE_SIMULADO)
+  await aplicar(
+    db,
+    migraciones().filter((f) => !opciones.hasta || f.slice(0, 4) <= opciones.hasta),
+  )
   await db.exec(`
     insert into auth.users (id, email) values
       ('${USUARIOS.admin}', 'admin@netsec.test'),

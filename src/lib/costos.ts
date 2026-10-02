@@ -3,11 +3,11 @@ import { traerTodo } from './paginar'
 
 /*
  * Las columnas de costo (productos.precio_costo y movimiento_items.costo_unitario) no se pueden leer de
- * las tablas (migración 0015): se piden a estas funciones, que solo responden a admin y lectura.
+ * las tablas (migración 0015): se piden a estas funciones, que solo responden a admin, lectura y contador.
  * Para bodega devuelven mapas vacíos y el costo queda en 0 / null.
  */
 
-/** Costo promedio de cada producto, por id */
+/** Costo de cada producto (medio de sus capas PEPS), por id */
 export async function traerCostosProductos(): Promise<Map<string, number>> {
   const { filas } = await traerTodo(
     (desde, hasta) => supabase.rpc('costos_productos').order('producto_id').range(desde, hasta),

@@ -11,7 +11,8 @@ import { usePermisos } from '@/features/auth/permisos'
 import { mensajeError } from '@/lib/errores'
 import { formatearFecha } from '@/lib/format'
 import { tablaDesdeColumnas } from '@/lib/exportar'
-import { TIPOS_MANUALES, etiquetaComprobante, formatearDia, useAnularComprobante, useComprobante } from './api'
+import { formatearNumero } from '@/features/movimientos/tipos'
+import { TIPOS_COMPROBANTE, TIPOS_MANUALES, etiquetaComprobante, formatearDia, useAnularComprobante, useComprobante } from './api'
 import { columnasLineas } from './components/columnasLineas'
 import { TablaLineas } from './components/TablaLineas'
 
@@ -26,7 +27,7 @@ export function ComprobanteDetallePage() {
   if (!comprobante) return <p className="text-sm text-slate-400">El comprobante no existe.</p>
 
   const etiqueta = etiquetaComprobante(comprobante)
-  const tipo = TIPOS_MANUALES[comprobante.tipo as keyof typeof TIPOS_MANUALES] ?? comprobante.tipo
+  const tipo = TIPOS_COMPROBANTE[comprobante.tipo] ?? comprobante.tipo
   const anulable =
     llevaContabilidad && comprobante.tipo in TIPOS_MANUALES && !comprobante.anulado_at && !comprobante.anula_id
 
@@ -63,6 +64,15 @@ export function ComprobanteDetallePage() {
               Ver {etiquetaComprobante(comprobante.anulacion)}
             </Link>
           )}
+        </p>
+      )}
+      {comprobante.movimiento && (
+        <p className="mb-4 rounded-lg bg-blue-500/10 px-4 py-3 text-sm text-blue-400">
+          Lo generó el movimiento de inventario{' '}
+          <Link to={`/movimientos/${comprobante.movimiento.id}`} className="underline">
+            {formatearNumero(comprobante.movimiento)}
+          </Link>
+          . No se anula aquí: si el movimiento estaba errado, se anula el movimiento.
         </p>
       )}
       {comprobante.original && (

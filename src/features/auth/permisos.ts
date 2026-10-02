@@ -9,7 +9,7 @@ export const ROLES: Record<Rol, { label: string; descripcion: string }> = {
   admin: { label: 'Administrador', descripcion: 'Acceso total, incluida la configuración y los usuarios' },
   bodega: {
     label: 'Bodega',
-    descripcion: 'Registra entradas, salidas y conteos. No ve costos promedio, márgenes ni reportes',
+    descripcion: 'Registra entradas, salidas y conteos. No ve costos, márgenes ni reportes',
   },
   lectura: { label: 'Solo lectura', descripcion: 'Ve todo, incluidos costos y reportes, pero no modifica nada' },
   contador: {
@@ -43,7 +43,7 @@ export interface Permisos {
   esAdmin: boolean
   /** Registrar entradas y salidas, y contar en tomas de inventario */
   puedeOperar: boolean
-  /** Costo promedio, márgenes, valor del inventario y reportes */
+  /** Costos, márgenes, valor del inventario y reportes */
   verCostos: boolean
   /** Consultar la contabilidad: comprobantes, libros y balance */
   verContabilidad: boolean

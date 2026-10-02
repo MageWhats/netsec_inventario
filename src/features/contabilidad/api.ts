@@ -21,6 +21,12 @@ export const TIPOS_MANUALES = {
 } as const
 export type TipoManual = keyof typeof TIPOS_MANUALES
 
+/** Todos los tipos, incluidos los que generan los documentos (fase 2: movimientos de inventario) */
+export const TIPOS_COMPROBANTE: Record<string, string> = {
+  ...TIPOS_MANUALES,
+  MI: 'Movimiento de inventario',
+}
+
 export const NIVELES: Record<number, string> = {
   1: 'Clase',
   2: 'Grupo',
@@ -74,11 +80,58 @@ export const contabilidadKeys = {
   balance: (desde: string, hasta: string) => [...contabilidadKeys.all, 'balance', desde, hasta] as const,
   auxiliar: (cuenta: string, desde: string, hasta: string) =>
     [...contabilidadKeys.all, 'auxiliar', cuenta, desde, hasta] as const,
+  conciliacion: () => [...contabilidadKeys.all, 'conciliacion'] as const,
+  deMovimiento: (movimientoId: string) => [...contabilidadKeys.all, 'movimiento', movimientoId] as const,
 }
 
 function useInvalidar() {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: contabilidadKeys.all })
+}
+
+// ---------------------------------------------------------------------
+// Inventario contable (fase 2): comprobante de cada movimiento y conciliación
+// ---------------------------------------------------------------------
+
+/** El comprobante MI que generó un movimiento de inventario (null si no tiene) */
+export function useComprobanteDeMovimiento(movimientoId: string, enabled = true) {
+  return useQuery({
+    queryKey: contabilidadKeys.deMovimiento(movimientoId),
+    enabled: enabled && Boolean(movimientoId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('comprobantes')
+        .select('id, tipo, numero')
+        .eq('movimiento_id', movimientoId)
+        .maybeSingle()
+      if (error) throw error
+      return data
+    },
+  })
+}
+
+/** Saldo contable del inventario contra el valor de las capas PEPS */
+export function useConciliacionInventario() {
+  return useQuery({
+    queryKey: contabilidadKeys.conciliacion(),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('conciliacion_inventario')
+      if (error) throw error
+      return data[0] ?? null
+    },
+  })
+}
+
+export function useContabilizarPendientes() {
+  const invalidar = useInvalidar()
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('contabilizar_movimientos_pendientes')
+      if (error) throw error
+      return data
+    },
+    onSuccess: invalidar,
+  })
 }
 
 // ---------------------------------------------------------------------
@@ -292,6 +345,7 @@ export interface FiltroComprobantes {
 const SELECT_COMPROBANTE = `
   *,
   usuario:perfiles!comprobantes_usuario_id_fkey(nombre),
+  movimiento:movimientos(id, numero, tipo),
   asientos(
     id, linea, cuenta, descripcion, debito, credito, cliente_id, proveedor_id, tercero_id,
     cuenta_info:cuentas(nombre),

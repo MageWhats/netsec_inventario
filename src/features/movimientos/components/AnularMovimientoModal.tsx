@@ -83,13 +83,13 @@ function Formulario({ movimiento, onClose }: Omit<AnularMovimientoModalProps, 'o
         <ul className="mt-2 list-disc space-y-1 pl-5">
           {esVenta ? (
             <>
-              <li>La mercancía vuelve a la bodega, al costo con el que salió, y los seriales quedan disponibles.</li>
+              <li>La mercancía vuelve a la bodega, a las mismas capas de costo (PEPS) de las que salió, y los seriales quedan disponibles.</li>
               <li>La venta deja de contar en reportes, en el dashboard y en la cartera.</li>
               {movimiento.cotizacion_id && <li>La cotización de la que salió vuelve a quedar abierta.</li>}
             </>
           ) : (
             <>
-              <li>Sale de la bodega lo que entró y el costo promedio se recalcula sin esta entrada.</li>
+              <li>Sale de la bodega lo que entró, a su mismo costo. Solo se puede si nada de esta entrada ha salido (PEPS).</li>
               <li>Los seriales quedan de baja, con «-ANULADO» en el serial, para poder registrarlos de nuevo.</li>
               {movimiento.orden_compra_id && <li>La orden de compra vuelve a esperar esta mercancía.</li>}
             </>

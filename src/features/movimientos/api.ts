@@ -203,6 +203,8 @@ export function useRegistrarMovimiento() {
         queryClient.invalidateQueries({ queryKey: ['productos'] }),
         queryClient.invalidateQueries({ queryKey: ['clientes'] }),
         queryClient.invalidateQueries({ queryKey: ['proveedores'] }),
+        // Cada movimiento genera su comprobante contable (migración 0023)
+        queryClient.invalidateQueries({ queryKey: ['contabilidad'] }),
       ]),
   })
 }
@@ -225,6 +227,7 @@ export function useRegistrarVenta() {
         queryClient.invalidateQueries({ queryKey: ['clientes'] }),
         queryClient.invalidateQueries({ queryKey: ['cotizaciones'] }),
         queryClient.invalidateQueries({ queryKey: ['cartera'] }),
+        queryClient.invalidateQueries({ queryKey: ['contabilidad'] }),
       ]),
   })
 }
@@ -276,6 +279,7 @@ export function useAnularMovimiento() {
           'ordenes-compra',
           'reportes',
           'dashboard',
+          'contabilidad',
         ].map((clave) => queryClient.invalidateQueries({ queryKey: [clave] })),
       ),
   })

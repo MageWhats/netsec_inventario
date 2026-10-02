@@ -238,7 +238,7 @@ export function useGuardarProducto() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async ({ id, valores }: { id?: string; valores: TablesInsert<'productos'> }) => {
-      // El costo lo calcula la base de datos con cada entrada (costo promedio): al editar no se envía
+      // El costo lo calcula la base de datos con cada entrada (PEPS): al editar no se envía
       const query = id
         ? supabase.from('productos').update({ ...valores, precio_costo: undefined }).eq('id', id)
         : supabase.from('productos').insert(valores)

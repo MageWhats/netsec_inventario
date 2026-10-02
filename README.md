@@ -96,6 +96,13 @@ Las migraciones están en `supabase/migrations/` y se ejecutan **en orden** en S
     cuenta lo exige. No se editan ni se borran: se anulan con el comprobante inverso. Un mes cerrado no recibe nada;
     solo el contador lo reabre, con motivo. Después de ejecutarla, en Configuración → Usuarios se le asigna el rol
     *Contador* a la contadora, y ella define la fecha de arranque en Contabilidad → Configuración.
+23. `0023_peps_y_asientos_inventario.sql`: contabilidad, fase 2. El costo pasa de promedio ponderado a **PEPS**: cada
+    entrada crea una capa de costo y cada salida consume primero las más antiguas (`capas_costo`, `consumos_capa`).
+    Anular una venta devuelve lo consumido a las mismas capas; una entrada solo se anula si nada de ella ha salido.
+    Las capas se reconstruyen con el historial sin cambiar el costo de ningún movimiento ya registrado. Desde la fecha
+    de arranque, cada movimiento genera su comprobante **MI** (entrada: inventario contra el proveedor; venta: costo de
+    ventas; ajustes: la subcuenta de su motivo). Por eso las entradas exigen el proveedor y no se registran
+    movimientos con fecha de un mes cerrado. Contabilidad → Configuración muestra la conciliación del inventario.
 
 Reglas clave:
 
@@ -160,7 +167,7 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 | Contar en tomas de inventario | ✅ | ✅ | ❌ | ❌ |
 | Finalizar o cancelar tomas (generan ajustes) y ajustes manuales | ✅ | ❌ | ❌ | ❌ |
 | Crear o editar productos, clientes y proveedores | ✅ | ❌ | ❌ | ❌ |
-| Costo promedio, márgenes, valor del inventario y reportes | ✅ | ❌ | ✅ | ✅ |
+| Costos, márgenes, valor del inventario y reportes | ✅ | ❌ | ✅ | ✅ |
 | Ver órdenes de compra | ✅ | ❌ | ✅ | ✅ |
 | Crear, recibir y cancelar órdenes de compra; importar productos | ✅ | ❌ | ❌ | ❌ |
 | Crear, editar y convertir cotizaciones en venta | ✅ | ✅ | ❌ | ❌ |
@@ -173,7 +180,7 @@ Si algo falla, desactiva el CAPTCHA en ese mismo panel de Supabase y el login vu
 | Reabrir un mes cerrado | ❌ | ❌ | ❌ | ✅ |
 | Configuración (categorías, bodegas, usuarios, empresa) | ✅ | ❌ | ❌ | ❌ |
 
-Bodega digita el costo de la factura al registrar una entrada, pero no ve el costo promedio ni los márgenes. Esto
+Bodega digita el costo de la factura (con IVA) al registrar una entrada, pero no ve los costos ni los márgenes. Esto
 también lo aplica la base de datos (migración 0015): las columnas de costo no se pueden leer de las tablas y solo las
 entregan las funciones `costos_productos()` y `costos_lineas()`, que responden únicamente a *admin* y *lectura*.
 

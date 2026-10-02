@@ -7,6 +7,7 @@ import { LogoImpresion } from '@/components/ui/Logo'
 import { usePermisos } from '@/features/auth/permisos'
 import { PagosVenta } from '@/features/cartera/components/PagosVenta'
 import { etiquetaDocumento } from '@/features/clientes/schema'
+import { etiquetaComprobante, useComprobanteDeMovimiento } from '@/features/contabilidad/api'
 import { useTrazabilidadMovimiento } from '@/features/productos/api'
 import { Trazabilidad } from '@/features/productos/components/Trazabilidad'
 import { useEmpresa } from '@/features/configuracion/api'
@@ -27,7 +28,8 @@ export function MovimientoDetallePage() {
   const { data: enlazados } = useMovimientosEnlazados(movimiento)
   const { data: trazabilidad } = useTrazabilidadMovimiento(movimiento)
   const grupos = useMemo(() => (movimiento ? agruparPorProducto(movimiento) : []), [movimiento])
-  const { esAdmin, verCostos } = usePermisos()
+  const { esAdmin, verCostos, verContabilidad } = usePermisos()
+  const { data: comprobante } = useComprobanteDeMovimiento(id, verContabilidad)
   const { data: empresa } = useEmpresa()
   const [generandoPdf, setGenerandoPdf] = useState<'descargar' | 'imprimir' | null>(null)
   const [errorPdf, setErrorPdf] = useState<string | null>(null)
@@ -224,6 +226,13 @@ export function MovimientoDetallePage() {
             </Dato>
           )}
           <Dato label="Registrado por">{movimiento.usuario}</Dato>
+          {comprobante && (
+            <Dato label="Comprobante contable">
+              <Link to={`/contabilidad/comprobantes/${comprobante.id}`} className="font-mono hover:text-brand-cyan">
+                {etiquetaComprobante(comprobante)}
+              </Link>
+            </Dato>
+          )}
           {enlazados?.origen && (
             <Dato label="Devolución de la venta">
               <Link to={`/movimientos/${enlazados.origen.id}`} className="font-mono hover:text-brand-cyan">

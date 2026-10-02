@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2 } from 'lucide-react'
+import { CheckCircle2, Loader2, TriangleAlert } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { FormField } from '@/components/ui/FormField'
 import { LoadingBlock } from '@/components/ui/LoadingBlock'
@@ -8,8 +8,11 @@ import {
   codigosConHijas,
   formatearDia,
   useActualizarConfiguracion,
+  formatearValor,
   useActualizarParametro,
+  useConciliacionInventario,
   useConfiguracionContable,
+  useContabilizarPendientes,
   useCuentas,
   useParametros,
   type ConfiguracionContable,
@@ -24,6 +27,7 @@ export function TabConfiguracion() {
   return (
     <div className="space-y-6">
       <FormConfiguracion key={config.data.updated_at} config={config.data} />
+      {config.data.fecha_inicio && <Conciliacion />}
       <Parametros />
     </div>
   )
@@ -176,6 +180,66 @@ function FormConfiguracion({ config }: { config: ConfiguracionContable }) {
         )}
       </fieldset>
     </form>
+  )
+}
+
+/** El saldo contable del inventario debe ser igual al valor de las capas PEPS */
+function Conciliacion() {
+  const { llevaContabilidad } = usePermisos()
+  const { data, isLoading, error } = useConciliacionInventario()
+  const contabilizar = useContabilizarPendientes()
+
+  if (isLoading) return <LoadingBlock />
+  if (error) return <p className="text-sm text-red-400">{mensajeError(error)}</p>
+  if (!data) return null
+  const cuadra = Math.round(data.diferencia * 100) === 0
+
+  return (
+    <section className="rounded-2xl border border-brand-border bg-brand-card p-5">
+      <h2 className="font-semibold">Inventario: contabilidad contra existencias</h2>
+      <p className="mt-1 text-sm text-slate-400">
+        El saldo de la cuenta de inventario debe ser igual al valor de las existencias a costo PEPS. Para que cuadre, el
+        comprobante de saldos iniciales debe incluir el inventario del día de arranque.
+      </p>
+      <dl className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div>
+          <dt className="text-xs text-slate-400 uppercase">Saldo contable</dt>
+          <dd className="text-lg font-semibold">{formatearValor(data.saldo_contable)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-slate-400 uppercase">Valor de las existencias</dt>
+          <dd className="text-lg font-semibold">{formatearValor(data.valor_inventario)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-slate-400 uppercase">Diferencia</dt>
+          <dd className={`flex items-center gap-1 text-lg font-semibold ${cuadra ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {cuadra ? <CheckCircle2 className="size-4" /> : <TriangleAlert className="size-4" />}
+            {cuadra ? 'Cuadra' : formatearValor(data.diferencia)}
+          </dd>
+        </div>
+      </dl>
+      {data.movimientos_pendientes > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-amber-500/10 px-4 py-3 text-sm text-amber-400">
+          <span className="flex-1">
+            {data.movimientos_pendientes === 1
+              ? 'Hay 1 movimiento desde el arranque sin contabilizar'
+              : `Hay ${data.movimientos_pendientes} movimientos desde el arranque sin contabilizar`}{' '}
+            (se registraron antes de definir la fecha de arranque).
+          </span>
+          {llevaContabilidad && (
+            <button onClick={() => contabilizar.mutate()} disabled={contabilizar.isPending} className="btn btn-secondary">
+              {contabilizar.isPending && <Loader2 className="size-4 animate-spin" />}
+              Contabilizarlos
+            </button>
+          )}
+        </div>
+      )}
+      {contabilizar.error && (
+        <p role="alert" className="mt-2 text-sm text-red-400">
+          {mensajeError(contabilizar.error)}
+        </p>
+      )}
+    </section>
   )
 }
 

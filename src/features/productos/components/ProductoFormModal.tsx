@@ -233,7 +233,7 @@ export function ProductoFormModal({ open, onClose, producto, onSaved }: Producto
 
         <div className="grid gap-4 sm:grid-cols-3">
           <FormField
-            label={editando ? 'Costo promedio' : 'Costo inicial'}
+            label={editando ? 'Costo (PEPS)' : 'Costo inicial'}
             error={errors.precio_costo?.message}
             hint={
               editando

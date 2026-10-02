@@ -7,8 +7,9 @@ beforeAll(async () => {
   db = await crearBase()
 })
 
-describe('costo promedio ponderado', () => {
-  it('promedia cada entrada con el stock que había', async () => {
+// Migración 0023: PEPS. precio_costo es el costo medio de lo que queda en las capas
+describe('costo PEPS', () => {
+  it('el costo del producto es el medio de lo que queda en las capas', async () => {
     const p = await crearProducto(db, { nombre: 'Cable UTP' })
     await registrar(db, 'admin', 'entrada', [{ producto_id: p, cantidad: 10, costo_unitario: 1000 }])
     expect(await costoPromedio(db, p)).toBe(1000)
@@ -19,21 +20,30 @@ describe('costo promedio ponderado', () => {
     expect(await stock(db, p)).toBe(40)
   })
 
-  it('las salidas salen al costo promedio y no lo cambian', async () => {
+  it('las salidas consumen primero lo más antiguo', async () => {
     const p = await crearProducto(db, { nombre: 'Conector RJ45' })
     await registrar(db, 'admin', 'entrada', [{ producto_id: p, cantidad: 4, costo_unitario: 100 }])
     await registrar(db, 'admin', 'entrada', [{ producto_id: p, cantidad: 4, costo_unitario: 300 }])
-    const venta = await registrar(db, 'bodega', 'salida', [{ producto_id: p, cantidad: 3, precio_unitario: 500 }])
+    const venta1 = await registrar(db, 'bodega', 'salida', [{ producto_id: p, cantidad: 3, precio_unitario: 500 }])
+    // Toma 1 de la primera capa (100) y 2 de la segunda (300): (100 + 600) / 3 = 233,33
+    const venta2 = await registrar(db, 'bodega', 'salida', [{ producto_id: p, cantidad: 3, precio_unitario: 500 }])
 
-    const linea = await unaComo<{ costo_unitario: string }>(
-      db,
-      'admin',
-      'select * from public.costos_lineas(p_movimiento_id => $1)',
-      [venta],
-    )
-    expect(Number(linea.costo_unitario)).toBe(200)
-    expect(await costoPromedio(db, p)).toBe(200)
-    expect(await stock(db, p)).toBe(5)
+    const costo = async (id: string) =>
+      Number(
+        (
+          await unaComo<{ costo_unitario: string }>(
+            db,
+            'admin',
+            'select * from public.costos_lineas(p_movimiento_id => $1)',
+            [id],
+          )
+        ).costo_unitario,
+      )
+    expect(await costo(venta1)).toBe(100)
+    expect(await costo(venta2)).toBe(233.33)
+    // Quedan 2 de la segunda capa
+    expect(await costoPromedio(db, p)).toBe(300)
+    expect(await stock(db, p)).toBe(2)
   })
 
   it('si el stock llegó a cero, la siguiente entrada fija el costo', async () => {

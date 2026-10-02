@@ -28,7 +28,7 @@ const columnas: Columna<Producto>[] = [
   { titulo: 'Categoría', valor: (p) => p.categoria?.nombre ?? 'Sin categoría' },
   { titulo: 'Stock', valor: (p) => p.stock, numerica: true, total: (s) => s.toLocaleString('es-CO') },
   { titulo: 'Mínimo', valor: (p) => p.stock_minimo, numerica: true },
-  { titulo: 'Costo promedio', valor: (p) => p.precio_costo, mostrar: (p) => formatearPrecio(p.precio_costo), numerica: true },
+  { titulo: 'Costo (PEPS)', valor: (p) => p.precio_costo, mostrar: (p) => formatearPrecio(p.precio_costo), numerica: true },
   {
     titulo: 'Valor a costo',
     valor: (p) => Math.max(p.stock, 0) * p.precio_costo,

@@ -33,7 +33,7 @@ export const usaPrecioVenta = (tipo: TipoMovimiento) => tipo === 'salida'
 export const destinoPorMotivo = (motivo: MotivoAjuste | ''): EstadoUnidad =>
   motivo === 'producto_danado' ? 'danada' : motivo === 'envio_garantia' ? 'en_garantia' : 'baja'
 
-/** verCostos = false: el costo no se precarga con el costo promedio (hay que digitar el de la factura) */
+/** verCostos = false: el costo no se precarga con el costo del producto (hay que digitar el de la factura) */
 export function nuevaLinea(producto: Producto, tipo: TipoMovimiento, verCostos = true): Linea {
   return {
     key: crypto.randomUUID(),

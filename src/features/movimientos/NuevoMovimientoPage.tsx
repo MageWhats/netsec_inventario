@@ -250,6 +250,8 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
   if (esAjuste(tipo) && !motivo) erroresCabecera.motivo = 'Elige el motivo del ajuste.'
   if (motivo === 'otro' && !notas.trim()) erroresCabecera.notas = 'Describe el motivo del ajuste.'
   if (esDevolucion && !origenId) erroresCabecera.origen = 'Elige la venta que el cliente devuelve.'
+  // La entrada se contabiliza a nombre del proveedor (cuenta 2205)
+  if (tipo === 'entrada' && !ordenId && !proveedorId) erroresCabecera.proveedor = 'Elige el proveedor de la mercancía.'
   if (tipo === 'salida' && conFactura && !referencia.trim()) {
     erroresCabecera.referencia = 'Escribe el número de la factura electrónica o desmarca la casilla.'
   }
@@ -484,7 +486,11 @@ function NuevoMovimientoForm({ tipo }: { tipo: TipoMovimiento }) {
               </FormField>
             )}
             {tipo === 'entrada' && !ordenId && (
-              <FormField label="Proveedor">
+              <FormField
+                label="Proveedor *"
+                error={mostrarErrores ? erroresCabecera.proveedor : undefined}
+                hint="El costo de cada producto va con el IVA incluido"
+              >
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <Combobox

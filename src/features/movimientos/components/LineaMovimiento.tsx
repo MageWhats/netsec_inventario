@@ -27,7 +27,7 @@ interface LineaMovimientoProps {
 export function LineaMovimiento({ tipo, linea, error, onChange, onRemove, devolucion }: LineaMovimientoProps) {
   const { producto } = linea
   const esEntrada = tiposMovimiento[tipo].esEntrada
-  /** Ajuste − sale al costo promedio y una devolución vuelve al costo de su venta: el servidor los fija */
+  /** Ajuste − sale por PEPS y una devolución vuelve al costo de su venta: el servidor los fija */
   const costoFijo = tipo === 'ajuste_salida' || Boolean(devolucion)
 
   return (
@@ -144,7 +144,7 @@ export function LineaMovimiento({ tipo, linea, error, onChange, onRemove, devolu
             : devolucion
               ? 'Costo (el de la venta)'
               : costoFijo
-                ? 'Costo promedio'
+                ? 'Costo estimado (PEPS)'
                 : 'Costo unitario'}
           <input
             type="number"
@@ -155,7 +155,7 @@ export function LineaMovimiento({ tipo, linea, error, onChange, onRemove, devolu
               devolucion
                 ? 'Vuelve al costo con el que salió en la venta'
                 : costoFijo
-                  ? 'Lo que sale del inventario sale al costo promedio'
+                  ? 'Lo que sale del inventario toma el costo de las entradas más antiguas (PEPS); este valor es una estimación'
                   : undefined
             }
             value={Number.isFinite(linea.valorUnitario) ? linea.valorUnitario : ''}
